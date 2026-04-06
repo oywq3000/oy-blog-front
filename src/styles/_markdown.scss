@@ -1,0 +1,232 @@
+@use './variables' as *;
+
+@mixin markdown-styles {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: $color-text-secondary;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  @media (max-width: $breakpoint-mobile) {
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  // Override MD Editor CSS Variables for transparency
+  --md-bk-color: transparent !important;
+  --md-content-bk-color: transparent !important;
+  
+  // Force root editor to be transparent
+  :deep(.md-editor) {
+    background: transparent !important;
+    --md-bk-color: transparent !important;
+    --md-content-bk-color: transparent !important;
+  }
+
+  :deep(.md-editor-content) {
+    background: transparent !important;
+  }
+
+  // Target the specific md-editor-preview class for overrides
+  :deep(.md-editor-preview-wrapper) {
+    background: transparent !important;
+    padding: 0;
+  }
+
+  :deep(.md-editor-preview) {
+    background: transparent !important;
+    color: inherit;
+    font-family: inherit;
+    padding: 0;
+    
+    img {
+        loading: lazy;
+        max-width: 100%;
+        height: auto;
+        display: inline-block; // Changed from block to inline-block for side-by-side badges
+        vertical-align: middle;
+        will-change: transform;
+        border-radius: $radius-md;
+        margin: $spacing-xs $spacing-xs; // Adjusted margin for inline flow
+        background: transparent !important;
+    }
+  }
+
+  // Code block header fixes
+  :deep(.md-editor-code-head) {
+    padding: 0px 12px !important;
+    height: 36px !important;
+    display: flex !important;
+    align-items: center !important;
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-radius: 8px 8px 0 0 !important;
+    margin-bottom: 0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-bottom: none !important;
+
+    :global(.dark) & {
+       background: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    // Fix button alignment
+    .md-editor-copy-button {
+      top: auto !important;
+      right: auto !important;
+      position: static !important; // Use static to participate in flex flow
+      margin-left: 12px !important; // Space from language label
+      margin-right: 12px !important; // Space from fold button (if any)
+      transform: none !important;
+    }
+    
+    // Fix language text alignment
+    .md-editor-code-lang {
+      line-height: 36px !important;
+      height: 36px !important;
+      margin-left: auto !important; // Push to right side
+      margin-right: 0 !important; // Remove right margin, use copy button's margin
+    }
+  }
+
+  :deep(.md-editor-code) {
+    background: transparent !important;
+    border: none !important;
+    margin-bottom: $spacing-md !important;
+    
+    pre {
+      padding: $spacing-md !important;
+      margin-bottom: 0 !important;
+      border-radius: 0 0 8px 8px !important; // Rounded bottom only
+      background: rgba(0, 0, 0, 0.03) !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
+      border-top: none !important;
+
+      :global(.dark) & {
+        background: rgba(0, 0, 0, 0.3) !important;
+      }
+
+      code {
+        background: transparent !important;
+        font-family: $font-family-code !important;
+      }
+    }
+  }
+
+  // Target HTML elements (works for both v-html and MdPreview's inner content if scoped correctly)
+  
+  :deep(h1), :deep(h2), :deep(h3), :deep(h4), :deep(h5), :deep(h6) {
+     color: $color-text-primary;
+  }
+
+  :deep(h2) {
+    font-size: 1.8rem;
+    margin: $spacing-xl 0 $spacing-md;
+    
+    @media (max-width: $breakpoint-mobile) {
+      font-size: 1.4rem;
+      margin: $spacing-lg 0 $spacing-sm;
+    }
+  }
+
+  :deep(p) {
+    margin-bottom: $spacing-md;
+    
+    &[align="center"] {
+      text-align: center;
+      img { margin: 0 auto; }
+    }
+  }
+
+  :deep(ul), :deep(ol) {
+    margin-bottom: $spacing-md;
+    padding-left: $spacing-lg;
+    li { margin-bottom: $spacing-xs; }
+  }
+
+  :deep(blockquote) {
+    margin: $spacing-md 0;
+    padding: $spacing-md;
+    border-left: 4px solid $color-accent-primary;
+    background: rgba($color-accent-primary, 0.05);
+    border-radius: 0 8px 8px 0;
+    color: $color-text-secondary;
+    p { margin: 0; }
+  }
+
+  // Remove manual pre styling that might conflict with md-editor-code
+  // We handle pre inside .md-editor-code above now
+
+  :deep(table) {
+    display: block;
+    width: fit-content;
+    overflow-x: auto;
+    max-width: 100%;
+    margin-bottom: $spacing-md;
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid $color-border !important;
+    background: transparent !important;
+    
+    &[align="center"] {
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    tr { background-color: transparent !important; }
+    tr:nth-child(2n) { background-color: rgba(0, 0, 0, 0.02) !important; }
+    
+    th, td {
+      padding: $spacing-sm $spacing-md;
+      border-right: 1px solid $color-border !important;
+      border-bottom: 1px solid $color-border !important;
+      border-left: none !important;
+      border-top: none !important;
+      min-width: 6.25rem;
+      color: $color-text-primary;
+      background-color: transparent !important;
+      vertical-align: top;
+      
+      &:last-child { border-right: none !important; }
+      
+      ul, ol {
+        padding-left: 1.2rem;
+        margin-bottom: 0;
+      }
+    }
+
+    tr:last-child td { border-bottom: none !important; }
+
+    th {
+      background: rgba(0, 0, 0, 0.04) !important;
+      font-weight: 600;
+      text-align: left;
+    }
+
+    @media (max-width: $breakpoint-mobile) {
+      display: block;
+      border: none !important;
+      border-radius: 0;
+      
+      tbody { display: block; }
+      tr {
+        display: flex;
+        flex-wrap: wrap;
+        margin-bottom: $spacing-md;
+        border-radius: 8px;
+        border: 1px solid $color-border !important;
+        overflow: hidden;
+      }
+      td {
+        width: 100% !important;
+        display: block;
+        border-right: none !important;
+        border-left: none !important; 
+        border-top: none !important;
+        border-bottom: 1px solid $color-border !important;
+        &:last-child { border-bottom: none !important; }
+      }
+      thead { display: none; }
+    }
+  }
+}

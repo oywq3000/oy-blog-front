@@ -2,11 +2,11 @@
 import { ref, watch, onMounted, onUpdated, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import TagsCard from '../components/TagsCard.vue';
+/* import TagsCard from '../components/TagsCard.vue';
 import SeriesCard from '../components/SeriesCard.vue';
 import RecommendedCard from '../components/RecommendedCard.vue';
 import UserCard from '../components/UserCard.vue';
-import ArticleToc from '../components/ArticleToc.vue';
+import ArticleToc from '../components/ArticleToc.vue'; */
 import TagBadge from '../components/TagBadge.vue';
 import IconUser from '../components/icons/IconUser.vue';
 import IconLike from '../components/icons/IconLike.vue';
@@ -14,11 +14,11 @@ import IconStar from '../components/icons/IconStar.vue';
 import IconShare from '../components/icons/IconShare.vue';
 import CommentItem, { type Comment as UIComment } from '../components/CommentItem.vue';
 import { useToast } from '../composables/useToast';
-import { 
-  getArticleBySlug, 
-  getArticleContent, 
+import {
+  getArticleBySlug,
+  getArticleContent,
   getArticleChapters,
-  likeArticle, 
+  likeArticle,
   unlikeArticle,
   checkIsLiked,
   checkIsFavorited,
@@ -28,19 +28,20 @@ import {
   unfavoriteArticle,
   checkArticleOwnership,
   type Article,
-  type ArticleChapter
+  type ArticleChapter,
+  type UserArticleStats
 } from '../api/article';
-import { 
-  getComments, 
-  getReplies, 
+import {
+  getComments,
+  getReplies,
   getCommentCount,
-  addComment, 
-  replyComment, 
+  addComment,
+  replyComment,
   reactToComment,
   type Comment as APIComment,
-  type CommentReply as APICommentReply 
+  type CommentReply as APICommentReply
 } from '../api/comment';
-import { getUserPublicProfile } from '../api/user';
+import { getUserPublicProfile, getSimpleUserProfile, type SimpleUserProfile } from '../api/user';
 import { useUserStore } from '../store/user';
 // import { MdPreview } from 'md-editor-v3'; // Removed, using MarkdownViewer
 // import 'md-editor-v3/lib/preview.css'; // Removed
@@ -94,6 +95,8 @@ const { addToast } = useToast();
 // Article Data
 const article = ref<Article | null>(null);
 const isOwner = ref(false);
+const authorInfo = ref<UserArticleStats | null>(null);
+const simpleAuthorProfile = ref<SimpleUserProfile | null>(null)
 const authorName = ref(''); // Reactive state for author name
 const articleContent = ref(''); // Stores Markdown
 const articleHtml = ref(''); // Stores HTML fallback
@@ -122,7 +125,7 @@ const mapComment = (c: APIComment): UIComment => {
     id: c.id,
     // Prefer username from API response, fallback to userId, then "User"
     user: c.username || c.userId || 'User',
-    userId: c.userId, 
+    userId: c.userId,
     avatar: c.avatar || undefined,
     // Backend uses commentAt as the primary timestamp
     date: c.commentAt,
@@ -134,7 +137,7 @@ const mapComment = (c: APIComment): UIComment => {
     replies: [],
     replyCount: c.replyCount || 0 // Map replyCount
   };
-  
+
   // Flag to indicate if we need to fetch replies
   // We don't rely on this flag anymore for auto-fetching, but we use replyCount for the button.
   // if (c.hasReply === 1 && (!c.replies || c.replies.length === 0)) {
@@ -145,10 +148,10 @@ const mapComment = (c: APIComment): UIComment => {
   if (c.replies && c.replies.length > 0) {
     const replyMap = new Map<number, UIComment>();
     const replies = c.replies.map(mapReplyToUI);
-    
+
     // Index all replies
     replies.forEach(r => replyMap.set(r.id, r));
-    
+
     // Build hierarchy
     c.replies.forEach((rawReply, index) => {
       const uiReply = replies[index];
@@ -170,39 +173,49 @@ const mapComment = (c: APIComment): UIComment => {
 
 
 // Cache for usernames to avoid duplicate requests
-const usernameCache = new Map<string, string>();
+const usernameCache = new Map<string, UserArticleStats>();
+const simpleUserProfileCache = new Map<string, SimpleUserProfile>();
+
+
+const fetchSimpleUserInfo = async (userId: string) => {
+  if (!userId || usernameCache.has(userId)) return usernameCache.get(userId);
+  try {
+    const res = await getSimpleUserProfile(userId);
+    if (res.isSuccess && res.data) {
+      const author = res.data;
+      if (author) {
+        simpleUserProfileCache.set(userId, author); // Cache using the ORIGINAL userId as key
+        return author;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch username for', userId, e);
+  }
+  return null;
+}
+
+
+const fetchUserInfo = async (userId: string) => {
+  if (!userId || usernameCache.has(userId)) return usernameCache.get(userId);
+  try {
+    const res = await getUserPublicProfile(userId);
+    if (res.isSuccess && res.data) {
+      const author = res.data;
+      if (author) {
+        usernameCache.set(userId, author); // Cache using the ORIGINAL userId as key
+        return author;
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch username for', userId, e);
+  }
+  return null;
+}
 
 const fetchUsername = async (userId: string) => {
-  if (!userId || usernameCache.has(userId)) return usernameCache.get(userId);
-  
-  // Check if userId looks like a UUID (32 chars hex) 
-  // OR if it starts with "User-" followed by 32 chars hex (which seems to be the backend default)
-  const isRawId = userId.length === 32 && /^[0-9a-fA-F]+$/.test(userId);
-  const isDefaultUser = userId.startsWith('User-') && userId.length === 37; // "User-" + 32 chars
+  return null;
+}
 
-  if (isRawId || isDefaultUser) {
-      // Extract raw ID if it's in "User-..." format
-      const rawId = isDefaultUser ? userId.substring(5) : userId;
-      
-      try {
-        const res = await getUserPublicProfile(rawId);
-        // API returns { isSuccess: true, data: { username: "Patton174" } }
-        // Or sometimes data IS the username string?
-        // Based on user input: "data": { "username": "Patton174" }
-        
-        if (res.isSuccess && res.data) {
-           const name = typeof res.data === 'object' ? res.data.username : res.data;
-           if (name) {
-              usernameCache.set(userId, name); // Cache using the ORIGINAL userId as key
-              return name;
-           }
-        }
-      } catch (e) {
-        console.error('Failed to fetch username for', rawId, e);
-      }
-  }
-  return userId;
-};
 
 const loadComments = async (articleId: string) => {
   try {
@@ -212,7 +225,7 @@ const loadComments = async (articleId: string) => {
       // Based on user feedback: "data": [ { ... }, { ... } ]
       const rawComments = Array.isArray(res.data) ? res.data : (res.data.items || []);
       const mapped = rawComments.map(mapComment);
-      
+
       // Helper to process a list of comments (including replies)
       const processComments = async (list: UIComment[]) => {
         for (const c of list) {
@@ -222,16 +235,16 @@ const loadComments = async (articleId: string) => {
           // But if the username IS "User-...", we can't do much unless we format it.
           // Let's assume the user mainly wants to fix the raw ID case.
           // But for the "User-..." case, let's try to fetch just in case the API returns a better "username" than what was in the comment object.
-          
+
           // Check if user is exactly the ID (raw ID case) or "User-"+ID
           const isRawId = c.user.length === 32 && /^[0-9a-fA-F]+$/.test(c.user);
           const isDefaultUser = c.user.startsWith('User-') && c.user.length === 37;
-          
+
           if (isRawId || isDefaultUser) {
-             const name = await fetchUsername(c.user);
-             if (name) c.user = name;
+            const name = await fetchUserInfo(c.user);
+            if (name) c.user = name;
           }
-          
+
           // Lazy loading replies is now handled by CommentItem event 'fetch-replies'
           // We just need to ensure if replies are already present, we process them (usernames)
 
@@ -241,7 +254,7 @@ const loadComments = async (articleId: string) => {
           }
         }
       };
-      
+
       await processComments(mapped);
       comments.value = mapped;
     }
@@ -306,46 +319,47 @@ const loadArticle = async (slug: string) => {
     if (articleData) {
       article.value = articleData;
       console.log('Article data loaded:', articleData);
-      
+
       // Attempt to fetch author name if it looks like an ID
       if (article.value?.authorId) {
-           fetchUsername(article.value.authorId).then(name => {
-              if (name) {
-                 authorName.value = name;
-              }
-           });
+        //todo 
+        fetchSimpleUserInfo(article.value.authorId).then(author => {
+          if (author) {
+            simpleAuthorProfile.value = author;
+          }
+        })
       }
 
       // Record view and load updated stats
       if (articleData.id) {
         // Load real-time stats
         getLikeCount(articleData.id).then(res => {
-           if (res.isSuccess) article.value!.likes = res.data;
+          if (res.isSuccess) article.value!.likeCount = res.data;
         });
         getCommentCount(articleData.id).then(res => {
-           if (res.isSuccess) article.value!.comments = res.data;
+          if (res.isSuccess) article.value!.commentCount = res.data;
         });
-        
+
         // Load chapters
         loadChapters(articleData.id);
-        
+
         // Check user interaction status if logged in
         if (isLoggedIn.value) {
-            checkIsLiked(articleData.id).then(res => {
-                if (res.isSuccess) isLiked.value = res.data;
-            });
-            checkIsFavorited(articleData.id).then(res => {
-                if (res.isSuccess) isFavorited.value = res.data;
-            });
-            // Check ownership
-            checkArticleOwnership(articleData.id).then(res => {
-                if (res.isSuccess) isOwner.value = res.data;
-            });
+          checkIsLiked(articleData.id).then(res => {
+            if (res.isSuccess) isLiked.value = res.data;
+          });
+          checkIsFavorited(articleData.id).then(res => {
+            if (res.isSuccess) isFavorited.value = res.data;
+          });
+          // Check ownership
+          checkArticleOwnership(articleData.id).then(res => {
+            if (res.isSuccess) isOwner.value = res.data;
+          });
         }
 
         // Fetch favorite count
         getFavoriteCount(articleData.id).then(res => {
-           if (res.isSuccess && article.value) article.value.favorites = res.data;
+          if (res.isSuccess && article.value) article.value.favorites = res.data;
         });
       }
 
@@ -357,36 +371,36 @@ const loadArticle = async (slug: string) => {
 
         let contentData: any = null;
         if (contentRes.isSuccess && contentRes.data) {
-           contentData = contentRes.data;
+          contentData = contentRes.data;
         } else if ((contentRes as any).content || (contentRes as any).contentRaw || (contentRes as any).contentMd) {
-           // Fallback: response might be the content object directly
-           contentData = contentRes;
+          // Fallback: response might be the content object directly
+          contentData = contentRes;
         } else if (contentRes.data && (contentRes.data.content || contentRes.data.contentRaw || contentRes.data.contentMd)) {
-           contentData = contentRes.data;
+          contentData = contentRes.data;
         }
 
         if (contentData) {
-           // Prioritize Markdown content
-           if (contentData.contentMd) {
-              articleContent.value = contentData.contentMd;
-              articleHtml.value = '';
-           } else if (contentData.contentRaw) {
-              articleContent.value = contentData.contentRaw;
-              articleHtml.value = '';
-           } 
-           // Then HTML content
-           else if (contentData.contentHtml) {
-              articleHtml.value = contentData.contentHtml;
-              articleContent.value = '';
-           } else if (contentData.content) {
-              articleHtml.value = contentData.content;
-              articleContent.value = '';
-           } else {
-              articleContent.value = article.value?.summary || `# ${t('articleDetail.noContent')}`;
-           }
+          // Prioritize Markdown content
+          if (contentData.contentMd) {
+            articleContent.value = contentData.contentMd;
+            articleHtml.value = '';
+          } else if (contentData.contentRaw) {
+            articleContent.value = contentData.contentRaw;
+            articleHtml.value = '';
+          }
+          // Then HTML content
+          else if (contentData.contentHtml) {
+            articleHtml.value = contentData.contentHtml;
+            articleContent.value = '';
+          } else if (contentData.content) {
+            articleHtml.value = contentData.content;
+            articleContent.value = '';
+          } else {
+            articleContent.value = article.value?.summary || `# ${t('articleDetail.noContent')}`;
+          }
         } else {
-           console.warn('Content response format not recognized', contentRes);
-           articleContent.value = article.value?.summary || `# ${t('articleDetail.noContent')}`;
+          console.warn('Content response format not recognized', contentRes);
+          articleContent.value = article.value?.summary || `# ${t('articleDetail.noContent')}`;
         }
       } catch (contentError) {
         console.error('Failed to fetch article content:', contentError);
@@ -422,14 +436,14 @@ watch(isLoggedIn, (newVal) => {
   if (newVal && article.value) {
     // Check ownership
     checkArticleOwnership(article.value.id).then(res => {
-         if (res.isSuccess) isOwner.value = res.data;
+      if (res.isSuccess) isOwner.value = res.data;
     });
     // Check interactions
     checkIsLiked(article.value.id).then(res => {
-        if (res.isSuccess) isLiked.value = res.data;
+      if (res.isSuccess) isLiked.value = res.data;
     });
     checkIsFavorited(article.value.id).then(res => {
-        if (res.isSuccess) isFavorited.value = res.data;
+      if (res.isSuccess) isFavorited.value = res.data;
     });
   } else if (!newVal) {
     // Reset states on logout
@@ -448,7 +462,7 @@ const handleFetchReplies = async (commentId: number) => {
   // However, we are passing `loadingReplies` prop to CommentItem in template.
   // We need to track loading state for each comment locally in this component since we can't easily modify the comment object structure reactively without casting.
   // Or better, let's add a reactive Set for loading states.
-  
+
   if (loadingRepliesSet.value.has(commentId)) return;
   loadingRepliesSet.value.add(commentId);
 
@@ -458,16 +472,16 @@ const handleFetchReplies = async (commentId: number) => {
       const rawReplies = replyRes.data;
       const replyMap = new Map<number, UIComment>();
       const mappedReplies = rawReplies.map(mapReplyToUI);
-      
+
       mappedReplies.forEach(r => replyMap.set(r.id, r));
-      
+
       // Rebuild tree
       // Note: replies from this API are flat but contain replyToReplyId
       // We need to attach them to the root comment (which is `comment`)
-      
+
       // Clear existing replies just in case
       comment.replies = [];
-      
+
       const rootReplies: UIComment[] = [];
 
       rawReplies.forEach((rawReply, index) => {
@@ -475,38 +489,38 @@ const handleFetchReplies = async (commentId: number) => {
         if (rawReply.replyToReplyId) {
           const parent = replyMap.get(rawReply.replyToReplyId);
           if (parent) {
-             parent.replies.push(uiReply);
+            parent.replies.push(uiReply);
           } else {
-             // Fallback if parent not found in this batch (shouldn't happen for valid tree)
-             rootReplies.push(uiReply);
+            // Fallback if parent not found in this batch (shouldn't happen for valid tree)
+            rootReplies.push(uiReply);
           }
         } else {
           rootReplies.push(uiReply);
         }
       });
-      
+
       // Assign root replies to the main comment
       comment.replies = rootReplies;
-      
+
       // Fetch usernames for new replies
       // We need to reuse processComments logic or similar
       // Since processComments is inside loadComments, we should extract it or duplicate simple username fetching
       const fetchUsernamesForList = async (list: UIComment[]) => {
-          for (const c of list) {
-            const isRawId = c.user.length === 32 && /^[0-9a-fA-F]+$/.test(c.user);
-            const isDefaultUser = c.user.startsWith('User-') && c.user.length === 37;
-            
-            if (isRawId || isDefaultUser) {
-               const name = await fetchUsername(c.user);
-               if (name) c.user = name;
-            }
-            if (c.replies.length > 0) {
-                await fetchUsernamesForList(c.replies);
-            }
+        for (const c of list) {
+          const isRawId = c.user.length === 32 && /^[0-9a-fA-F]+$/.test(c.user);
+          const isDefaultUser = c.user.startsWith('User-') && c.user.length === 37;
+
+          if (isRawId || isDefaultUser) {
+            const name = await fetchUsername(c.user);
+            if (name) c.user = name;
           }
+          if (c.replies.length > 0) {
+            await fetchUsernamesForList(c.replies);
+          }
+        }
       };
       await fetchUsernamesForList(comment.replies);
-      
+
     }
   } catch (e) {
     console.error('Failed to fetch replies for', commentId, e);
@@ -544,14 +558,14 @@ const handleVote = async (commentId: number, type: 'like' | 'dislike') => {
     // Updating locally is complex with logic. 
     // For now, simple reload or just assume success
     if (comment.userVote === type) {
-       comment.userVote = null;
-       if (type === 'like') comment.likes--; else comment.dislikes--;
+      comment.userVote = null;
+      if (type === 'like') comment.likes--; else comment.dislikes--;
     } else {
-       if (comment.userVote) {
-         if (comment.userVote === 'like') comment.likes--; else comment.dislikes--;
-       }
-       comment.userVote = type;
-       if (type === 'like') comment.likes++; else comment.dislikes++;
+      if (comment.userVote) {
+        if (comment.userVote === 'like') comment.likes--; else comment.dislikes--;
+      }
+      comment.userVote = type;
+      if (type === 'like') comment.likes++; else comment.dislikes++;
     }
   } catch (error) {
     console.error('Failed to vote:', error);
@@ -564,12 +578,12 @@ const handleReply = async (commentId: number, content: string) => {
     alert(t('articleDetail.loginToReply'));
     return;
   }
-  
+
   // Find the comment we are replying to
   let targetComment: UIComment | undefined;
   let rootCommentId: number | undefined;
   let replyToReplyId: number | undefined;
-  
+
   // Helper to find comment and its root
   const findTarget = (list: UIComment[], rootId: number): boolean => {
     for (const c of list) {
@@ -604,13 +618,13 @@ const handleReply = async (commentId: number, content: string) => {
     // commentId param in API is the ROOT comment ID.
     // replyToReplyId is the ID of the reply we are replying to (if any).
     const res = await replyComment(
-      rootCommentId, 
-      content, 
-      article.value.id, 
-      replyToReplyId, 
+      rootCommentId,
+      content,
+      article.value.id,
+      replyToReplyId,
       targetComment.userId
     );
-    
+
     if (res.isSuccess) {
       // Reload comments
       loadComments(article.value.id);
@@ -626,7 +640,7 @@ const submitComment = async () => {
     alert(t('articleDetail.loginToComment'));
     return;
   }
-  
+
   isSubmittingComment.value = true;
   try {
     const res = await addComment(article.value.id, newComment.value);
@@ -650,11 +664,11 @@ const toggleLike = async () => {
   try {
     if (isLiked.value) {
       await unlikeArticle(article.value.id);
-      if (article.value.likes !== undefined) article.value.likes--;
+      if (article.value.likeCount !== undefined) article.value.likeCount--;
       isLiked.value = false;
     } else {
       await likeArticle(article.value.id);
-      if (article.value.likes !== undefined) article.value.likes++;
+      if (article.value.likeCount !== undefined) article.value.likeCount++;
       isLiked.value = true;
     }
   } catch (error) {
@@ -703,97 +717,110 @@ const handleEdit = () => {
 
 <template>
   <div class="container article-layout" v-if="isLoading && !article">
-     <div class="glass-panel article-skeleton">
-       <div class="skeleton-header">
-         <div class="skeleton-meta"></div>
-         <div class="skeleton-title"></div>
-         <div class="skeleton-user">
-           <div class="skeleton-avatar"></div>
-           <div class="skeleton-info"></div>
-         </div>
-       </div>
-       <div class="skeleton-body">
-         <div class="skeleton-line" style="width: 100%"></div>
-         <div class="skeleton-line" style="width: 90%"></div>
-         <div class="skeleton-line" style="width: 95%"></div>
-         <div class="skeleton-line" style="width: 80%"></div>
-         <div class="skeleton-line" style="width: 85%"></div>
-       </div>
-     </div>
-  </div>
-    <div class="container article-layout" v-else-if="!article && !isLoading">
-       <div class="glass-panel" style="padding: 2rem; text-align: center;">
-         {{ t('articleDetail.notFound') }}
-       </div>
+    <div class="glass-panel article-skeleton">
+      <div class="skeleton-header">
+        <div class="skeleton-meta"></div>
+        <div class="skeleton-title"></div>
+        <div class="skeleton-user">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-info"></div>
+        </div>
+      </div>
+      <div class="skeleton-body">
+        <div class="skeleton-line" style="width: 100%"></div>
+        <div class="skeleton-line" style="width: 90%"></div>
+        <div class="skeleton-line" style="width: 95%"></div>
+        <div class="skeleton-line" style="width: 80%"></div>
+        <div class="skeleton-line" style="width: 85%"></div>
+      </div>
     </div>
-    <div class="container article-layout" v-else>
+  </div>
+  <div class="container article-layout" v-else-if="!article && !isLoading">
+    <div class="glass-panel" style="padding: 2rem; text-align: center;">
+      {{ t('articleDetail.notFound') }}
+    </div>
+  </div>
+  <div class="container article-layout" v-else>
     <main class="article-content">
       <article v-if="article" class="glass-panel article-main-card">
         <header class="article-header">
           <div class="article-meta">
-            <span class="date">{{ d(new Date(article.publishAt || article.createdAt), 'long') }}</span>
+            <!-- <span class="date">{{ d(new Date(article.publishAt || article.createdAt), 'long') }}</span>
             <span class="dot">•</span>
             <span class="read-time">{{ article.readingTimeMinutes || 5 }} {{ t('articleDetail.minRead') }}</span>
-            <span class="dot" v-if="article.tags && article.tags.length > 0">•</span>
+            <span class="dot" v-if="article.tags && article.tags.length > 0">•</span> -->
             <div class="tags" v-if="article.tags && article.tags.length > 0">
               <TagBadge v-for="tag in article.tags" :key="tag" :label="tag" size="sm" />
             </div>
           </div>
 
           <h1 class="article-title">{{ article.title }}</h1>
-          <div class="author-info">
+          <!-- <div class="author-info">
             <div class="avatar">
               <IconUser :size="24" />
             </div>
             <div class="author-details">
               <span class="name">{{ authorName || article.authorId }}</span>
-              <span class="stats">{{ article.views || 0 }} {{ t('articleDetail.views') }} • {{ article.likes || 0 }} {{ t('articleDetail.likes') }}</span>
+              <span class="stats">{{ article.viewCount || 0 }} {{ t('articleDetail.views') }} • {{ article.likeCount ||
+                0 }} {{ t('articleDetail.likes') }}</span>
             </div>
             <button v-if="isOwner" class="edit-btn" @click="handleEdit">
               {{ t('articleDetail.edit') }}
             </button>
-          </div>
+          </div> -->
         </header>
 
         <div class="article-body">
-           <MarkdownViewer 
-             v-if="articleContent" 
-             :content="articleContent"
-             style="background: transparent;"
-           />
-           <div v-else-if="articleHtml" v-html="articleHtml"></div>
-           <div class="skeleton-body" v-else-if="isLoading">
-             <div class="skeleton-line" style="width: 100%"></div>
-             <div class="skeleton-line" style="width: 90%"></div>
-             <div class="skeleton-line" style="width: 95%"></div>
-             <div class="skeleton-line" style="width: 80%"></div>
-           </div>
-           <div class="no-content" v-else>{{ t('articleDetail.noContent') }}</div>
+          <MarkdownViewer v-if="articleContent" :content="articleContent" style="background: transparent;" />
+          <div v-else-if="articleHtml" v-html="articleHtml"></div>
+          <div class="skeleton-body" v-else-if="isLoading">
+            <div class="skeleton-line" style="width: 100%"></div>
+            <div class="skeleton-line" style="width: 90%"></div>
+            <div class="skeleton-line" style="width: 95%"></div>
+            <div class="skeleton-line" style="width: 80%"></div>
+          </div>
+          <div class="no-content" v-else>{{ t('articleDetail.noContent') }}</div>
 
           <div class="article-actions">
-            <div class="left-actions">
-              <button class="action-btn like-btn" :class="{ active: isLiked }" @click="toggleLike" aria-label="Like article">
-                <IconLike :filled="isLiked" :size="22" />
-                <span class="count">{{ article.likes || 0 }}</span>
+            <div class="author-info">
+              <div class="avatar">
+                <IconUser 
+                  :size="24"
+                  :avatar="simpleAuthorProfile?.avatar"
+                 />
+              </div>
+              <div class="author-details">
+                <span class="name">{{ simpleAuthorProfile?.name }}</span>
+                <!-- <span class="stats">{{ article.viewCount || 0 }} {{ t('articleDetail.views') }} • {{ article.likeCount
+                  ||
+                  0 }} {{ t('articleDetail.likes') }}</span> -->
+              </div>
+              <button v-if="isOwner" class="edit-btn" @click="handleEdit">
+                {{ t('articleDetail.edit') }}
               </button>
-              <button class="action-btn fav-btn" :class="{ active: isFavorited }" @click="toggleFavorite" aria-label="Add to favorites">
+            </div>
+            <div class="left-actions">
+              <button class="action-btn like-btn" :class="{ active: isLiked }" @click="toggleLike"
+                aria-label="Like article">
+                <IconLike :filled="isLiked" :size="22" />
+                <span class="count">{{ article.likeCount || 0 }}</span>
+              </button>
+              <button class="action-btn fav-btn" :class="{ active: isFavorited }" @click="toggleFavorite"
+                aria-label="Add to favorites">
                 <IconStar :filled="isFavorited" :size="22" />
                 <span class="count">{{ article.favorites || 0 }}</span>
               </button>
+              <button class="action-btn share-btn" @click="toggleShare" aria-label="Share article">
+                <IconShare :size="22" />
+              </button>
             </div>
-            <button class="action-btn share-btn" @click="toggleShare" aria-label="Share article">
-              <IconShare :size="22" />
-            </button>
           </div>
         </div>
       </article>
 
       <nav class="article-navigation glass-panel">
-        <router-link 
-          v-if="prevArticle" 
-          :to="{ name: 'article-detail', params: { id: prevArticle.id } }" 
-          class="nav-link prev"
-        >
+        <router-link v-if="prevArticle" :to="{ name: 'article-detail', params: { id: prevArticle.id } }"
+          class="nav-link prev">
           <span class="nav-label">← {{ t('articleDetail.previous') }}</span>
           <span class="nav-title">{{ prevArticle.title }}</span>
         </router-link>
@@ -801,11 +828,8 @@ const handleEdit = () => {
 
         <div class="nav-divider"></div>
 
-        <router-link 
-          v-if="nextArticle" 
-          :to="{ name: 'article-detail', params: { id: nextArticle.id } }" 
-          class="nav-link next"
-        >
+        <router-link v-if="nextArticle" :to="{ name: 'article-detail', params: { id: nextArticle.id } }"
+          class="nav-link next">
           <span class="nav-label">{{ t('articleDetail.next') }} →</span>
           <span class="nav-title">{{ nextArticle.title }}</span>
         </router-link>
@@ -816,49 +840,39 @@ const handleEdit = () => {
 
     <!-- Comments Section Moved Outside Main to allow Sidebar to stop scrolling with Article -->
     <section class="comments-section glass-panel">
-      <h3>{{ t('articleDetail.comments') }} ({{ article?.comments ?? comments.length }})</h3>
-      
+      <h3>{{ t('articleDetail.comments') }} ({{ article?.commentCount ?? comments.length }})</h3>
+
       <div class="comment-form main-form">
         <div class="avatar-wrapper">
           <div class="user-avatar">
-            <img v-if="user && user.avatarUrl" :src="user.avatarUrl" :alt="user.username" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
+            <img v-if="user && user.avatarUrl" :src="user.avatarUrl" :alt="user.username"
+              style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;" />
             <IconUser v-else :size="24" />
           </div>
         </div>
         <div class="input-wrapper">
-          <textarea 
-            v-model="newComment" 
-            :placeholder="isLoggedIn ? t('articleDetail.reply') + '...' : t('articleDetail.loginToComment')" 
-            rows="3" 
-            aria-label="Comment content"
-            :disabled="!isLoggedIn"
-          ></textarea>
+          <textarea v-model="newComment"
+            :placeholder="isLoggedIn ? t('articleDetail.reply') + '...' : t('articleDetail.loginToComment')" rows="3"
+            aria-label="Comment content" :disabled="!isLoggedIn"></textarea>
           <div class="form-footer">
-            <button @click="submitComment" class="submit-btn" :disabled="!newComment.trim() || !isLoggedIn || isSubmittingComment">
-               <span v-if="isSubmittingComment">{{ t('editor.saving') }}</span>
-               <span v-else>{{ t('articleDetail.submitComment') }}</span>
+            <button @click="submitComment" class="submit-btn"
+              :disabled="!newComment.trim() || !isLoggedIn || isSubmittingComment">
+              <span v-if="isSubmittingComment">{{ t('editor.saving') }}</span>
+              <span v-else>{{ t('articleDetail.submitComment') }}</span>
             </button>
           </div>
         </div>
       </div>
 
       <div class="comments-list">
-        <CommentItem 
-          v-for="comment in comments" 
-          :key="comment.id" 
-          :comment="comment"
-          :loading-replies="loadingRepliesSet.has(comment.id)"
-          @vote="handleVote"
-          @reply="handleReply"
-          @fetch-replies="handleFetchReplies"
-        />
+        <CommentItem v-for="comment in comments" :key="comment.id" :comment="comment"
+          :loading-replies="loadingRepliesSet.has(comment.id)" @vote="handleVote" @reply="handleReply"
+          @fetch-replies="handleFetchReplies" />
       </div>
     </section>
-
-  <aside class="sidebar-section">
+    <!-- <aside class="sidebar-section">
     <div class="sidebar-content">
-      <UserCard :author="{ name: authorName }" />
-      
+      <UserCard v-if="authorInfo" :author="authorInfo" />
       <div class="sticky-wrapper">
         <ArticleToc 
           v-if="chapters.length > 0 || isLoadingChapters" 
@@ -872,7 +886,7 @@ const handleEdit = () => {
         <RecommendedCard class="recommended-card" />
       </div>
     </div>
-  </aside>
+  </aside> -->
   </div>
 </template>
 
@@ -882,17 +896,17 @@ const handleEdit = () => {
 
 .article-layout {
   display: grid;
-  grid-template-columns: 1fr 20rem; // Reduced sidebar width slightly
+  grid-template-columns: 1fr; // Reduced sidebar width slightly
   gap: 2rem; // Drastically reduced from 4rem to 2rem
-  margin-top: 6rem;
-  padding-bottom: $spacing-xl;
-  max-width: 1400px; 
+  margin-top: 4rem;
+  //padding-bottom: $spacing-md;
+  max-width: 1000px;
   margin-left: auto;
   margin-right: auto;
   padding-left: $spacing-md;
   padding-right: $spacing-md;
   overflow-x: visible;
-  
+
   @media (max-width: $breakpoint-desktop) {
     grid-template-columns: 1fr;
     gap: $spacing-lg;
@@ -916,8 +930,8 @@ const handleEdit = () => {
   grid-column: 2;
   // grid-row: 1; // Removed to allow spanning
   grid-row: 1 / span 2; // Span across article and comments
-  height: 100%; 
-  
+  height: 100%;
+
   @media (max-width: $breakpoint-desktop) {
     // Mobile Adaptation: Show sidebar at bottom instead of hiding
     display: block;
@@ -937,7 +951,7 @@ const handleEdit = () => {
 .comments-section {
   grid-column: 1; // Align with article content
   grid-row: 2; // Place below article
-  
+
   @media (max-width: $breakpoint-desktop) {
     grid-column: 1;
   }
@@ -963,17 +977,22 @@ const handleEdit = () => {
   }
 }
 
-.tags-card, .series-card, .recommended-card {
+.tags-card,
+.series-card,
+.recommended-card {
   flex-shrink: 0;
 }
 
 .article-content {
-  min-width: 0; /* Allow grid item to shrink below content size */
+  min-width: 0;
+  /* Allow grid item to shrink below content size */
 }
 
 .article-body {
-  content-visibility: auto; /* Browser optimization: skip rendering off-screen content */
-  contain-intrinsic-size: 1000px; /* Placeholder size for scrollbar stability */
+  content-visibility: auto;
+  /* Browser optimization: skip rendering off-screen content */
+  contain-intrinsic-size: 1000px;
+  /* Placeholder size for scrollbar stability */
   // contain: layout paint; // REMOVED: Can cause issues with sticky elements or overlays
 }
 
@@ -984,10 +1003,10 @@ const handleEdit = () => {
   // Performance Optimization: 
   // Replaced heavy backdrop-filter with a solid semi-transparent background
   // This maintains the visual hierarchy without the GPU cost of real-time blurring
-  background: $color-bg-secondary; 
+  background: $color-bg-secondary;
   border: 1px solid $color-border;
   border-radius: 16px;
-  padding: $spacing-xl;
+  padding: $spacing-md;
   margin-bottom: $spacing-lg;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02); // Subtle shadow for depth
 
@@ -1003,7 +1022,7 @@ const handleEdit = () => {
   // backdrop-filter: saturate(180%) blur(12px); // REMOVED: Expensive operation
   // -webkit-backdrop-filter: saturate(180%) blur(12px); // REMOVED
   border: 1px solid $color-border;
-  
+
   @media (prefers-color-scheme: dark) {
     background: rgba(30, 30, 30, 0.95); // High opacity dark background
   }
@@ -1014,9 +1033,8 @@ const handleEdit = () => {
 }
 
 .article-header {
-  margin-bottom: $spacing-xl;
+
   border-bottom: 1px solid $color-border;
-  padding-bottom: $spacing-lg;
 
   @media (max-width: $breakpoint-mobile) {
     margin-bottom: $spacing-lg;
@@ -1048,62 +1066,63 @@ const handleEdit = () => {
       margin-bottom: $spacing-md;
     }
   }
+}
 
-  .author-info {
+.author-info {
+  display: flex;
+  justify-content: left;
+  align-items: center;
+  flex-wrap: nowrap; // 确保不换行
+
+  .avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    background: $color-bg-secondary;
+    border-radius: 50%;
     display: flex;
     align-items: center;
+  }
+
+  .author-details {
+    align-items: center;
     gap: $spacing-md;
+    display: flex;
 
-    .avatar {
-      width: 2.5rem;
-      height: 2.5rem;
-      background: $color-bg-secondary;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .name {
+      font-weight: bold;
+      color: $color-text-primary;
     }
 
-    .author-details {
-      display: flex;
-      flex-direction: column;
-      
-      .name {
-        font-weight: bold;
-        color: $color-text-primary;
-      }
-      
-      .stats {
-        font-size: 0.85rem;
-        color: $color-text-secondary;
-      }
-    }
-
-    .edit-btn {
-      margin-left: auto;
-      padding: 0.4rem 1rem;
-      border-radius: 20px;
-      border: 1px solid rgba($color-border, 0.5);
-      background: rgba($color-bg-secondary, 0.5);
-      color: $color-text-secondary;
+    .stats {
       font-size: 0.85rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      
-      &:hover {
-        border-color: $color-accent-primary;
-        color: $color-accent-primary;
-        background: rgba($color-accent-primary, 0.1);
-      }
+      color: $color-text-secondary;
+    }
+  }
+
+  .edit-btn {
+    margin-left: auto;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    border: 1px solid rgba($color-border, 0.5);
+    background: rgba($color-bg-secondary, 0.5);
+    color: $color-text-secondary;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      border-color: $color-accent-primary;
+      color: $color-accent-primary;
+      background: rgba($color-accent-primary, 0.1);
     }
   }
 }
 
-  .article-body {
-    @include markdown-styles; // Use shared markdown styles
-    margin-bottom: $spacing-xl;
-    min-height: 200px; // Prevent collapse when empty
-  }
+.article-body {
+  @include markdown-styles; // Use shared markdown styles
+  //margin-bottom: $spacing-xl;
+  min-height: 200px; // Prevent collapse when empty
+}
 
 .loading-placeholder {
   min-height: 400px;
@@ -1116,8 +1135,8 @@ const handleEdit = () => {
 
 .article-actions {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: $spacing-md;
   padding-top: $spacing-xl; // Increased spacing to avoid overlap
   padding-bottom: $spacing-sm;
   border-top: 1px solid $color-border;
@@ -1159,7 +1178,7 @@ const handleEdit = () => {
       color: $color-text-primary;
       transform: scale(1.1);
     }
-    
+
     &:active {
       transform: scale(0.95);
     }
@@ -1170,13 +1189,13 @@ const handleEdit = () => {
         color: #ff4757;
         background: transparent; // Ensure no background
       }
-      
+
       &.active {
         color: #ff4757;
         background: transparent; // Ensure no background
-        
+
         .count {
-           color: #ff4757;
+          color: #ff4757;
         }
       }
     }
@@ -1191,9 +1210,9 @@ const handleEdit = () => {
       &.active {
         color: #ffa502;
         background: transparent; // Ensure no background
-        
+
         .count {
-           color: #ffa502;
+          color: #ffa502;
         }
       }
     }
@@ -1201,7 +1220,7 @@ const handleEdit = () => {
     // Share Button Specifics
     &.share-btn {
       margin-left: auto; // Just in case, but flex space-between handles it
-      
+
       &:hover {
         color: $color-accent-primary;
         background: transparent; // Ensure no background
@@ -1242,7 +1261,7 @@ const handleEdit = () => {
 
     &:hover {
       background: $color-bg-secondary;
-      
+
       .nav-title {
         color: $color-accent-primary;
       }
@@ -1294,7 +1313,7 @@ const handleEdit = () => {
     margin-bottom: $spacing-lg;
     font-size: 1.5rem;
     color: $color-text-primary;
-    
+
     @media (max-width: $breakpoint-mobile) {
       font-size: 1.3rem;
     }
@@ -1304,7 +1323,7 @@ const handleEdit = () => {
     margin-bottom: $spacing-xl;
     display: flex;
     gap: $spacing-md;
-    
+
     @media (max-width: $breakpoint-mobile) {
       flex-direction: column;
     }
@@ -1317,7 +1336,7 @@ const handleEdit = () => {
       padding: $spacing-lg;
       border-radius: 20px; // Softer corners
       border: 1px solid rgba(255, 255, 255, 0.3); // Crisper border
-      box-shadow: 
+      box-shadow:
         0 4px 24px -1px rgba(0, 0, 0, 0.05),
         inset 0 0 0 1px rgba(255, 255, 255, 0.1); // Inner light ring
 
@@ -1334,7 +1353,7 @@ const handleEdit = () => {
 
     .avatar-wrapper {
       flex-shrink: 0;
-      
+
       .user-avatar {
         width: 2.5rem;
         height: 2.5rem;
@@ -1353,11 +1372,11 @@ const handleEdit = () => {
       flex-direction: column;
       gap: $spacing-md;
     }
-    
+
     textarea {
       width: 100%;
       // Glassy Input
-      background: rgba(255, 255, 255, 0.03); 
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(0, 0, 0, 0.05);
       border-radius: 16px;
       padding: $spacing-md;
@@ -1366,7 +1385,7 @@ const handleEdit = () => {
       font-family: inherit;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       min-height: 6.25rem;
-      
+
       :global(.dark) & {
         background: rgba(0, 0, 0, 0.2);
         border-color: rgba(255, 255, 255, 0.05);
@@ -1391,7 +1410,7 @@ const handleEdit = () => {
       // Premium Dark/Light Button - NO BLUE
       background: #1a1a1a; // Premium Dark Grey for Light Mode
       color: #ffffff;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       padding: 0.75rem 2rem; // Wider
       border-radius: 30px; // Full pill
       font-weight: 600;
@@ -1405,7 +1424,7 @@ const handleEdit = () => {
       position: relative;
       overflow: hidden;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); // Elegant shadow
-      
+
       :global(.dark) & {
         background: #ffffff; // White for Dark Mode
         color: #000000;
@@ -1420,7 +1439,7 @@ const handleEdit = () => {
         left: 0;
         width: 100%;
         height: 50%;
-        background: linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, transparent 100%);
+        background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
         pointer-events: none;
       }
 
@@ -1434,17 +1453,17 @@ const handleEdit = () => {
       &:not(:disabled):hover {
         transform: translateY(-2px) scale(1.02);
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
-        
+
         :global(.dark) & {
-           box-shadow: 0 8px 30px rgba(255, 255, 255, 0.25);
+          box-shadow: 0 8px 30px rgba(255, 255, 255, 0.25);
         }
       }
-      
+
       &:not(:disabled):active {
         transform: translateY(0) scale(0.98);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
-      
+
       @media (max-width: $breakpoint-mobile) {
         width: 100%;
       }
@@ -1483,7 +1502,10 @@ const handleEdit = () => {
   height: 14px;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
-  :global(.dark) & { background: rgba(255, 255, 255, 0.05); }
+
+  :global(.dark) & {
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 .skeleton-title {
@@ -1492,7 +1514,10 @@ const handleEdit = () => {
   background: rgba(0, 0, 0, 0.15);
   border-radius: 8px;
   margin: 1rem 0;
-  :global(.dark) & { background: rgba(255, 255, 255, 0.08); }
+
+  :global(.dark) & {
+    background: rgba(255, 255, 255, 0.08);
+  }
 }
 
 .skeleton-user {
@@ -1506,7 +1531,10 @@ const handleEdit = () => {
   height: 40px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.1);
-  :global(.dark) & { background: rgba(255, 255, 255, 0.05); }
+
+  :global(.dark) & {
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 .skeleton-info {
@@ -1514,7 +1542,10 @@ const handleEdit = () => {
   height: 14px;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
-  :global(.dark) & { background: rgba(255, 255, 255, 0.05); }
+
+  :global(.dark) & {
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 .skeleton-body {
@@ -1529,13 +1560,24 @@ const handleEdit = () => {
   background: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   animation: pulse 1.5s infinite ease-in-out;
-  :global(.dark) & { background: rgba(255, 255, 255, 0.05); }
+
+  :global(.dark) & {
+    background: rgba(255, 255, 255, 0.05);
+  }
 }
 
 @keyframes pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
 }
 </style>
 
@@ -1543,6 +1585,7 @@ const handleEdit = () => {
 /* Nuclear Option: Force Dark Mode Styles for Article Detail Page Components */
 /* User requested "100% successful solution" to fix black background issues */
 html.dark .article-layout {
+
   .glass-panel,
   .article-main-card,
   .comments-section,
@@ -1553,22 +1596,24 @@ html.dark .article-layout {
   .recommended-card {
     /* Performance Optimization: Removed backdrop-filter blur which causes severe scroll lag */
     /* Increased opacity to maintain contrast and "dark gray" look without GPU penalty */
-    background-color: rgba(30, 30, 31, 0.95) !important; 
+    background-color: rgba(30, 30, 31, 0.95) !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.4) !important;
     color: #ffffff !important;
-    
+
     /* Hardware acceleration hint */
     transform: translateZ(0);
   }
-  
+
   /* Ensure text colors inside these cards are visible */
-  .card-title, .username, .article-title {
+  .card-title,
+  .username,
+  .article-title {
     color: #ffffff !important;
   }
-  
+
   .card-header {
     background: transparent !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;

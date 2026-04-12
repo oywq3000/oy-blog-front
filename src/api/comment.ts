@@ -61,24 +61,25 @@ export interface ResultNumber {
   data: number;
 }
 
+const baseUrl = '/api/article-service'
 // Query Comments List
 export const getComments = (articleId: string) => {
-  return request.get<any, ResultListComment>(`/api/article/comment/${articleId}/comments`);
+  return request.get<any, ResultListComment>(baseUrl+`/article/comment/${articleId}/comments`);
 };
 
 // Get Comment Count
 export const getCommentCount = (articleId: string) => {
-  return request.get<any, ResultNumber>(`/api/article/comment/${articleId}/comment-count`);
+  return request.get<any, ResultNumber>(baseUrl+`/article/comment/${articleId}/comment-count`);
 };
 
 // Query Replies List (if needed, usually embedded)
 export const getReplies = (commentId: number) => {
-  return request.get<any, ResultListCommentReply>(`/api/article/comment/${commentId}/replies`);
+  return request.get<any, ResultListCommentReply>(baseUrl+`/article/comment/${commentId}/replies`);
 };
 
 // Add Comment
 export const addComment = (articleId: string, content: string) => {
-  return request.post<any, ResultObject>(`/api/article/comment/add`, {
+  return request.post<any, ResultObject>(baseUrl+`/article/comment/add`, {
     articleId,
     content
   });
@@ -89,7 +90,7 @@ export const replyComment = (commentId: number, content: string, articleId: stri
   const data: any = { commentId, content, articleId };
   if (replyToReplyId) data.replyToReplyId = replyToReplyId;
   if (replyToUserId) data.replyToUserId = replyToUserId;
-  return request.post<any, ResultObject>(`/api/article/comment/reply`, data);
+  return request.post<any, ResultObject>(baseUrl+`/article/comment/reply`, data);
 };
 
 // React to Comment
@@ -97,7 +98,7 @@ export const reactToComment = (type: string, commentId?: number, replyId?: numbe
   const params: any = { type };
   if (commentId) params.commentId = commentId;
   if (replyId) params.replyId = replyId;
-  return request.post<any, ResultObject>(`/api/article/comment/reaction`, null, {
+  return request.post<any, ResultObject>(baseUrl+`/article/comment/reaction`, null, {
     params
   });
 };

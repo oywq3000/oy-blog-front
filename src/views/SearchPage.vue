@@ -20,65 +20,27 @@ const isLoading = ref(false);
 const currentPage = ref(1);
 const itemsPerPage = 10;
 
+// Real search results
+const searchResults = ref<Article[]>([]);
+const totalResults = ref(0);
+const totalPages = ref(0);
+
 const searchHistory = ref<string[]>([]);
 const hotSearches = ref(['Spring Boot 3', 'Kubernetes', 'Microservices', 'AI Tools', 'Vue 3', 'React', 'Docker']);
 
-// Mock results
-const generateMockResults = () => {
-  const results = [];
-  const topics = ['Vue 3', 'React', 'Angular', 'Spring Boot', 'Java', 'Python', 'Docker', 'Kubernetes', 'AWS', 'Azure'];
-  
-  for (let i = 1; i <= 35; i++) {
-    const topic = topics[i % topics.length];
-    results.push({
-      id: i,
-      title: `${topic} Guide Part ${Math.floor(i / 10) + 1} - Advanced Techniques`,
-      summary: `This is a detailed summary for article ${i} about ${topic}. Learn how to master ${topic} with practical examples and best practices.`,
-      date: `2025-${10 + (i % 2)}-${(i % 28) + 1}`,
-      tags: [topic, 'Tech', 'Programming'],
-      image: '',
-      views: Math.floor(Math.random() * 5000) + 100
-    });
-  }
-  return results;
-};
 
-const mockResults = generateMockResults();
-
-// Computed properties
-const filteredResults = computed(() => {
-  //if (!searchQuery.value) return [];
-  
-  const query = searchQuery.value.toLowerCase();
-  let results = mockResults.filter(item => {
-    // Text Search
-    const matchTitle = item.title.toLowerCase().includes(query);
-    const matchSummary = item.summary.toLowerCase().includes(query);
-    const matchTags = item.tags.some(tag => tag.toLowerCase().includes(query));
-    
-    if (activeFilter.value === 'article') return matchTitle || matchSummary;
-    if (activeFilter.value === 'tag') return matchTags;
-    // if (activeFilter.value === 'author') return matchAuthor; // Add author if needed
-    
-    return matchTitle || matchSummary || matchTags;
-  });
-
-  return results;
-});
-
-const totalPages = computed(() => Math.ceil(filteredResults.value.length / itemsPerPage));
 
 const paginatedResults = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   const end = start + itemsPerPage;
-  return filteredResults.value.slice(start, end);
+  return searchResults.value.slice(start, end);
 });
 
 console.log(paginatedResults)
 
 // Methods
 const performSearch = async () => {
-  if (!searchQuery.value) return;
+  //if (!searchQuery.value) return;
 
   isLoading.value = true;
   
@@ -93,10 +55,30 @@ const performSearch = async () => {
   // Reset pagination
   currentPage.value = 1;
 
-  // Simulate API delay
-  setTimeout(() => {
+  try {
+      const response = await searchArticles({
+      keyword: searchQuery.value,
+      page: currentPage.value,
+      size: itemsPerPage
+    });
+    if (response.isSuccess) {
+      searchResults.value = response.data.data;
+      totalResults.value = response.data.total;
+      totalPages.value = response.data.totalPages;
+    } else {
+      console.error('Search failed:', response.errMsg);
+      searchResults.value = [];
+      totalResults.value = 0;
+      totalPages.value = 0;
+    }
+  } catch (error) {
+    console.error('Search error:', error);
+    searchResults.value = [];
+    totalResults.value = 0;
+    totalPages.value = 0;
+  } finally {
     isLoading.value = false;
-  }, 800);
+  }
 };
 
 const addToHistory = (query: string) => {
@@ -137,10 +119,24 @@ const selectTag = (tag: string) => {
   performSearch();
 };
 
-const changePage = (page: number) => {
+const changePage = async  (page: number) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Fetch new page data
+    try {
+        const response = await searchArticles({
+        keyword: searchQuery.value,
+        page: currentPage.value,
+        size: itemsPerPage
+      });
+      if (response.isSuccess) {
+        searchResults.value = response.data.data;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch (error) {
+      console.error('Page change error:', error);
+    }
   }
 };
 
@@ -149,16 +145,19 @@ watch(() => route.query.q, (newQ) => {
   if (newQ && typeof newQ === 'string') {
     searchQuery.value = newQ;
     if (!isLoading.value) {
-        isLoading.value = true;
-        setTimeout(() => isLoading.value = false, 500);
+        performSearch();
     }
   } else {
     searchQuery.value = '';
+    searchResults.value = [];
+    totalResults.value = 0;
+    totalPages.value = 0;
   }
 }, { immediate: true });
 
 onMounted(() => {
   loadHistory();
+  performSearch();
 });
 </script>
 
@@ -281,19 +280,22 @@ onMounted(() => {
              </div>
 
              <!-- Results State -->
-             <div v-else-if="searchQuery && paginatedResults.length > 0" class="results-container">
-                <div class="results-meta">
-                   <span class="count">Found {{ filteredResults.length }} results for "{{ searchQuery }}"</span>
+             <div v-else-if="paginatedResults.length > 0" class="results-container">
+                <div class="results-meta" v-if="searchQuery!=''">
+                   <span class="count">Found {{ totalResults  }} results for "{{ searchQuery }}"</span>
                 </div>
-                
                 <div class="results-grid">
                   <ArticleCard 
                     v-for="result in paginatedResults" 
                     :key="result.id" 
-                    v-bind="result" 
+                    :id="result.id"
+                    :title="result.title"
+                    :date="result.createdAt"
+                    :summary="result.summary || 'no summary'"
+                    :tags="result.tags || []"
+                    :image="result.coverUrl || ''"
                   />
                 </div>
-
                 <!-- Pagination -->
                 <div class="pagination" v-if="totalPages > 1">
                   <button class="page-btn" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">&lt;</button>

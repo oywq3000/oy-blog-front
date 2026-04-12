@@ -69,7 +69,7 @@ watch(locale, (newLocale) => {
         </transition>
       </router-view>
 
-      <Footer />
+    <!--   <Footer /> -->
     </div>
   </div>
 </template>

@@ -21,12 +21,12 @@ export interface Article {
   allowComment: number;
   publishAt: string;
   createdAt: string;
-  updateAt: string;
+  updatedAt: string;
   // Optional fields that might not be in ArticleVo but used in UI (to be verified)
-  views?: number;
-  likes?: number;
+  viewCount?: number;
+  likeCount?: number;
   favorites?: number;
-  comments?: number;
+  commentCount?: number;
   tags?: string[];
   readingTimeMinutes?: number;
 }
@@ -198,10 +198,11 @@ export const getReadingHistory = () => {
 };
 
 export interface UserArticleStats {
-  totalViews: number;
-  totalLikes: number;
-  totalFavorites: number;
+  name:string;
+  avatar:string;
+  bio:string;
   articleCount: number;
+  likeCount: number;
 }
 
 export interface ResultUserArticleStats {
@@ -227,12 +228,15 @@ interface SearchParams {
   keyword: string;
   page?: number;
   size?: number;
-  filter?: string;
+  author?: string;
+  tag?: string;
+  category?: string
+  status?: string;
 }
 
 export interface SearchResult {
   total: number;
-  articles: Article[];
+  data: Article[];
   currentPage: number;
   totalPages: number;
 }
@@ -246,7 +250,7 @@ export interface ResultSearchResult {
 
 // 搜索文章接口
 export const searchArticles = (params: SearchParams) => {
-  return request.get<any, ResultSearchResult>(baseUrl + '/article/read/search', { params });
+  return request.get<any, ResultSearchResult>('api/search-service/essearch/search', { params });
 };
 
 

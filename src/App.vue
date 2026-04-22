@@ -62,7 +62,6 @@ watch(locale, (newLocale) => {
       </transition>
       <ScrollProgress />
       <NavBar />
-
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />

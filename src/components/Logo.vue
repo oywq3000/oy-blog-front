@@ -30,10 +30,10 @@ withDefaults(defineProps<{
     <!-- Applying filter to the group is actually efficient if we want the whole thing to glow. -->
     <g filter="url(#logo_glow_match)" style="will-change: transform;">
       <!-- Combined paths where possible or simplified -->
-      <path d="M8 8H14L12 32H8V8ZM14 8H24C28 8 32 11 32 16C32 20 29 22 26 23H20V18H24C26 18 27 17 27 16C27 15 26 14 24 14H18V23H14V8ZM22 23H27L32 32H27L22 23Z" fill="url(#logo_gradient_match)" />
-      
+      <path d="M6 8C6 5.79086 7.79086 4 10 4H14C16.2091 4 18 5.79086 18 8V24C18 26.2091 16.2091 28 14 28H10C7.79086 28 6 26.2091 6 24V8Z" fill="url(#logo_gradient_match)" />
+      <path d="M10 8C8.89543 8 8 8.89543 8 10V22C8 23.1046 8.89543 24 10 24H14C15.1046 24 16 23.1046 16 22V10C16 8.89543 15.1046 8 14 8H10Z" fill="white" />
       <!-- Accent Dot (Cyan) -->
-      <circle cx="34" cy="8" r="2" fill="#00f2ff" />
+      <!-- <circle cx="34" cy="8" r="2" fill="#00f2ff" /> -->
     </g>
   </svg>
 </template>

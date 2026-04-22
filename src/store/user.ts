@@ -31,7 +31,8 @@ export const useUserStore = () => {
     try {
       state.loading = true;
       const res = await getUserInfo();
-      if (res.isSuccess && res.data) {
+      //get data successfully and user info status is not guest, 0 forbidden 1 normal 2 guest 
+      if (res.isSuccess && res.data && res.data.status!=2) {
         state.userInfo = res.data;
         localStorage.setItem('userInfo', JSON.stringify(res.data));
       }

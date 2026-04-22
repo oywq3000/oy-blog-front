@@ -24,8 +24,7 @@ const { theme } = useTheme();
 const menuItems = computed(() => {
   const items = [
     { name: t('nav.home'), link: '/' },
-    { name: t('nav.articles'), link: '/search' },
-    { name: t('nav.about'), link: '/about' },
+    { name: t('nav.articles'), link: '/search' }
   ];
 
   if (isLoggedIn.value) {
@@ -162,7 +161,6 @@ const handleKeydown = (e: KeyboardEvent) => {
     <div class="container navbar__container">
       <div class="navbar__logo">
         <router-link to="/" class="navbar__logo-link">
-          <Logo width="36" height="36" class="navbar__logo-icon" />
           <TextLogo width="140" height="24" class="navbar__logo-text" :variant="theme" idSuffix="navbar" />
         </router-link>
       </div>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
-import HeroSection from '../components/HeroSection.vue';
 import ArticleCard from '../components/ArticleCard.vue';
 import Sidebar from '../components/Sidebar.vue';
 import { useAppStore } from '../store/app';
@@ -64,6 +63,7 @@ const observeElements = () => {
 onMounted(async () => {
   // Start API call
   try {
+    // get public article 
     const res = await getPublishedArticles();
     if (res.isSuccess && res.data) {
       const fetchedArticles = res.data;
@@ -113,7 +113,7 @@ watch(showContent, (val) => {
 <template>
   <div>
     <!-- Hero Section is always rendered but lightweight -->
-    <HeroSection @title-ready="handleTitleReady" />
+   <!--  <HeroSection @title-ready="handleTitleReady" /> -->
     
     <!-- Main Content -->
     <div class="container content-layout">
@@ -126,7 +126,6 @@ watch(showContent, (val) => {
           <ArticleCard v-if="showContent" v-bind="featuredArticle" class="featured-card" />
           <div v-else class="skeleton-card featured-skeleton"></div>
         </section>
-
         <!-- Latest Articles -->
         <section class="articles-section">
           <h2 class="section-title fade-in-up">{{ t('common.latestArticles') }}</h2>

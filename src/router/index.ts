@@ -36,11 +36,6 @@ const router = createRouter({
       component: () => import('../views/EmailVerification.vue')
     },
     {
-      path: '/about',
-      name: 'about',
-      component: () => import('../views/AboutView.vue')
-    },
-    {
       path: '/privacy',
       name: 'privacy',
       component: () => import('../views/PrivacyPolicy.vue')

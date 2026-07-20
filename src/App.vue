@@ -3,6 +3,7 @@ import { watch, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NavBar from './components/NavBar.vue';
 import Footer from './components/Footer.vue';
+import BackToTop from './components/BackToTop.vue';
 import ScrollProgress from './components/ScrollProgress.vue';
 import InteractiveBackground from './components/InteractiveBackground.vue';
 import SvgSprite from './components/SvgSprite.vue';
@@ -62,13 +63,13 @@ watch(locale, (newLocale) => {
       </transition>
       <ScrollProgress />
       <NavBar />
-      <router-view v-slot="{ Component }">
-        <transition name="fade" mode="out-in">
-          <component :is="Component" />
+      <router-view v-slot="{ Component, route: r }">
+        <transition name="page" mode="out-in">
+          <component :is="Component" :key="r.path" />
         </transition>
       </router-view>
-
-    <!--   <Footer /> -->
+      <Footer />
+      <BackToTop />
     </div>
   </div>
 </template>

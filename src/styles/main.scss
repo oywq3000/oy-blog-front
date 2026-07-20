@@ -179,6 +179,21 @@ button {
 .stagger-delay-3 { transition-delay: 0.3s; }
 
 // Page Transitions
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -187,4 +202,91 @@ button {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+// Focus Visible (Accessibility)
+:focus-visible {
+  outline: 2px solid $color-accent-primary;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+// Skip to main content (Accessibility)
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 16px;
+  background: $color-accent-primary;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 0 0 8px 8px;
+  z-index: 10000;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.2s;
+
+  &:focus {
+    top: 0;
+  }
+}
+
+// Print Styles
+@media print {
+  .navbar,
+  .footer,
+  .scroll-progress,
+  .back-to-top,
+  .interactive-bg,
+  .cookie-notice,
+  .toast-container,
+  .sidebar-section,
+  .comments-section,
+  .search-container,
+  .lang-btn,
+  .navbar__toggle,
+  .auth-container {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .article-layout {
+    display: block !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .glass-panel {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  a {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+
+  // Show URLs after links
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
 }

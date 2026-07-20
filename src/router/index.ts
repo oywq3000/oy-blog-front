@@ -49,6 +49,16 @@ const router = createRouter({
       path: '/security',
       name: 'security',
       component: () => import('../views/SecurityPolicy.vue')
+    },
+    {
+      path: '/about',
+      name: 'about',
+      component: () => import('../views/AboutView.vue')
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('../views/NotFoundView.vue')
     }
   ],
   scrollBehavior(_to, _from, savedPosition) {

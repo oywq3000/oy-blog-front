@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUpdated, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUpdated, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 /* import TagsCard from '../components/TagsCard.vue';
@@ -8,6 +8,7 @@ import RecommendedCard from '../components/RecommendedCard.vue';
 import UserCard from '../components/UserCard.vue';
 import ArticleToc from '../components/ArticleToc.vue'; */
 import TagBadge from '../components/TagBadge.vue';
+import Breadcrumb from '../components/Breadcrumb.vue';
 import IconUser from '../components/icons/IconUser.vue';
 import IconLike from '../components/icons/IconLike.vue';
 import IconStar from '../components/icons/IconStar.vue';
@@ -43,12 +44,13 @@ import {
 } from '../api/comment';
 import { getUserPublicProfile, getSimpleUserProfile, type SimpleUserProfile } from '../api/user';
 import { useUserStore } from '../store/user';
+import { estimateReadingTime, formatReadingTime } from '../utils/readingTime';
 // import { MdPreview } from 'md-editor-v3'; // Removed, using MarkdownViewer
 // import 'md-editor-v3/lib/preview.css'; // Removed
 import MarkdownViewer from '../components/MarkdownViewer.vue';
 // import { useTheme } from '../composables/useTheme'; // unused
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 // Performance Monitoring
 const perfStart = performance.now();
 onMounted(() => {
@@ -104,6 +106,21 @@ const isLoading = ref(false);
 const isSubmittingComment = ref(false);
 const comments = ref<UIComment[]>([]);
 const newComment = ref('');
+
+// Computed reading time
+const readingTime = computed(() => {
+  const content = articleContent.value || articleHtml.value || article.value?.summary || '';
+  const minutes = estimateReadingTime(
+    typeof content === 'string' ? content : '',
+    locale.value
+  );
+  return formatReadingTime(minutes, locale.value);
+});
+
+// Breadcrumb items
+const breadcrumbItems = computed(() => [
+  { label: article.value?.title || t('articleDetail.loading'), to: undefined },
+]);
 
 // Helper to convert API Reply to UI Comment
 const mapReplyToUI = (r: APICommentReply): UIComment => ({
@@ -742,13 +759,16 @@ const handleEdit = () => {
   </div>
   <div class="container article-layout" v-else>
     <main class="article-content">
+      <!-- Breadcrumb -->
+      <Breadcrumb :items="breadcrumbItems" />
+
       <article v-if="article" class="glass-panel article-main-card">
         <header class="article-header">
           <div class="article-meta">
-            <!-- <span class="date">{{ d(new Date(article.publishAt || article.createdAt), 'long') }}</span>
+            <span class="date">{{ d(new Date(article.publishAt || article.createdAt), 'long') }}</span>
             <span class="dot">•</span>
-            <span class="read-time">{{ article.readingTimeMinutes || 5 }} {{ t('articleDetail.minRead') }}</span>
-            <span class="dot" v-if="article.tags && article.tags.length > 0">•</span> -->
+            <span class="read-time">{{ readingTime }}</span>
+            <span class="dot" v-if="article.tags && article.tags.length > 0">•</span>
             <div class="tags" v-if="article.tags && article.tags.length > 0">
               <TagBadge v-for="tag in article.tags" :key="tag" :label="tag" size="sm" />
             </div>

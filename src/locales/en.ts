@@ -135,6 +135,10 @@ export default {
     reply: 'Reply',
     commentHidden: 'Comment hidden',
     show: 'Show',
+    notFound: 'Page Not Found',
+    notFoundDesc: 'The page you are looking for doesn\'t exist or has been moved.',
+    backHome: 'Back to Home',
+    goBack: 'Go Back',
   },
   sidebar: {
     author: 'Rookie Coder',

@@ -135,6 +135,10 @@ export default {
     reply: '回复',
     commentHidden: '评论已隐藏',
     show: '显示',
+    notFound: '页面未找到',
+    notFoundDesc: '您查找的页面不存在或已被移动。',
+    backHome: '返回首页',
+    goBack: '返回上页',
   },
   sidebar: {
     author: 'Rookie Coder',

@@ -7,7 +7,7 @@ const { t } = useI18n();
 
 const footerNav = {
   resources: [
-    { key: 'footer.community', url: 'https://github.com/patton174/Rookie-Blog', external: true }, // Placeholder
+    { key: 'footer.community', url: 'https://github.com/oywq3000/oy-blog', external: true }, // Placeholder
     { key: 'footer.helpCenter', url: '/about', external: false } // Placeholder to About
   ],
   legal: [
@@ -18,7 +18,7 @@ const footerNav = {
 };
 
 const socials = [
-  { name: 'GitHub', icon: 'GH', url: 'https://github.com/patton174/Rookie-Blog' },
+  { name: 'GitHub', icon: 'GH', url: 'https://github.com/oywq3000/oy-blog' },
   { name: 'Twitter', icon: 'TW', url: 'https://twitter.com' },
   { name: 'LinkedIn', icon: 'LI', url: 'https://linkedin.com' }
 ];

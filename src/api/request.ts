@@ -63,8 +63,16 @@ service.interceptors.response.use(
     const customError = new Error(errMsg);
     (customError as any).response = error.response; // Keep the response for debugging
 
-    // Only log and show toast if it's NOT a 401 (Unauthorized) which is expected when not logged in
-    if (error.response && error.response.status !== 401) {
+    // On 401 (Unauthorized): clear stored token and user info, then notify app to show login
+    if (error.response && error.response.status === 401) {
+        const hadToken = !!localStorage.getItem('token');
+        localStorage.removeItem('token');
+        localStorage.removeItem('userInfo');
+        // Only trigger login modal if the user was previously logged in (had a token)
+        if (hadToken) {
+          window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        }
+    } else {
         console.error('API Error:', customError);
         // Safely attempt to show toast notification
         // The useToast composable uses module-level reactive state, so it works

@@ -134,9 +134,16 @@ const handleSearchInput = () => {
   }, 300);
 };
 
+// Listen for 401 unauthorized event from the HTTP interceptor
+const handleUnauthorized = () => {
+  isAuthModalOpen.value = true;
+  authMode.value = 'login';
+};
+
 // Clean up timer
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('auth:unauthorized', handleUnauthorized);
   if (searchDebounceTimer) {
     clearTimeout(searchDebounceTimer);
   }
@@ -147,6 +154,7 @@ import { onMounted } from 'vue';
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  window.addEventListener('auth:unauthorized', handleUnauthorized);
 });
 
 const handleKeydown = (e: KeyboardEvent) => {

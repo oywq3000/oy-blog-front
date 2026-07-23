@@ -1,225 +1,310 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import AvatarGenerator from './AvatarGenerator.vue';
 
-defineProps<{
+const props = defineProps<{
   id: number | string;
   title: string;
   summary: string;
   date: string;
-  tags: string[];
-  image: string;
+  tags?: string[];
+  image?: string;
+  authorName?: string;
+  authorAvatar?: string;
+  viewCount?: number;
+  likeCount?: number;
+  favorites?: number;
+  readingTimeMinutes?: number;
 }>();
 
 const { t, d } = useI18n();
+
+const formattedDate = computed(() => {
+  try {
+    return d(new Date(props.date), 'short');
+  } catch {
+    return props.date;
+  }
+});
+
+const showCover = computed(() => !!props.image);
+
+function formatCount(n: number | undefined): string {
+  if (n == null) return '0';
+  if (n >= 1000) {
+    return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  }
+  return String(n);
+}
 </script>
 
 <template>
-  <div class="card-container">
-    <div class="card">
-      <div class="card__image-wrapper">
-        <img 
-          :src="image || 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1080&auto=format&fit=crop'" 
-          loading="lazy" 
-          class="card__image" 
-          alt="Article thumbnail"
-          decoding="async"
-        />
-        <div class="card__overlay"></div>
+  <article class="article-row">
+    <!-- Main text content -->
+    <div class="article-main">
+      <!-- Title row: title left, date right -->
+      <div class="article-title-row">
+        <router-link :to="{ name: 'article-detail', params: { id } }" class="article-title-link">
+          <h3 class="article-title">{{ title }}</h3>
+        </router-link>
+        <span class="article-date article-date--top">{{ formattedDate }}</span>
       </div>
-      <div class="card__content">
-        <div class="card__meta">
-          <span class="date">{{ d(new Date(date), 'short') }}</span>
-          <div class="tags">
-            <span v-for="tag in tags" :key="tag" class="tag">#{{ tag }}</span>
+
+      <!-- Summary -->
+      <p class="article-summary">{{ summary }}</p>
+
+      <!-- Bottom meta row -->
+      <div class="article-meta">
+        <div class="article-stats">
+          <span v-if="viewCount != null" class="stat-item" :title="t('articleDetail.views')">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span>{{ formatCount(viewCount) }}</span>
+          </span>
+          <span v-if="likeCount != null" class="stat-item" :title="t('articleDetail.likes')">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+            <span>{{ formatCount(likeCount) }}</span>
+          </span>
+          <span v-if="favorites != null" class="stat-item" title="收藏">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            <span>{{ formatCount(favorites) }}</span>
+          </span>
+          <span v-if="readingTimeMinutes" class="stat-item">
+            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>{{ readingTimeMinutes }} min read</span>
+          </span>
+        </div>
+
+        <div class="article-footer-right">
+          <div v-if="authorName" class="article-author">
+            <AvatarGenerator v-if="!authorAvatar" :username="authorName" :size="22" />
+            <img v-else :src="authorAvatar" :alt="authorName" class="author-avatar" />
+            <span class="author-name">{{ authorName }}</span>
           </div>
         </div>
-        <router-link :to="{ name: 'article-detail', params: { id } }" class="card__link">
-          <h3 class="card__title">{{ title }}</h3>
-        </router-link>
-        <p class="card__summary">{{ summary }}</p>
-        <router-link :to="{ name: 'article-detail', params: { id } }" class="card__btn">
-          {{ t('common.readMore') }}
-        </router-link>
       </div>
     </div>
-  </div>
+
+    <!-- Optional cover image -->
+    <div v-if="showCover" class="article-cover">
+      <router-link :to="{ name: 'article-detail', params: { id } }">
+        <img :src="image" loading="lazy" :alt="title" decoding="async" />
+      </router-link>
+    </div>
+  </article>
 </template>
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
 
-.card__link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-}
-
-
-.card-container {
-  width: 100%;
-  height: 100%;
-  /* min-height removed to allow flex/grid control, but set a reasonable default for the card itself */
-  position: relative;
-  z-index: 1;
-}
-
-.card {
-  width: 100%;
-  height: 380px; /* Fixed height for consistency */
-  position: relative; /* For absolute positioning of content */
-  background: var(--color-card-bg);
-  border: 1px solid var(--color-card-border);
-  border-radius: 16px;
-  overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+.article-row {
   display: flex;
-  flex-direction: column;
+  gap: $spacing-xl;
+  padding: $spacing-lg 0;
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.2s ease;
+  border-radius: 8px;
+  padding: $spacing-lg;
 
   &:hover {
-    transform: translateY(-6px);
-    box-shadow: var(--color-card-hover-shadow);
-    border-color: rgba($color-accent-primary, 0.5);
-
-    .card__image {
-      transform: scale(1.08);
-    }
-
-    .card__title {
-      color: $color-accent-primary;
-    }
-    
-    .card__overlay {
-      opacity: 0.9; /* Darken slightly on hover */
-    }
+    background: var(--color-bg-secondary);
   }
 
-  &__image-wrapper {
-    height: 100%; /* Full height */
+  @media (max-width: $breakpoint-mobile) {
+    flex-direction: column-reverse;
+    gap: $spacing-md;
+    padding: $spacing-md;
+  }
+}
+
+.article-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+// Title row: title left, date right
+.article-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing-md;
+}
+
+// Tags (hidden, kept for future use)
+
+.article-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.article-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-accent-primary);
+  background: rgba(var(--color-accent-primary-rgb), 0.08);
+  border-radius: 4px;
+  font-family: $font-family-code;
+}
+
+// Title
+.article-title-link {
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+  min-width: 0;
+}
+
+.article-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.4;
+  display: inline;
+  background: linear-gradient(currentColor, currentColor) no-repeat 0 100%;
+  background-size: 0 2px;
+  transition: background-size 0.3s ease;
+
+  .article-title-link:hover & {
+    background-size: 100% 2px;
+    color: var(--color-accent-primary);
+  }
+}
+
+// Summary
+.article-summary {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+  line-height: 1.65;
+  margin: 0;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Bottom meta — stats left, author right, same row
+.article-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: $spacing-md;
+  margin-top: auto;
+  flex-wrap: nowrap;
+}
+
+.article-stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+
+  .stat-icon {
+    width: 15px;
+    height: 15px;
+    opacity: 0.6;
+  }
+}
+
+.article-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.article-date {
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
+  font-family: $font-family-code;
+  white-space: nowrap;
+
+  &--top {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+}
+
+.article-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+
+  .author-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--color-border);
+  }
+
+  .author-name {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+  }
+}
+
+// Cover image
+.article-cover {
+  flex-shrink: 0;
+  width: 200px;
+  height: 130px;
+  border-radius: 10px;
+  overflow: hidden;
+
+  @media (max-width: $breakpoint-tablet) {
+    width: 160px;
+    height: 110px;
+  }
+
+  @media (max-width: $breakpoint-mobile) {
     width: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 0;
+    height: 180px;
   }
 
-  &__image {
+  a {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.6s ease;
+    transition: transform 0.4s ease;
   }
 
-  &__overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      to bottom, 
-      transparent 0%, 
-      rgba(0, 0, 0, 0.2) 40%, 
-      rgba(0, 0, 0, 0.95) 100%
-    );
-    transition: opacity 0.3s ease;
-    opacity: 0.8;
-  }
-
-  &__content {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    padding: $spacing-lg;
-    z-index: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-  }
-
-  &__meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: $spacing-sm;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.7); /* Always light */
-    font-family: $font-family-code;
-
-    .tags {
-      display: flex;
-      gap: 6px;
-    }
-
-    .tag {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.15);
-      padding: 2px 8px;
-      border-radius: 4px;
-      backdrop-filter: blur(4px);
-    }
-  }
-
-  &__title {
-    font-size: 1.3rem;
-    margin-bottom: $spacing-xs;
-    color: #ffffff; /* Always white */
-    font-weight: 700;
-    line-height: 1.3;
-    transition: color 0.3s;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-    
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  &__summary {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.8); /* Light grey */
-    line-height: 1.5;
-    margin-bottom: $spacing-md;
-    
-    display: -webkit-box;
-    -webkit-line-clamp: 2; /* Limit to 2 lines to save space */
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  &__btn {
-    align-self: flex-start;
-    background: transparent;
-    color: $color-accent-primary; /* Accent color for button */
-    border: none;
-    padding: 0;
-    font-family: $font-family-code;
-    font-weight: 600;
-    cursor: pointer;
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: gap 0.3s;
-    text-decoration: none;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-
-    &::after {
-      content: '→';
-      font-size: 1.2rem;
-      color: $color-accent-primary;
-      transition: transform 0.3s;
-    }
-
-    // RTL Support for arrow
-    :global([dir="rtl"]) &::after {
-      transform: scaleX(-1);
-    }
-
-    &:hover {
-      color: $color-accent-primary;
-      gap: 16px;
-    }
+  &:hover img {
+    transform: scale(1.06);
   }
 }
 </style>

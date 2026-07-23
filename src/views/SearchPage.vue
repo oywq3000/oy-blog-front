@@ -5,6 +5,7 @@ import { useRoute, useRouter } from 'vue-router';
 import ArticleCard from '../components/ArticleCard.vue';
 import IconSearch from '../components/icons/IconSearch.vue';
 import { searchArticles, type Article } from '../api/article';
+import { getSimpleUserProfile } from '../api/user';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -22,8 +23,67 @@ const itemsPerPage = 10;
 
 // Real search results
 const searchResults = ref<Article[]>([]);
+
+// Enriched articles with author info
+interface EnrichedArticle {
+  id: string;
+  title: string;
+  summary: string;
+  date: string;
+  tags: string[];
+  image: string;
+  viewCount?: number;
+  likeCount?: number;
+  favorites?: number;
+  readingTimeMinutes?: number;
+  authorName?: string;
+  authorAvatar?: string;
+}
+const enrichedResults = ref<EnrichedArticle[]>([]);
 const totalResults = ref(0);
 const totalPages = ref(0);
+
+async function fetchAuthorProfiles(
+  authorIds: string[]
+): Promise<Map<string, { name: string; avatar: string }>> {
+  const map = new Map<string, { name: string; avatar: string }>();
+  const uniqueIds = [...new Set(authorIds.filter(Boolean))];
+  await Promise.all(
+    uniqueIds.map(async (userId) => {
+      try {
+        const res = await getSimpleUserProfile(userId);
+        if (res.isSuccess && res.data) {
+          map.set(userId, { name: res.data.name, avatar: res.data.avatar });
+        }
+      } catch {
+        // Silently ignore
+      }
+    })
+  );
+  return map;
+}
+
+async function enrichArticles(articles: Article[]) {
+  const authorIds = articles.map((a) => a.authorId);
+  const authorMap = await fetchAuthorProfiles(authorIds);
+  enrichedResults.value = articles.map((a) => {
+    const author = authorMap.get(a.authorId);
+    return {
+      id: a.slug || a.id,
+      title: a.title,
+      summary: a.summary || '',
+      date: a.publishAt || a.createdAt,
+      tags: a.tags || [],
+      image: a.coverUrl || '',
+      viewCount: a.viewCount,
+      likeCount: a.likeCount,
+      favorites: a.favorites,
+      readingTimeMinutes: a.readingTimeMinutes,
+      authorName: author?.name,
+      authorAvatar: author?.avatar,
+    };
+  });
+}
 
 const searchHistory = ref<string[]>([]);
 const hotSearches = ref(['Spring Boot 3', 'Kubernetes', 'Microservices', 'AI Tools', 'Vue 3', 'React', 'Docker']);
@@ -33,10 +93,8 @@ const hotSearches = ref(['Spring Boot 3', 'Kubernetes', 'Microservices', 'AI Too
 const paginatedResults = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   const end = start + itemsPerPage;
-  return searchResults.value.slice(start, end);
+  return enrichedResults.value.slice(start, end);
 });
-
-console.log(paginatedResults)
 
 // Methods
 const performSearch = async () => {
@@ -65,15 +123,18 @@ const performSearch = async () => {
       searchResults.value = response.data.data;
       totalResults.value = response.data.total;
       totalPages.value = response.data.totalPages;
+      await enrichArticles(response.data.data);
     } else {
       console.error('Search failed:', response.errMsg);
       searchResults.value = [];
+      enrichedResults.value = [];
       totalResults.value = 0;
       totalPages.value = 0;
     }
   } catch (error) {
     console.error('Search error:', error);
     searchResults.value = [];
+    enrichedResults.value = [];
     totalResults.value = 0;
     totalPages.value = 0;
   } finally {
@@ -132,6 +193,7 @@ const changePage = async  (page: number) => {
       });
       if (response.isSuccess) {
         searchResults.value = response.data.data;
+        await enrichArticles(response.data.data);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     } catch (error) {
@@ -150,6 +212,7 @@ watch(() => route.query.q, (newQ) => {
   } else {
     searchQuery.value = '';
     searchResults.value = [];
+    enrichedResults.value = [];
     totalResults.value = 0;
     totalPages.value = 0;
   }
@@ -284,16 +347,11 @@ onMounted(() => {
                 <div class="results-meta" v-if="searchQuery!=''">
                    <span class="count">Found {{ totalResults  }} results for "{{ searchQuery }}"</span>
                 </div>
-                <div class="results-grid">
-                  <ArticleCard 
-                    v-for="result in paginatedResults" 
-                    :key="result.id" 
-                    :id="result.id"
-                    :title="result.title"
-                    :date="result.createdAt"
-                    :summary="result.summary || 'no summary'"
-                    :tags="result.tags || []"
-                    :image="result.coverUrl || ''"
+                <div class="results-list">
+                  <ArticleCard
+                    v-for="result in paginatedResults"
+                    :key="result.id"
+                    v-bind="result"
                   />
                 </div>
                 <!-- Pagination -->
@@ -771,10 +829,9 @@ onMounted(() => {
   }
 }
 
-.results-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: $spacing-lg;
+.results-list {
+  display: flex;
+  flex-direction: column;
   margin-bottom: $spacing-xl;
 }
 

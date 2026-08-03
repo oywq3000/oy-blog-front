@@ -40,62 +40,53 @@ function formatCount(n: number | undefined): string {
 </script>
 
 <template>
-  <article class="article-row">
-    <!-- Main text content -->
-    <div class="article-main">
-      <!-- Title row: title left, date right -->
-      <div class="article-title-row">
-        <router-link :to="{ name: 'article-detail', params: { id } }" class="article-title-link">
-          <h3 class="article-title">{{ title }}</h3>
-        </router-link>
-        <span class="article-date article-date--top">{{ formattedDate }}</span>
-      </div>
-
-      <!-- Summary -->
-      <p class="article-summary">{{ summary }}</p>
-
-      <!-- Bottom meta row -->
-      <div class="article-meta">
-        <div class="article-stats">
-          <span v-if="viewCount != null" class="stat-item" :title="t('articleDetail.views')">
-            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-            <span>{{ formatCount(viewCount) }}</span>
-          </span>
-          <span v-if="likeCount != null" class="stat-item" :title="t('articleDetail.likes')">
-            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-            </svg>
-            <span>{{ formatCount(likeCount) }}</span>
-          </span>
-          <span v-if="favorites != null" class="stat-item" title="收藏">
-            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-            <span>{{ formatCount(favorites) }}</span>
-          </span>
-          <span v-if="readingTimeMinutes" class="stat-item">
-            <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span>{{ readingTimeMinutes }} min read</span>
-          </span>
-        </div>
-
-        <div class="article-footer-right">
-          <div v-if="authorName" class="article-author">
-            <AvatarGenerator v-if="!authorAvatar" :username="authorName" :size="22" />
-            <img v-else :src="authorAvatar" :alt="authorName" class="author-avatar" />
-            <span class="author-name">{{ authorName }}</span>
-          </div>
-        </div>
+  <article class="article-row" :class="{ 'has-cover': showCover }">
+    <!-- Row 1: Author + date -->
+    <div class="article-author-row">
+      <div v-if="authorName" class="article-author">
+        <AvatarGenerator v-if="!authorAvatar" :username="authorName" :size="22" />
+        <img v-else :src="authorAvatar" :alt="authorName" class="author-avatar" />
+        <span class="author-name">{{ authorName }}</span>
       </div>
     </div>
-
-    <!-- Optional cover image -->
+    <!-- Row 2: Title -->
+    <router-link :to="{ name: 'article-detail', params: { id } }" class="article-title-link">
+      <h3 class="article-title">{{ title }}</h3>
+    </router-link>
+    <!-- Row 3: Summary -->
+    <p class="article-summary">{{ summary }}</p>
+    <!-- Row 4: Stats -->
+    <div class="article-meta">
+      <div class="article-stats">
+        <span v-if="viewCount != null" class="stat-item" :title="t('articleDetail.views')">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>{{ formatCount(viewCount) }}</span>
+        </span>
+        <span v-if="likeCount != null" class="stat-item" :title="t('articleDetail.likes')">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+          <span>{{ formatCount(likeCount) }}</span>
+        </span>
+        <span v-if="favorites != null" class="stat-item" title="收藏">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          <span>{{ formatCount(favorites) }}</span>
+        </span>
+        <span v-if="readingTimeMinutes" class="stat-item">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span>{{ readingTimeMinutes }} min read</span>
+        </span>
+      </div>
+    </div>
+    <!-- Cover: spans rows 2-4 (title → stats) -->
     <div v-if="showCover" class="article-cover">
       <router-link :to="{ name: 'article-detail', params: { id } }">
         <img :src="image" loading="lazy" :alt="title" decoding="async" />
@@ -108,66 +99,83 @@ function formatCount(n: number | undefined): string {
 @use '../styles/variables' as *;
 
 .article-row {
-  display: flex;
-  gap: $spacing-xl;
-  padding: $spacing-lg 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto 1fr auto;
+  padding: $spacing-lg;
   border-bottom: 1px solid var(--color-border);
   transition: background 0.2s ease;
   border-radius: 8px;
-  padding: $spacing-lg;
+  gap: 4px 0;
 
   &:hover {
     background: var(--color-bg-secondary);
   }
 
+  // When cover exists, add a second column
+  &.has-cover {
+    grid-template-columns: 1fr 200px;
+    gap: 4px $spacing-xl;
+
+    @media (max-width: $breakpoint-tablet) {
+      grid-template-columns: 1fr 150px;
+      gap: 4px $spacing-lg;
+    }
+  }
+
   @media (max-width: $breakpoint-mobile) {
-    flex-direction: column-reverse;
-    gap: $spacing-md;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto;
     padding: $spacing-md;
+    gap: 6px;
   }
 }
 
-.article-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-}
-
-// Title row: title left, date right
-.article-title-row {
+// ---- Row 1: Author + Date ----
+.article-author-row {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: $spacing-md;
 }
 
-// Tags (hidden, kept for future use)
+.article-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 
-.article-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 2px;
+  .author-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--color-border);
+  }
+
+  .author-name {
+    font-size: 0.8rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+  }
 }
 
-.article-tag {
-  display: inline-block;
-  padding: 2px 10px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-accent-primary);
-  background: rgba(var(--color-accent-primary-rgb), 0.08);
-  border-radius: 4px;
+.article-date {
+  font-size: 0.8rem;
+  color: var(--color-text-tertiary);
   font-family: $font-family-code;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-// Title
+// ---- Row 2: Title ----
 .article-title-link {
+  grid-column: 1;
+  grid-row: 2;
   text-decoration: none;
   color: inherit;
-  flex: 1;
   min-width: 0;
 }
 
@@ -188,12 +196,15 @@ function formatCount(n: number | undefined): string {
   }
 }
 
-// Summary
+// ---- Row 3: Summary ----
 .article-summary {
+  grid-column: 1;
+  grid-row: 3;
   font-size: 0.9rem;
   color: var(--color-text-secondary);
   line-height: 1.65;
   margin: 0;
+  min-width: 0;
 
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -201,13 +212,14 @@ function formatCount(n: number | undefined): string {
   overflow: hidden;
 }
 
-// Bottom meta — stats left, author right, same row
+// ---- Row 4: Stats ----
 .article-meta {
+  grid-column: 1;
+  grid-row: 4;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: $spacing-md;
-  margin-top: auto;
   flex-wrap: nowrap;
 }
 
@@ -233,59 +245,18 @@ function formatCount(n: number | undefined): string {
   }
 }
 
-.article-footer-right {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.article-date {
-  font-size: 0.8rem;
-  color: var(--color-text-tertiary);
-  font-family: $font-family-code;
-  white-space: nowrap;
-
-  &--top {
-    flex-shrink: 0;
-    margin-left: auto;
-  }
-}
-
-.article-author {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
-
-  .author-avatar {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1px solid var(--color-border);
-  }
-
-  .author-name {
-    font-size: 0.8rem;
-    color: var(--color-text-secondary);
-    font-weight: 500;
-  }
-}
-
-// Cover image
+// ---- Cover: spans rows 2–4 ----
 .article-cover {
-  flex-shrink: 0;
-  width: 200px;
-  height: 130px;
+  grid-column: 2;
+  grid-row: 2 / 5;
   border-radius: 10px;
   overflow: hidden;
-
-  @media (max-width: $breakpoint-tablet) {
-    width: 160px;
-    height: 110px;
-  }
+  height: 100%;
+  min-height: 100px;
 
   @media (max-width: $breakpoint-mobile) {
+    grid-column: 1 !important;
+    grid-row: auto !important;
     width: 100%;
     height: 180px;
   }

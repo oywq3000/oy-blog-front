@@ -94,8 +94,8 @@ onMounted(async () => {
           likeCount: a.likeCount,
           favorites: a.favorites,
           readingTimeMinutes: a.readingTimeMinutes,
-          authorName: author?.name,
-          authorAvatar: author?.avatar,
+          authorName: a.authorName,
+          authorAvatar: a.authorAvatar,
         };
       });
 

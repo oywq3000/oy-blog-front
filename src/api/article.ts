@@ -29,6 +29,8 @@ export interface Article {
   commentCount?: number;
   tags?: string[];
   readingTimeMinutes?: number;
+  authorName?: string;
+  authorAvatar?: string;
 }
 
 export interface ArticleChapter {

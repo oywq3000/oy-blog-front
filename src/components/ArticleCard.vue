@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import AvatarGenerator from './AvatarGenerator.vue';
 
@@ -18,7 +19,12 @@ const props = defineProps<{
   readingTimeMinutes?: number;
 }>();
 
+const router = useRouter();
 const { t, d } = useI18n();
+
+function goToArticle() {
+  router.push({ name: 'article-detail', params: { id: props.id } });
+}
 
 const formattedDate = computed(() => {
   try {
@@ -40,7 +46,7 @@ function formatCount(n: number | undefined): string {
 </script>
 
 <template>
-  <article class="article-row" :class="{ 'has-cover': showCover }">
+  <article class="article-row" :class="{ 'has-cover': showCover }" @click="goToArticle">
     <!-- Row 1: Author + date -->
     <div class="article-author-row">
       <div v-if="authorName" class="article-author">
@@ -50,9 +56,7 @@ function formatCount(n: number | undefined): string {
       </div>
     </div>
     <!-- Row 2: Title -->
-    <router-link :to="{ name: 'article-detail', params: { id } }" class="article-title-link">
-      <h3 class="article-title">{{ title }}</h3>
-    </router-link>
+    <h3 class="article-title">{{ title }}</h3>
     <!-- Row 3: Summary -->
     <p class="article-summary">{{ summary }}</p>
     <!-- Row 4: Stats -->
@@ -88,9 +92,7 @@ function formatCount(n: number | undefined): string {
     </div>
     <!-- Cover: spans rows 2-4 (title → stats) -->
     <div v-if="showCover" class="article-cover">
-      <router-link :to="{ name: 'article-detail', params: { id } }">
-        <img :src="image" loading="lazy" :alt="title" decoding="async" />
-      </router-link>
+      <img :src="image" loading="lazy" :alt="title" decoding="async" />
     </div>
   </article>
 </template>
@@ -104,7 +106,10 @@ function formatCount(n: number | undefined): string {
   grid-template-rows: auto auto 1fr auto;
   min-height: 120px;
   padding: $spacing-sm $spacing-lg;
-  border-bottom: 1px solid var(--color-border);
+  margin-bottom: 8px;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
   transition: background 0.2s ease;
   border-radius: 8px;
   gap: 4px 0;
@@ -173,26 +178,22 @@ function formatCount(n: number | undefined): string {
 }
 
 // ---- Row 2: Title ----
-.article-title-link {
+.article-title {
   grid-column: 1;
   grid-row: 2;
-  text-decoration: none;
-  color: inherit;
-  min-width: 0;
-}
-
-.article-title {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
   line-height: 1.4;
   display: inline;
+  width: fit-content;
+  min-width: 0;
   background: linear-gradient(currentColor, currentColor) no-repeat 0 100%;
   background-size: 0 2px;
   transition: background-size 0.3s ease;
 
-  .article-title-link:hover & {
+  .article-row:hover & {
     background-size: 100% 2px;
     color: var(--color-accent-primary);
   }
@@ -263,12 +264,6 @@ function formatCount(n: number | undefined): string {
     height: 180px;
   }
 
-  a {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-
   img {
     width: 100%;
     height: 100%;
@@ -276,7 +271,7 @@ function formatCount(n: number | undefined): string {
     transition: transform 0.4s ease;
   }
 
-  &:hover img {
+  .article-row:hover & img {
     transform: scale(1.06);
   }
 }

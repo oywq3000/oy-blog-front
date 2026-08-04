@@ -102,7 +102,8 @@ function formatCount(n: number | undefined): string {
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto auto 1fr auto;
-  padding: $spacing-lg;
+  min-height: 120px;
+  padding: $spacing-sm $spacing-lg;
   border-bottom: 1px solid var(--color-border);
   transition: background 0.2s ease;
   border-radius: 8px;
@@ -126,6 +127,7 @@ function formatCount(n: number | undefined): string {
   @media (max-width: $breakpoint-mobile) {
     grid-template-columns: 1fr !important;
     grid-template-rows: auto;
+    min-height: 0;
     padding: $spacing-md;
     gap: 6px;
   }
@@ -207,7 +209,7 @@ function formatCount(n: number | undefined): string {
   min-width: 0;
 
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

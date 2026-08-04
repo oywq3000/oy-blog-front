@@ -85,7 +85,6 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
-const { d } = useI18n();
 const userStore = useUserStore();
 const { isLoggedIn, user } = userStore; // Destructure for reactive access
 // const { theme } = useTheme(); // unused
@@ -103,6 +102,15 @@ const isLoading = ref(false);
 const isSubmittingComment = ref(false);
 const comments = ref<UIComment[]>([]);
 const newComment = ref('');
+
+// Formatted date YYYY-MM-DD HH:mm:ss
+const formattedDate = computed(() => {
+  const raw = articleInfo.value?.publishAt || articleInfo.value?.createdAt;
+  if (!raw) return '';
+  const d = new Date(raw);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+});
 
 // Computed reading time
 const readingTime = computed(() => {
@@ -719,35 +727,16 @@ const handleEdit = () => {
   </div>
   <div class="container article-layout" v-else>
     <main class="article-content">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="breadcrumbItems" />
-
       <article v-if="articleInfo" class="glass-panel article-main-card">
         <header class="article-header">
+          <h1 class="article-title">{{ articleInfo.title }}</h1>
           <div class="article-meta">
-            <span class="date">{{ d(new Date(articleInfo.publishAt || articleInfo.createdAt), 'long') }}</span>
-            <span class="dot">•</span>
-            <span class="read-time">{{ readingTime }}</span>
+            <span class="date">{{ formattedDate }}</span>
             <span class="dot" v-if="articleInfo.tags && articleInfo.tags.length > 0">•</span>
             <div class="tags" v-if="articleInfo.tags && articleInfo.tags.length > 0">
               <TagBadge v-for="tag in articleInfo.tags" :key="tag" :label="tag" size="sm" />
             </div>
           </div>
-
-          <h1 class="article-title">{{ articleInfo.title }}</h1>
-          <!-- <div class="author-info">
-            <div class="avatar">
-              <IconUser :size="24" />
-            </div>
-            <div class="author-details">
-              <span class="name">{{ authorName || article.authorId }}</span>
-              <span class="stats">{{ article.viewCount || 0 }} {{ t('articleDetail.views') }} • {{ article.likeCount ||
-                0 }} {{ t('articleDetail.likes') }}</span>
-            </div>
-            <button v-if="isOwner" class="edit-btn" @click="handleEdit">
-              {{ t('articleDetail.edit') }}
-            </button>
-          </div> -->
         </header>
 
         <div class="article-body">
@@ -764,34 +753,26 @@ const handleEdit = () => {
           <div class="article-actions">
             <div class="author-info">
               <div class="avatar">
-                <IconUser 
-                  :size="24"
-                  :avatar="simpleAuthorProfile?.avatar"
-                 />
+                <IconUser :size="20" :avatar="simpleAuthorProfile?.avatar" />
               </div>
-              <div class="author-details">
-                <span class="name">{{ simpleAuthorProfile?.name }}</span>
-                <!-- <span class="stats">{{ article.viewCount || 0 }} {{ t('articleDetail.views') }} • {{ article.likeCount
-                  ||
-                  0 }} {{ t('articleDetail.likes') }}</span> -->
-              </div>
+              <span class="name">{{ simpleAuthorProfile?.name }}</span>
+            </div>
+            <div class="right-actions">
               <button v-if="isOwner" class="edit-btn" @click="handleEdit">
                 {{ t('articleDetail.edit') }}
               </button>
-            </div>
-            <div class="left-actions">
               <button class="action-btn like-btn" :class="{ active: isLiked }" @click="toggleLike"
                 aria-label="Like article">
-                <IconLike :filled="isLiked" :size="22" />
+                <IconLike :filled="isLiked" :size="18" />
                 <span class="count">{{ articleInfo.likeCount || 0 }}</span>
               </button>
               <button class="action-btn fav-btn" :class="{ active: isFavorited }" @click="toggleFavorite"
                 aria-label="Add to favorites">
-                <IconStar :filled="isFavorited" :size="22" />
+                <IconStar :filled="isFavorited" :size="18" />
                 <span class="count">{{ articleInfo.favorites || 0 }}</span>
               </button>
               <button class="action-btn share-btn" @click="toggleShare" aria-label="Share article">
-                <IconShare :size="22" />
+                <IconShare :size="18" />
               </button>
             </div>
           </div>
@@ -817,11 +798,9 @@ const handleEdit = () => {
       </nav>
 
     </main>
-
     <!-- Comments Section Moved Outside Main to allow Sidebar to stop scrolling with Article -->
     <section class="comments-section glass-panel">
-      <h3>{{ t('articleDetail.comments') }} ({{ articleInfo?.commentCount ?? comments.length }})</h3>
-
+      <h5>{{ t('articleDetail.comments') }} ({{ articleInfo?.commentCount ?? comments.length }})</h5>
       <div class="comment-form main-form">
         <div class="avatar-wrapper">
           <div class="user-avatar">
@@ -991,7 +970,7 @@ const handleEdit = () => {
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02); // Subtle shadow for depth
 
   @media (max-width: $breakpoint-mobile) {
-    padding: $spacing-lg;
+  
     border-radius: 12px;
   }
 }
@@ -1012,9 +991,14 @@ const handleEdit = () => {
   background: $color-bg-secondary;
 }
 
-.article-header {
+.article-main-card {
+  display: flex;
+  flex-direction: column;
+  border-bottom: none;
+  margin-bottom: 0;
+}
 
-  border-bottom: 1px solid $color-border;
+.article-header {
 
   @media (max-width: $breakpoint-mobile) {
     margin-bottom: $spacing-lg;
@@ -1023,9 +1007,8 @@ const handleEdit = () => {
   .article-meta {
     display: flex;
     gap: $spacing-md;
-    margin-bottom: $spacing-md;
     color: $color-text-secondary;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     flex-wrap: wrap;
 
     .tag {
@@ -1035,7 +1018,7 @@ const handleEdit = () => {
 
   .article-title {
     font-size: 2.5rem;
-    margin-bottom: $spacing-lg;
+    margin-bottom: $spacing-xs;
     line-height: 1.2;
     word-break: break-word; // Prevent long words from overflowing
     color: $color-text-primary;
@@ -1050,45 +1033,43 @@ const handleEdit = () => {
 
 .author-info {
   display: flex;
-  justify-content: left;
   align-items: center;
-  flex-wrap: nowrap; // 确保不换行
+  gap: $spacing-sm;
+  flex-shrink: 0;
 
   .avatar {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2rem;
+    height: 2rem;
     background: $color-bg-secondary;
     border-radius: 50%;
     display: flex;
     align-items: center;
   }
 
-  .author-details {
-    align-items: center;
-    gap: $spacing-md;
-    display: flex;
-
-    .name {
-      font-weight: bold;
-      color: $color-text-primary;
-    }
-
-    .stats {
-      font-size: 0.85rem;
-      color: $color-text-secondary;
-    }
+  .name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: $color-text-primary;
+    white-space: nowrap;
   }
+}
+
+.right-actions {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  flex-shrink: 0;
 
   .edit-btn {
-    margin-left: auto;
-    padding: 0.4rem 1rem;
+    padding: 0.3rem 0.8rem;
     border-radius: 20px;
     border: 1px solid rgba($color-border, 0.5);
     background: rgba($color-bg-secondary, 0.5);
     color: $color-text-secondary;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.3s ease;
+    white-space: nowrap;
 
     &:hover {
       border-color: $color-accent-primary;
@@ -1100,8 +1081,10 @@ const handleEdit = () => {
 
 .article-body {
   @include markdown-styles; // Use shared markdown styles
-  //margin-bottom: $spacing-xl;
   min-height: 200px; // Prevent collapse when empty
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .loading-placeholder {
@@ -1115,38 +1098,38 @@ const handleEdit = () => {
 
 .article-actions {
   display: flex;
-  flex-direction: column;
-  gap: $spacing-md;
-  padding-top: $spacing-xl; // Increased spacing to avoid overlap
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  padding-top: $spacing-lg;
   padding-bottom: $spacing-sm;
-  border-top: 1px solid $color-border;
   contain: layout;
-  margin-top: $spacing-lg;
+  margin-top: auto;
 
-  .left-actions {
+  .right-actions {
     display: flex;
-    gap: $spacing-md;
+    gap: $spacing-sm;
   }
 
   .action-btn {
-    background: transparent; // No background by default
-    border: none; // No border as requested
+    background: transparent;
+    border: none;
     color: $color-text-secondary;
-    padding: 0.5rem; // Compact padding
-    border-radius: 50%; // Circular touch target
+    padding: 0.3rem;
+    border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    min-height: 44px; // Ensure touch target
-    min-width: 44px;
+    gap: 4px;
+    min-height: 32px;
+    min-width: 32px;
     font-family: inherit;
 
-    // Text/Count styling
     .count {
-      font-size: 1rem;
+      font-size: 0.9rem;
       font-weight: 600;
       line-height: 1;
       font-variant-numeric: tabular-nums;
@@ -1154,7 +1137,6 @@ const handleEdit = () => {
     }
 
     &:hover {
-      // background: rgba($color-text-secondary, 0.1); // Removed background
       color: $color-text-primary;
       transform: scale(1.1);
     }
@@ -1163,16 +1145,15 @@ const handleEdit = () => {
       transform: scale(0.95);
     }
 
-    // Like Button Specifics
     &.like-btn {
       &:hover {
         color: #ff4757;
-        background: transparent; // Ensure no background
+        background: transparent;
       }
 
       &.active {
         color: #ff4757;
-        background: transparent; // Ensure no background
+        background: transparent;
 
         .count {
           color: #ff4757;
@@ -1180,16 +1161,15 @@ const handleEdit = () => {
       }
     }
 
-    // Favorite Button Specifics
     &.fav-btn {
       &:hover {
         color: #ffa502;
-        background: transparent; // Ensure no background
+        background: transparent;
       }
 
       &.active {
         color: #ffa502;
-        background: transparent; // Ensure no background
+        background: transparent;
 
         .count {
           color: #ffa502;
@@ -1197,13 +1177,12 @@ const handleEdit = () => {
       }
     }
 
-    // Share Button Specifics
     &.share-btn {
-      margin-left: auto; // Just in case, but flex space-between handles it
+      margin-left: auto;
 
       &:hover {
         color: $color-accent-primary;
-        background: transparent; // Ensure no background
+        background: transparent;
       }
     }
   }
@@ -1216,6 +1195,7 @@ const handleEdit = () => {
   padding: 0;
   overflow: hidden;
   margin-bottom: $spacing-lg;
+  border-bottom: none;
 
   @media (max-width: $breakpoint-mobile) {
     flex-direction: column;

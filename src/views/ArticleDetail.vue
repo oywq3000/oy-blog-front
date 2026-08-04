@@ -23,26 +23,23 @@ import {
   unlikeArticle,
   checkIsLiked,
   checkIsFavorited,
-  getLikeCount,
-  getFavoriteCount,
   favoriteArticle,
   unfavoriteArticle,
   checkArticleOwnership,
-  type Article,
+  type ArticleInfo,
   type ArticleChapter,
   type UserArticleStats
 } from '../api/article';
 import {
   getComments,
   getReplies,
-  getCommentCount,
   addComment,
   replyComment,
   reactToComment,
   type Comment as APIComment,
   type CommentReply as APICommentReply
 } from '../api/comment';
-import { getUserPublicProfile, getSimpleUserProfile, type SimpleUserProfile } from '../api/user';
+import { getUserPublicProfile, type SimpleUserProfile } from '../api/user';
 import { useUserStore } from '../store/user';
 import { estimateReadingTime, formatReadingTime } from '../utils/readingTime';
 // import { MdPreview } from 'md-editor-v3'; // Removed, using MarkdownViewer
@@ -95,7 +92,7 @@ const { isLoggedIn, user } = userStore; // Destructure for reactive access
 const { addToast } = useToast();
 
 // Article Data
-const article = ref<Article | null>(null);
+const articleInfo = ref<ArticleInfo | null>(null);
 const isOwner = ref(false);
 const authorInfo = ref<UserArticleStats | null>(null);
 const simpleAuthorProfile = ref<SimpleUserProfile | null>(null)
@@ -109,7 +106,7 @@ const newComment = ref('');
 
 // Computed reading time
 const readingTime = computed(() => {
-  const content = articleContent.value || articleHtml.value || article.value?.summary || '';
+  const content = articleContent.value || articleHtml.value || articleInfo.value?.summary || '';
   const minutes = estimateReadingTime(
     typeof content === 'string' ? content : '',
     locale.value
@@ -119,7 +116,7 @@ const readingTime = computed(() => {
 
 // Breadcrumb items
 const breadcrumbItems = computed(() => [
-  { label: article.value?.title || t('articleDetail.loading'), to: undefined },
+  { label: articleInfo.value?.title || t('articleDetail.loading'), to: undefined },
 ]);
 
 // Helper to convert API Reply to UI Comment
@@ -191,25 +188,6 @@ const mapComment = (c: APIComment): UIComment => {
 
 // Cache for usernames to avoid duplicate requests
 const usernameCache = new Map<string, UserArticleStats>();
-const simpleUserProfileCache = new Map<string, SimpleUserProfile>();
-
-
-const fetchSimpleUserInfo = async (userId: string) => {
-  if (!userId || usernameCache.has(userId)) return usernameCache.get(userId);
-  try {
-    const res = await getSimpleUserProfile(userId);
-    if (res.isSuccess && res.data) {
-      const author = res.data;
-      if (author) {
-        simpleUserProfileCache.set(userId, author); // Cache using the ORIGINAL userId as key
-        return author;
-      }
-    }
-  } catch (e) {
-    console.error('Failed to fetch username for', userId, e);
-  }
-  return null;
-}
 
 
 const fetchUserInfo = async (userId: string) => {
@@ -322,41 +300,28 @@ const loadArticle = async (slug: string) => {
     console.log('getArticleBySlug raw response:', res);
 
     // Normalize response: Handle both wrapped ResultObject and direct Article object
-    let articleData: Article | null = null;
+    let articleData: ArticleInfo | null = null;
     if (res.isSuccess && res.data) {
       articleData = res.data;
     } else if ((res as any).id) {
       // Fallback: response might be the article object directly
-      articleData = res as unknown as Article;
+      articleData = res as unknown as ArticleInfo;
     } else if (res.data && res.data.id) {
       // Fallback: response has data but missing isSuccess
       articleData = res.data;
     }
 
     if (articleData) {
-      article.value = articleData;
+      articleInfo.value = articleData;
       console.log('Article data loaded:', articleData);
 
-      // Attempt to fetch author name if it looks like an ID
-      if (article.value?.authorId) {
-        //todo 
-        fetchSimpleUserInfo(article.value.authorId).then(author => {
-          if (author) {
-            simpleAuthorProfile.value = author;
-          }
-        })
-      }
+      // Author info is now available directly from ArticleInfo
+      simpleAuthorProfile.value = {
+        name: articleData.authorName || '',
+        avatar: articleData.authorAvatar || '',
+      };
 
-      // Record view and load updated stats
       if (articleData.id) {
-        // Load real-time stats
-        getLikeCount(articleData.id).then(res => {
-          if (res.isSuccess) article.value!.likeCount = res.data;
-        });
-        getCommentCount(articleData.id).then(res => {
-          if (res.isSuccess) article.value!.commentCount = res.data;
-        });
-
         // Load chapters
         loadChapters(articleData.id);
 
@@ -373,11 +338,6 @@ const loadArticle = async (slug: string) => {
             if (res.isSuccess) isOwner.value = res.data;
           });
         }
-
-        // Fetch favorite count
-        getFavoriteCount(articleData.id).then(res => {
-          if (res.isSuccess && article.value) article.value.favorites = res.data;
-        });
       }
 
       // 2. Get Content
@@ -413,15 +373,15 @@ const loadArticle = async (slug: string) => {
             articleHtml.value = contentData.content;
             articleContent.value = '';
           } else {
-            articleContent.value = article.value?.summary || `# ${t('articleDetail.noContent')}`;
+            articleContent.value = articleInfo.value?.summary || `# ${t('articleDetail.noContent')}`;
           }
         } else {
           console.warn('Content response format not recognized', contentRes);
-          articleContent.value = article.value?.summary || `# ${t('articleDetail.noContent')}`;
+          articleContent.value = articleInfo.value?.summary || `# ${t('articleDetail.noContent')}`;
         }
       } catch (contentError) {
         console.error('Failed to fetch article content:', contentError);
-        articleContent.value = article.value?.summary || `# ${t('articleDetail.loadFailed')}`;
+        articleContent.value = articleInfo.value?.summary || `# ${t('articleDetail.loadFailed')}`;
       }
 
       // 3. Get Comments
@@ -450,16 +410,16 @@ watch(() => props.id, (newId) => {
 
 // Watch for login state changes to update ownership and interaction status
 watch(isLoggedIn, (newVal) => {
-  if (newVal && article.value) {
+  if (newVal && articleInfo.value) {
     // Check ownership
-    checkArticleOwnership(article.value.id).then(res => {
+    checkArticleOwnership(articleInfo.value.id).then(res => {
       if (res.isSuccess) isOwner.value = res.data;
     });
     // Check interactions
-    checkIsLiked(article.value.id).then(res => {
+    checkIsLiked(articleInfo.value.id).then(res => {
       if (res.isSuccess) isLiked.value = res.data;
     });
-    checkIsFavorited(article.value.id).then(res => {
+    checkIsFavorited(articleInfo.value.id).then(res => {
       if (res.isSuccess) isFavorited.value = res.data;
     });
   } else if (!newVal) {
@@ -590,7 +550,7 @@ const handleVote = async (commentId: number, type: 'like' | 'dislike') => {
 };
 
 const handleReply = async (commentId: number, content: string) => {
-  if (!article.value) return;
+  if (!articleInfo.value) return;
   if (!isLoggedIn.value) {
     alert(t('articleDetail.loginToReply'));
     return;
@@ -637,14 +597,14 @@ const handleReply = async (commentId: number, content: string) => {
     const res = await replyComment(
       rootCommentId,
       content,
-      article.value.id,
+      articleInfo.value.id,
       replyToReplyId,
       targetComment.userId
     );
 
     if (res.isSuccess) {
       // Reload comments
-      loadComments(article.value.id);
+      loadComments(articleInfo.value.id);
     }
   } catch (error) {
     console.error('Failed to reply:', error);
@@ -652,7 +612,7 @@ const handleReply = async (commentId: number, content: string) => {
 };
 
 const submitComment = async () => {
-  if (!newComment.value || !article.value) return;
+  if (!newComment.value || !articleInfo.value) return;
   if (!isLoggedIn.value) {
     alert(t('articleDetail.loginToComment'));
     return;
@@ -660,10 +620,10 @@ const submitComment = async () => {
 
   isSubmittingComment.value = true;
   try {
-    const res = await addComment(article.value.id, newComment.value);
+    const res = await addComment(articleInfo.value.id, newComment.value);
     if (res.isSuccess) {
       newComment.value = '';
-      loadComments(article.value.id);
+      loadComments(articleInfo.value.id);
     }
   } catch (error) {
     console.error('Failed to submit comment:', error);
@@ -673,19 +633,19 @@ const submitComment = async () => {
 };
 
 const toggleLike = async () => {
-  if (!article.value) return;
+  if (!articleInfo.value) return;
   if (!isLoggedIn.value) {
     alert(t('articleDetail.loginToLike'));
     return;
   }
   try {
     if (isLiked.value) {
-      await unlikeArticle(article.value.id);
-      if (article.value.likeCount !== undefined) article.value.likeCount--;
+      await unlikeArticle(articleInfo.value.id);
+      if (articleInfo.value.likeCount !== undefined) articleInfo.value.likeCount--;
       isLiked.value = false;
     } else {
-      await likeArticle(article.value.id);
-      if (article.value.likeCount !== undefined) article.value.likeCount++;
+      await likeArticle(articleInfo.value.id);
+      if (articleInfo.value.likeCount !== undefined) articleInfo.value.likeCount++;
       isLiked.value = true;
     }
   } catch (error) {
@@ -694,19 +654,19 @@ const toggleLike = async () => {
 };
 
 const toggleFavorite = async () => {
-  if (!article.value) return;
+  if (!articleInfo.value) return;
   if (!isLoggedIn.value) {
     alert(t('articleDetail.loginToFavorite'));
     return;
   }
   try {
     if (isFavorited.value) {
-      await unfavoriteArticle(article.value.id);
-      if (article.value.favorites !== undefined) article.value.favorites--;
+      await unfavoriteArticle(articleInfo.value.id);
+      if (articleInfo.value.favorites !== undefined) articleInfo.value.favorites--;
       isFavorited.value = false;
     } else {
-      await favoriteArticle(article.value.id);
-      if (article.value.favorites !== undefined) article.value.favorites++;
+      await favoriteArticle(articleInfo.value.id);
+      if (articleInfo.value.favorites !== undefined) articleInfo.value.favorites++;
       isFavorited.value = true;
     }
   } catch (error) {
@@ -725,15 +685,15 @@ const toggleShare = async () => {
 };
 
 const handleEdit = () => {
-  if (article.value) {
-    router.push(`/editor?id=${article.value.id}`);
+  if (articleInfo.value) {
+    router.push(`/editor?id=${articleInfo.value.id}`);
   }
 };
 </script>
 
 
 <template>
-  <div class="container article-layout" v-if="isLoading && !article">
+  <div class="container article-layout" v-if="isLoading && !articleInfo">
     <div class="glass-panel article-skeleton">
       <div class="skeleton-header">
         <div class="skeleton-meta"></div>
@@ -752,7 +712,7 @@ const handleEdit = () => {
       </div>
     </div>
   </div>
-  <div class="container article-layout" v-else-if="!article && !isLoading">
+  <div class="container article-layout" v-else-if="!articleInfo && !isLoading">
     <div class="glass-panel" style="padding: 2rem; text-align: center;">
       {{ t('articleDetail.notFound') }}
     </div>
@@ -762,19 +722,19 @@ const handleEdit = () => {
       <!-- Breadcrumb -->
       <Breadcrumb :items="breadcrumbItems" />
 
-      <article v-if="article" class="glass-panel article-main-card">
+      <article v-if="articleInfo" class="glass-panel article-main-card">
         <header class="article-header">
           <div class="article-meta">
-            <span class="date">{{ d(new Date(article.publishAt || article.createdAt), 'long') }}</span>
+            <span class="date">{{ d(new Date(articleInfo.publishAt || articleInfo.createdAt), 'long') }}</span>
             <span class="dot">•</span>
             <span class="read-time">{{ readingTime }}</span>
-            <span class="dot" v-if="article.tags && article.tags.length > 0">•</span>
-            <div class="tags" v-if="article.tags && article.tags.length > 0">
-              <TagBadge v-for="tag in article.tags" :key="tag" :label="tag" size="sm" />
+            <span class="dot" v-if="articleInfo.tags && articleInfo.tags.length > 0">•</span>
+            <div class="tags" v-if="articleInfo.tags && articleInfo.tags.length > 0">
+              <TagBadge v-for="tag in articleInfo.tags" :key="tag" :label="tag" size="sm" />
             </div>
           </div>
 
-          <h1 class="article-title">{{ article.title }}</h1>
+          <h1 class="article-title">{{ articleInfo.title }}</h1>
           <!-- <div class="author-info">
             <div class="avatar">
               <IconUser :size="24" />
@@ -823,12 +783,12 @@ const handleEdit = () => {
               <button class="action-btn like-btn" :class="{ active: isLiked }" @click="toggleLike"
                 aria-label="Like article">
                 <IconLike :filled="isLiked" :size="22" />
-                <span class="count">{{ article.likeCount || 0 }}</span>
+                <span class="count">{{ articleInfo.likeCount || 0 }}</span>
               </button>
               <button class="action-btn fav-btn" :class="{ active: isFavorited }" @click="toggleFavorite"
                 aria-label="Add to favorites">
                 <IconStar :filled="isFavorited" :size="22" />
-                <span class="count">{{ article.favorites || 0 }}</span>
+                <span class="count">{{ articleInfo.favorites || 0 }}</span>
               </button>
               <button class="action-btn share-btn" @click="toggleShare" aria-label="Share article">
                 <IconShare :size="22" />
@@ -860,7 +820,7 @@ const handleEdit = () => {
 
     <!-- Comments Section Moved Outside Main to allow Sidebar to stop scrolling with Article -->
     <section class="comments-section glass-panel">
-      <h3>{{ t('articleDetail.comments') }} ({{ article?.commentCount ?? comments.length }})</h3>
+      <h3>{{ t('articleDetail.comments') }} ({{ articleInfo?.commentCount ?? comments.length }})</h3>
 
       <div class="comment-form main-form">
         <div class="avatar-wrapper">

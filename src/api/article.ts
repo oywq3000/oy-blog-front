@@ -7,7 +7,7 @@ export interface ResultObject {
   data: any;
 }
 
-export interface Article {
+export interface ArticleInfo {
   id: string;
   title: string;
   authorId: string;
@@ -53,14 +53,14 @@ export interface ResultArticle {
   errCode: number;
   errMsg: string;
   isSuccess: boolean;
-  data: Article;
+  data: ArticleInfo;
 }
 
 export interface ResultListArticle {
   errCode: number;
   errMsg: string;
   isSuccess: boolean;
-  data: Article[];
+  data: ArticleInfo[];
 }
 
 export interface ResultListArticleChapter {
@@ -238,7 +238,7 @@ interface SearchParams {
 
 export interface SearchResult {
   total: number;
-  data: Article[];
+  data: ArticleInfo[];
   currentPage: number;
   totalPages: number;
 }

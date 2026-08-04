@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import ArticleCard from '../components/ArticleCard.vue';
 import IconSearch from '../components/icons/IconSearch.vue';
-import { searchArticles, type Article } from '../api/article';
+import { searchArticles, type ArticleInfo } from '../api/article';
 import { getSimpleUserProfile } from '../api/user';
 
 const { t } = useI18n();
@@ -22,7 +22,7 @@ const currentPage = ref(1);
 const itemsPerPage = 10;
 
 // Real search results
-const searchResults = ref<Article[]>([]);
+const searchResults = ref<ArticleInfo[]>([]);
 
 // Enriched articles with author info
 interface EnrichedArticle {
@@ -63,7 +63,7 @@ async function fetchAuthorProfiles(
   return map;
 }
 
-async function enrichArticles(articles: Article[]) {
+async function enrichArticles(articles: ArticleInfo[]) {
   const authorIds = articles.map((a) => a.authorId);
   const authorMap = await fetchAuthorProfiles(authorIds);
   enrichedResults.value = articles.map((a) => {

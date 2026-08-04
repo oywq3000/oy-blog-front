@@ -127,7 +127,7 @@ export default {
     search: 'Search',
     searchPlaceholder: 'Search articles...',
     readMore: 'Read More',
-    latestArticles: 'Latest Articles',
+    recommended: 'Recommended',
     switchToZh: 'Switch to Chinese',
     switchToEn: 'Switch to English',
     viewReplies: 'View {count} replies',

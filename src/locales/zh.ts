@@ -127,7 +127,7 @@ export default {
     search: '搜索',
     searchPlaceholder: '搜索文章...',
     readMore: '阅读更多',
-    latestArticles: '最新文章',
+    recommended: '精选博客',
     switchToZh: '切换到中文',
     switchToEn: '切换到英文',
     viewReplies: '查看 {count} 条回复',

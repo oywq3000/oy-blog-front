@@ -132,7 +132,7 @@ watch(showContent, (val) => {
         <!-- Articles List -->
         <section class="articles-section">
           <h2 class="section-title fade-in-up">
-            <span class="text-gradient">{{ t('common.latestArticles') }}</span>
+            <span class="text-gradient">{{ t('common.recommended') }}</span>
           </h2>
 
           <div class="articles-list" v-if="showContent">
@@ -208,8 +208,11 @@ watch(showContent, (val) => {
 }
 
 .section-title {
+  text-align: center;
   font-size: 2rem;
   margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px dashed $color-border;
   font-weight: 800;
   letter-spacing: -1px;
 

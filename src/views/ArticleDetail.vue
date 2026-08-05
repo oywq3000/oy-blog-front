@@ -1340,60 +1340,37 @@ const handleEdit = () => {
 
     .submit-btn {
       flex-shrink: 0;
-      background: #1a1a1a;
-      color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #00a1d6;
+      color: #fff;
+      border: none;
       padding: 0.5rem 1.2rem;
       border-radius: 30px;
       font-weight: 600;
       font-size: 0.85rem;
       cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
       font-family: $font-family-code;
       min-height: 2.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
       white-space: nowrap;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-
-      :global(.dark) & {
-        background: #ffffff; // White for Dark Mode
-        color: #000000;
-        box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15); // White glow
-      }
-
-      // Inner gloss shine
-      &::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 50%;
-        background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-        pointer-events: none;
-      }
 
       &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
-        background: #888; // Neutral grey
-        box-shadow: none;
+        background: #ccc;
       }
 
       &:not(:disabled):hover {
-        transform: translateY(-2px) scale(1.02);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
-
-        :global(.dark) & {
-          box-shadow: 0 8px 30px rgba(255, 255, 255, 0.25);
-        }
+        background: #00b5e5;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 161, 214, 0.4);
       }
 
       &:not(:disabled):active {
-        transform: translateY(0) scale(0.98);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(0);
+        background: #0093c4;
       }
 
       @media (max-width: $breakpoint-mobile) {

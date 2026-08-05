@@ -800,7 +800,7 @@ const handleEdit = () => {
     </main>
     <!-- Comments Section Moved Outside Main to allow Sidebar to stop scrolling with Article -->
     <section class="comments-section glass-panel">
-      <h5>{{ t('articleDetail.comments') }} ({{ articleInfo?.commentCount ?? comments.length }})</h5>
+      <h4>{{ t('articleDetail.comments') }} ({{ articleInfo?.commentCount ?? comments.length }})</h4>
       <div class="comment-form">
         <div class="avatar-wrapper">
           <div class="user-avatar">
@@ -1278,9 +1278,9 @@ const handleEdit = () => {
   }
 
   .comment-form {
-    margin-bottom: $spacing-lg;
+    margin-bottom: $spacing-md;
     display: flex;
-    gap: $spacing-md;
+    gap: $spacing-sm;
     align-items: center;
 
     @media (max-width: $breakpoint-mobile) {
@@ -1291,8 +1291,8 @@ const handleEdit = () => {
       flex-shrink: 0;
 
       .user-avatar {
-        width: 2.5rem;
-        height: 2.5rem;
+        width: 2rem;
+        height: 2rem;
         border-radius: 50%;
         background: $color-bg-primary;
         display: flex;
@@ -1305,7 +1305,7 @@ const handleEdit = () => {
     .input-wrapper {
       flex-grow: 1;
       display: flex;
-      gap: $spacing-md;
+      gap: $spacing-sm;
       align-items: center;
 
       @media (max-width: $breakpoint-mobile) {
@@ -1315,16 +1315,19 @@ const handleEdit = () => {
 
     textarea {
       flex: 1;
-      // Glassy Input
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(0, 0, 0, 0.05);
       border-radius: 8px;
-      padding: $spacing-sm $spacing-md;
+      padding: 0.5rem 0.75rem;
       color: $color-text-primary;
-      resize: vertical;
       font-family: inherit;
+      font-size: 0.9rem;
+      line-height: 1.4;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      min-height: 2.5rem;
+      height: 2.5rem;
+      overflow: hidden;
+      resize: none;
+      white-space: nowrap;
 
       :global(.dark) & {
         background: rgba(0, 0, 0, 0.2);
@@ -1335,6 +1338,11 @@ const handleEdit = () => {
         outline: none;
         background: rgba(255, 255, 255, 0.08);
         border-color: rgba(var(--color-accent-primary-rgb), 0.3);
+        height: auto;
+        min-height: 4rem;
+        overflow: auto;
+        resize: vertical;
+        white-space: normal;
       }
     }
 
@@ -1350,7 +1358,7 @@ const handleEdit = () => {
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
       font-family: $font-family-code;
-      min-height: 2.5rem;
+      min-height: 2rem;
       display: flex;
       align-items: center;
       justify-content: center;

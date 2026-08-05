@@ -134,13 +134,11 @@ watch(showContent, (val) => {
           <h2 class="section-title fade-in-up">
             <span class="text-gradient">{{ t('common.recommended') }}</span>
           </h2>
-
           <div class="articles-list" v-if="showContent">
             <div v-for="article in articles" :key="article.id" class="fade-in-up">
               <ArticleCard v-bind="article" />
             </div>
           </div>
-
           <!-- Skeleton List -->
           <div class="articles-list" v-else>
             <div v-for="i in 5" :key="i" class="skeleton-row">
@@ -152,7 +150,6 @@ watch(showContent, (val) => {
           </div>
         </section>
       </div>
-
       <aside class="sidebar-section fade-in-up">
         <Sidebar />
       </aside>

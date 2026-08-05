@@ -801,7 +801,7 @@ const handleEdit = () => {
     <!-- Comments Section Moved Outside Main to allow Sidebar to stop scrolling with Article -->
     <section class="comments-section glass-panel">
       <h5>{{ t('articleDetail.comments') }} ({{ articleInfo?.commentCount ?? comments.length }})</h5>
-      <div class="comment-form main-form">
+      <div class="comment-form">
         <div class="avatar-wrapper">
           <div class="user-avatar">
             <img v-if="user && user.avatarUrl" :src="user.avatarUrl" :alt="user.username"
@@ -811,15 +811,13 @@ const handleEdit = () => {
         </div>
         <div class="input-wrapper">
           <textarea v-model="newComment"
-            :placeholder="isLoggedIn ? t('articleDetail.reply') + '...' : t('articleDetail.loginToComment')" rows="3"
+            :placeholder="isLoggedIn ? t('articleDetail.reply') + '...' : t('articleDetail.loginToComment')" rows="2"
             aria-label="Comment content" :disabled="!isLoggedIn"></textarea>
-          <div class="form-footer">
-            <button @click="submitComment" class="submit-btn"
-              :disabled="!newComment.trim() || !isLoggedIn || isSubmittingComment">
-              <span v-if="isSubmittingComment">{{ t('editor.saving') }}</span>
-              <span v-else>{{ t('articleDetail.submitComment') }}</span>
-            </button>
-          </div>
+          <button @click="submitComment" class="submit-btn"
+            :disabled="!newComment.trim() || !isLoggedIn || isSubmittingComment">
+            <span v-if="isSubmittingComment">{{ t('editor.saving') }}</span>
+            <span v-else>{{ t('articleDetail.submitComment') }}</span>
+          </button>
         </div>
       </div>
 
@@ -1280,35 +1278,13 @@ const handleEdit = () => {
   }
 
   .comment-form {
-    margin-bottom: $spacing-xl;
+    margin-bottom: $spacing-lg;
     display: flex;
     gap: $spacing-md;
+    align-items: center;
 
     @media (max-width: $breakpoint-mobile) {
       flex-direction: column;
-    }
-
-    &.main-form {
-      // Glassmorphism overhaul - "Texture Max"
-      background: rgba(255, 255, 255, 0.05); // Very subtle base
-      backdrop-filter: blur(24px) saturate(180%); // Heavy blur + saturation for premium feel
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      padding: $spacing-lg;
-      border-radius: 20px; // Softer corners
-      border: 1px solid rgba(255, 255, 255, 0.3); // Crisper border
-      box-shadow:
-        0 4px 24px -1px rgba(0, 0, 0, 0.05),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.1); // Inner light ring
-
-      :global(.dark) & {
-        background: rgba(0, 0, 0, 0.2);
-        border-color: rgba(255, 255, 255, 0.08);
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      }
-
-      @media (max-width: $breakpoint-mobile) {
-        padding: $spacing-md;
-      }
     }
 
     .avatar-wrapper {
@@ -1329,22 +1305,26 @@ const handleEdit = () => {
     .input-wrapper {
       flex-grow: 1;
       display: flex;
-      flex-direction: column;
       gap: $spacing-md;
+      align-items: center;
+
+      @media (max-width: $breakpoint-mobile) {
+        flex-direction: column;
+      }
     }
 
     textarea {
-      width: 100%;
+      flex: 1;
       // Glassy Input
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(0, 0, 0, 0.05);
-      border-radius: 16px;
-      padding: $spacing-md;
+      border-radius: 8px;
+      padding: $spacing-sm $spacing-md;
       color: $color-text-primary;
       resize: vertical;
       font-family: inherit;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      min-height: 6.25rem;
+      min-height: 2.5rem;
 
       :global(.dark) & {
         background: rgba(0, 0, 0, 0.2);
@@ -1354,36 +1334,28 @@ const handleEdit = () => {
       &:focus {
         outline: none;
         background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(var(--color-accent-primary-rgb), 0.3); // Subtle hint only
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        transform: translateY(-1px);
+        border-color: rgba(var(--color-accent-primary-rgb), 0.3);
       }
     }
 
-    .form-footer {
-      display: flex;
-      justify-content: center; // Changed from flex-end to center as requested
-      margin-top: $spacing-md; // Add some space above button
-    }
-
     .submit-btn {
-      // Premium Dark/Light Button - NO BLUE
-      background: #1a1a1a; // Premium Dark Grey for Light Mode
+      flex-shrink: 0;
+      background: #1a1a1a;
       color: #ffffff;
       border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 0.75rem 2rem; // Wider
-      border-radius: 30px; // Full pill
+      padding: 0.5rem 1.2rem;
+      border-radius: 30px;
       font-weight: 600;
+      font-size: 0.85rem;
       cursor: pointer;
       transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
       font-family: $font-family-code;
-      min-height: 3rem;
+      min-height: 2.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); // Elegant shadow
+      white-space: nowrap;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 
       :global(.dark) & {
         background: #ffffff; // White for Dark Mode

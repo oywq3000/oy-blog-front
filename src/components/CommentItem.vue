@@ -12,6 +12,8 @@ export interface Comment {
   replies: Comment[];
   replyCount?: number;
   isShow?: boolean; // Backend visibility flag
+  replyToUsername?: string; // Target username for @mention (flat reply display)
+  replyToReplyId?: number | null; // Non-null = reply-to-reply, null = direct reply to comment
 }
 </script>
 
@@ -82,22 +84,16 @@ watch(() => props.comment.isShow, applyVisibility, { immediate: true });
 
 type FlatReply = { comment: Comment; depth: number; parentUser: string };
 
-const flattenReplies = (list: Comment[], parentUser: string, depth: number): FlatReply[] => {
-  const out: FlatReply[] = [];
-  for (const c of list || []) {
-    out.push({ comment: c, depth, parentUser });
-    if (c.replies && c.replies.length) {
-      out.push(...flattenReplies(c.replies, c.user, depth + 1));
-    }
-  }
-  return out;
+// Replies are stored flat; all at depth=1 with @username for targeting
+const flattenReplies = (list: Comment[], parentUser: string): FlatReply[] => {
+  return (list || []).map(c => ({ comment: c, depth: 1, parentUser }));
 };
 
 const flattenedReplies = computed<FlatReply[]>(() => {
   if (!props.comment.replies) return [];
   // 仅顶层评论计算并展示所有层级的回复，子项不再继续有自己的回复区
   if (props.depth === 0 && !props.suppressReplies) {
-    return flattenReplies(props.comment.replies, props.comment.user, 1);
+    return flattenReplies(props.comment.replies, props.comment.user);
   }
   return [];
 });
@@ -363,16 +359,15 @@ const handleNestedVote = (id: number, type: 'like' | 'dislike') => {
           </div>
 
           <template v-else>
-            <div class="username">
+            <div class="username" :class="{ 'username--inline': depth > 0 }">
               <router-link class="user-link" :to="{ name: 'profile', query: { user: comment.user } }">{{ comment.user }}</router-link>
-              <span v-if="depth >= 2" class="name-arrow" aria-hidden="true">
-                <svg class="chevron-right" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
-                  <path d="M10 7l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </span>
-              <router-link v-if="depth >= 2" class="user-link reply-to" :to="{ name: 'profile', query: { user: parentUser } }">{{ parentUser }}</router-link>
+              <template v-if="comment.replyToReplyId">
+                <span class="reply-to-separator">{{ t('common.replyTo', '回复') }}</span>
+                <router-link class="user-link reply-to" :to="{ name: 'profile', query: { user: comment.replyToUsername } }">@{{ comment.replyToUsername }}</router-link>
+              </template>
+              <span v-if="depth > 0" class="text text--inline">{{ comment.content }}</span>
             </div>
-            <p class="text">{{ comment.content }}</p>
+            <p v-if="depth === 0" class="text">{{ comment.content }}</p>
             <div class="footer-meta">
               <span class="date">{{ d(parseDate(comment.date), 'short') }}</span>
               <button class="reply-trigger" @click.stop="toggleReply">{{ t('common.reply', 'Reply') }}</button>
@@ -582,27 +577,32 @@ const handleNestedVote = (id: number, type: 'like' | 'dislike') => {
   min-height: 24px; // Ensure it has height to align with avatar, using min-height for robustness
   
   .user-link {
-    color: $color-text-secondary;
+    color: rgba(var(--color-text-secondary-rgb), 0.55);
     text-decoration: none;
-    
+
     &:hover,
     &:focus {
       color: $color-text-primary;
       text-decoration: underline;
       outline: none;
     }
-  }
-  
-  .name-arrow {
-    display: inline-flex;
-    align-items: center;
-    line-height: 1;
-    
-    .chevron-right {
-      width: 12px;
-      height: 12px;
-      display: block;
+
+    &.reply-to {
+      color: $color-accent-primary;
     }
+  }
+
+  .reply-to-separator {
+    color: $color-text-secondary;
+    font-weight: 400;
+    font-size: 0.9em;
+  }
+
+  // Inline layout for replies
+  &--inline {
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+    font-weight: 400;
   }
 }
 
@@ -612,6 +612,13 @@ const handleNestedVote = (id: number, type: 'like' | 'dislike') => {
   line-height: 1.5;
   margin-bottom: 6px;
   word-break: break-word;
+
+  // Inline variant for replies: content on same line as username
+  &--inline {
+    font-size: 14px;
+    margin-bottom: 0;
+    color: $color-text-primary;
+  }
 }
 
 .footer-meta {

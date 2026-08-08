@@ -8,7 +8,6 @@ import RecommendedCard from '../components/RecommendedCard.vue';
 import UserCard from '../components/UserCard.vue';
 import ArticleToc from '../components/ArticleToc.vue'; */
 import TagBadge from '../components/TagBadge.vue';
-import Breadcrumb from '../components/Breadcrumb.vue';
 import IconUser from '../components/icons/IconUser.vue';
 import IconLike from '../components/icons/IconLike.vue';
 import IconStar from '../components/icons/IconStar.vue';
@@ -140,6 +139,8 @@ const mapReplyToUI = (r: APICommentReply): UIComment => ({
   dislikes: r.dislikeCount ?? 0,
   userVote: (r.userReaction as UIComment['userVote']) ?? null,
   isShow: r.isShow,
+  replyToUsername: r.replyToUsername,
+  replyToReplyId: r.replyToReplyId,
   replies: []
 });
 
@@ -169,28 +170,9 @@ const mapComment = (c: APIComment): UIComment => {
   //   (root as any)._hasReplyFlag = true;
   // }
 
-  // Build Tree from flat replies
+  // All replies are stored flat (B站-style); @username handles targeting
   if (c.replies && c.replies.length > 0) {
-    const replyMap = new Map<number, UIComment>();
-    const replies = c.replies.map(mapReplyToUI);
-
-    // Index all replies
-    replies.forEach(r => replyMap.set(r.id, r));
-
-    // Build hierarchy
-    c.replies.forEach((rawReply, index) => {
-      const uiReply = replies[index];
-      if (rawReply.replyToReplyId) {
-        const parent = replyMap.get(rawReply.replyToReplyId);
-        if (parent) {
-          parent.replies.push(uiReply);
-        } else {
-          root.replies.push(uiReply);
-        }
-      } else {
-        root.replies.push(uiReply);
-      }
-    });
+    root.replies = c.replies.map(mapReplyToUI);
   }
 
   return root;
@@ -218,9 +200,6 @@ const fetchUserInfo = async (userId: string) => {
   return null;
 }
 
-const fetchUsername = async (userId: string) => {
-  return null;
-}
 
 
 const loadComments = async (articleId: string) => {
@@ -454,58 +433,7 @@ const handleFetchReplies = async (commentId: number) => {
   try {
     const replyRes = await getReplies(commentId);
     if (replyRes.isSuccess && replyRes.data && replyRes.data.length > 0) {
-      const rawReplies = replyRes.data;
-      const replyMap = new Map<number, UIComment>();
-      const mappedReplies = rawReplies.map(mapReplyToUI);
-
-      mappedReplies.forEach(r => replyMap.set(r.id, r));
-
-      // Rebuild tree
-      // Note: replies from this API are flat but contain replyToReplyId
-      // We need to attach them to the root comment (which is `comment`)
-
-      // Clear existing replies just in case
-      comment.replies = [];
-
-      const rootReplies: UIComment[] = [];
-
-      rawReplies.forEach((rawReply, index) => {
-        const uiReply = mappedReplies[index];
-        if (rawReply.replyToReplyId) {
-          const parent = replyMap.get(rawReply.replyToReplyId);
-          if (parent) {
-            parent.replies.push(uiReply);
-          } else {
-            // Fallback if parent not found in this batch (shouldn't happen for valid tree)
-            rootReplies.push(uiReply);
-          }
-        } else {
-          rootReplies.push(uiReply);
-        }
-      });
-
-      // Assign root replies to the main comment
-      comment.replies = rootReplies;
-
-      // Fetch usernames for new replies
-      // We need to reuse processComments logic or similar
-      // Since processComments is inside loadComments, we should extract it or duplicate simple username fetching
-      const fetchUsernamesForList = async (list: UIComment[]) => {
-        for (const c of list) {
-          const isRawId = c.user.length === 32 && /^[0-9a-fA-F]+$/.test(c.user);
-          const isDefaultUser = c.user.startsWith('User-') && c.user.length === 37;
-
-          if (isRawId || isDefaultUser) {
-            const name = await fetchUsername(c.user);
-            if (name) c.user = name;
-          }
-          if (c.replies.length > 0) {
-            await fetchUsernamesForList(c.replies);
-          }
-        }
-      };
-      await fetchUsernamesForList(comment.replies);
-
+      comment.replies = replyRes.data.map(mapReplyToUI);
     }
   } catch (e) {
     console.error('Failed to fetch replies for', commentId, e);

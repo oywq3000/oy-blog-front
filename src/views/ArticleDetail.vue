@@ -135,10 +135,11 @@ const mapReplyToUI = (r: APICommentReply): UIComment => ({
   avatar: r.avatar || undefined,
   date: r.replyAt,
   content: r.content,
-  likes: 0,
-  dislikes: 0,
-  userVote: null,
-  replies: [] // Will be populated if needed, though backend sends flat list
+  likes: r.likeCount ?? 0,
+  dislikes: r.dislikeCount ?? 0,
+  userVote: (r.userReaction as UIComment['userVote']) ?? null,
+  isShow: r.isShow,
+  replies: []
 });
 
 // Map API comment to UI comment
@@ -152,12 +153,13 @@ const mapComment = (c: APIComment): UIComment => {
     // Backend uses commentAt as the primary timestamp
     date: c.commentAt,
     content: c.content,
-    likes: 0, // Backend doesn't seem to return likes count in this structure yet
-    dislikes: 0,
-    userVote: null,
+    likes: c.likeCount ?? 0,
+    dislikes: c.dislikeCount ?? 0,
+    userVote: (c.userReaction as UIComment['userVote']) ?? null,
     // Recursively map replies if they exist
     replies: [],
-    replyCount: c.replyCount || 0 // Map replyCount
+    replyCount: c.replyCount || 0, // Map replyCount
+    isShow: c.isShow
   };
 
   // Flag to indicate if we need to fetch replies
@@ -226,7 +228,7 @@ const loadComments = async (articleId: string) => {
     if (res.isSuccess && res.data) {
       // API might return array directly or { items: [] }
       // Based on user feedback: "data": [ { ... }, { ... } ]
-      const rawComments = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      const rawComments = Array.isArray(res.data.data) ? res.data.data : (res.data.data.items || []);
       const mapped = rawComments.map(mapComment);
 
       // Helper to process a list of comments (including replies)
@@ -538,7 +540,7 @@ const handleVote = async (commentId: number, type: 'like' | 'dislike') => {
 
   // Call API
   try {
-    await reactToComment(type, commentId);
+    await reactToComment(type, String(props.id), commentId);
     // Reload comments to get fresh state? Or update locally?
     // Updating locally is complex with logic. 
     // For now, simple reload or just assume success

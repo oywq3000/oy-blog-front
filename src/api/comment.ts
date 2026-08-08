@@ -20,6 +20,9 @@ export interface CommentReply {
   avatar: string;
   replyToUsername: string;
   isShow: boolean;
+  likeCount: number;
+  dislikeCount: number;
+  userReaction: 'like' | 'dislike' | null;
 }
 
 export interface Comment {
@@ -35,6 +38,9 @@ export interface Comment {
   username: string;
   avatar: string;
   isShow: boolean;
+  likeCount: number;
+  dislikeCount: number;
+  userReaction: 'like' | 'dislike' | null;
   replies?: CommentReply[] | null;
 }
 
@@ -43,7 +49,13 @@ export interface ResultListComment {
   errMsg: string;
   isSuccess: boolean;
   data: {
-    items: Comment[];
+    currentPage: number;
+    pageSize: number;
+    total:number;
+    totalPages:number;
+    data: {
+      items: Comment[];
+    }
   };
 }
 
@@ -94,8 +106,8 @@ export const replyComment = (commentId: number, content: string, articleId: stri
 };
 
 // React to Comment
-export const reactToComment = (type: string, commentId?: number, replyId?: number) => {
-  const params: any = { type };
+export const reactToComment = (type: string, articleId: string, commentId?: number, replyId?: number) => {
+  const params: any = { type, articleId };
   if (commentId) params.commentId = commentId;
   if (replyId) params.replyId = replyId;
   return request.post<any, ResultObject>(baseUrl+`/article/comment/reaction`, null, {

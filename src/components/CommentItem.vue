@@ -11,6 +11,7 @@ export interface Comment {
   userVote: 'like' | 'dislike' | null;
   replies: Comment[];
   replyCount?: number;
+  isShow?: boolean; // Backend visibility flag
 }
 </script>
 
@@ -47,8 +48,37 @@ const replyInput = ref<HTMLTextAreaElement | null>(null);
 const showReplies = ref(false);
 const isAnimating = ref(false);
 const collapsibleRef = ref<HTMLElement | null>(null);
-const isContentHidden = ref(props.comment.userVote === 'dislike');
+const isContentHidden = ref(false);
 const displayedRepliesCount = ref(0);
+
+// localStorage helpers for client-side comment hiding supplement
+const readHiddenIds = (): number[] => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('hidden_comments') || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+};
+const writeHiddenIds = (ids: number[]) =>
+  localStorage.setItem('hidden_comments', JSON.stringify(ids));
+const removeHiddenId = (id: number) => {
+  const ids = readHiddenIds();
+  if (ids.includes(id)) writeHiddenIds(ids.filter(x => x !== id));
+};
+
+// Backend isShow is primary source of truth; localStorage is a client-side supplement
+const applyVisibility = () => {
+  if (props.comment.isShow === false) {
+    isContentHidden.value = true;
+  } else if (props.comment.isShow === true) {
+    isContentHidden.value = false;
+    removeHiddenId(props.comment.id);
+  } else {
+    // Fallback for old payloads without isShow: preserve existing behavior
+    isContentHidden.value =
+      readHiddenIds().includes(props.comment.id) || props.comment.userVote === 'dislike';
+  }
+};
+watch(() => props.comment.isShow, applyVisibility, { immediate: true });
 
 type FlatReply = { comment: Comment; depth: number; parentUser: string };
 
@@ -168,22 +198,16 @@ let longPressTimer: number | undefined;
 const isLongPressMenuOpen = ref(false);
 const menuPosition = ref({ x: 0, y: 0 });
 
-// Load hidden state from localStorage
 onMounted(() => {
   checkMobile();
   window.addEventListener('resize', checkMobile);
-  
-  const hiddenComments = JSON.parse(localStorage.getItem('hidden_comments') || '[]');
-  if (hiddenComments.includes(props.comment.id)) {
-    isContentHidden.value = true;
-  }
 });
 
 const saveHiddenState = () => {
-  const hiddenComments = JSON.parse(localStorage.getItem('hidden_comments') || '[]');
+  const hiddenComments = readHiddenIds();
   if (!hiddenComments.includes(props.comment.id)) {
     hiddenComments.push(props.comment.id);
-    localStorage.setItem('hidden_comments', JSON.stringify(hiddenComments));
+    writeHiddenIds(hiddenComments);
   }
 };
 
@@ -225,19 +249,29 @@ const isLiked = computed(() => props.comment.userVote === 'like');
 const isDisliked = computed(() => props.comment.userVote === 'dislike');
 
 const handleVote = (type: 'like' | 'dislike') => {
-  if (type === 'dislike' && props.comment.userVote !== 'dislike') {
+  const wasDisliked = props.comment.userVote === 'dislike';
+  if (type === 'dislike' && !wasDisliked) {
     // Add fade out effect before hiding
     const el = document.getElementById(`comment-${props.comment.id}`);
     if (el) el.style.opacity = '0';
-    
+
     setTimeout(() => {
       isContentHidden.value = true;
       saveHiddenState();
       showReplies.value = false; // Auto collapse replies
       if (el) el.style.opacity = '1'; // Reset for when it's shown again
     }, 300);
+  } else if (wasDisliked) {
+    // Leaving the disliked state (undislike or switching to like): restore visibility
+    isContentHidden.value = false;
+    removeHiddenId(props.comment.id);
   }
   emit('vote', props.comment.id, type);
+};
+
+const showComment = () => {
+  isContentHidden.value = false;
+  removeHiddenId(props.comment.id);
 };
 
 const toggleReply = () => {
@@ -325,7 +359,7 @@ const handleNestedVote = (id: number, type: 'like' | 'dislike') => {
         >
           <div v-if="isContentHidden" class="comment-hidden">
              <span class="hidden-text">{{ t('common.commentHidden', 'Comment hidden') }}</span>
-             <button class="show-btn" @click.stop="isContentHidden = false">{{ t('common.show', 'Show') }}</button>
+             <button class="show-btn" @click.stop="showComment">{{ t('common.show', 'Show') }}</button>
           </div>
 
           <template v-else>

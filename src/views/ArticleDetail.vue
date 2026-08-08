@@ -417,23 +417,21 @@ watch(isLoggedIn, (newVal) => {
   }
 });
 
-const handleFetchReplies = async (commentId: number) => {
+const PAGE_SIZE = 10;
+
+const handleFetchReplies = async (commentId: number, page: number = 1) => {
   const comment = findCommentById(comments.value, commentId);
   if (!comment) return;
-
-  // Set a temporary loading state if we had one on UIComment, 
-  // but UIComment is defined in CommentItem.vue and we don't have a loading prop there yet in the interface.
-  // However, we are passing `loadingReplies` prop to CommentItem in template.
-  // We need to track loading state for each comment locally in this component since we can't easily modify the comment object structure reactively without casting.
-  // Or better, let's add a reactive Set for loading states.
 
   if (loadingRepliesSet.value.has(commentId)) return;
   loadingRepliesSet.value.add(commentId);
 
   try {
-    const replyRes = await getReplies(commentId);
-    if (replyRes.isSuccess && replyRes.data && replyRes.data.length > 0) {
-      comment.replies = replyRes.data.map(mapReplyToUI);
+    const replyRes = await getReplies(commentId, page, PAGE_SIZE);
+    if (replyRes.isSuccess && replyRes.data?.data?.length > 0) {
+      comment.replies = replyRes.data.data.map(mapReplyToUI);
+    } else {
+      comment.replies = [];
     }
   } catch (e) {
     console.error('Failed to fetch replies for', commentId, e);

@@ -38,7 +38,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{
   (e: 'reply', commentId: number, content: string): void;
   (e: 'vote', commentId: number, type: 'like' | 'dislike'): void;
-  (e: 'fetch-replies', commentId: number): void;
+  (e: 'fetch-replies', commentId: number, page: number): void;
 }>();
 
 const { t, d } = useI18n();
@@ -47,11 +47,11 @@ const isReplying = ref(false);
 const replyContent = ref('');
 const isMobile = ref(false);
 const replyInput = ref<HTMLTextAreaElement | null>(null);
-const showReplies = ref(false);
+const PAGE_SIZE = 10;
+const currentPage = ref(0); // 0 = collapsed
 const isAnimating = ref(false);
 const collapsibleRef = ref<HTMLElement | null>(null);
 const isContentHidden = ref(false);
-const displayedRepliesCount = ref(0);
 
 // localStorage helpers for client-side comment hiding supplement
 const readHiddenIds = (): number[] => {
@@ -98,29 +98,58 @@ const flattenedReplies = computed<FlatReply[]>(() => {
   return [];
 });
 
+// totalPages uses server-side replyCount (single source of truth)
+const totalPages = computed(() =>
+  Math.ceil((props.comment.replyCount || 0) / PAGE_SIZE)
+);
+
+// Server-side pagination: displayedFlatReplies shows whatever the current page returns
 const displayedFlatReplies = computed<FlatReply[]>(() => {
-  const all = flattenedReplies.value;
-  if (showReplies.value) return all;
-  return all.slice(0, displayedRepliesCount.value);
+  if (currentPage.value === 0) return [];
+  return flattenedReplies.value;
 });
 
 const hasMoreReplies = computed(() => {
   if (!props.comment.replies || props.comment.replies.length === 0) {
-     return (props.comment.replyCount || 0) > 0;
+    return (props.comment.replyCount || 0) > 0;
   }
-  return flattenedReplies.value.length > displayedRepliesCount.value;
+  return flattenedReplies.value.length > 0;
 });
+
+const goToPage = (page: number) => {
+  currentPage.value = page;
+  emit('fetch-replies', props.comment.id, page);
+};
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    const next = currentPage.value + 1;
+    currentPage.value = next;
+    emit('fetch-replies', props.comment.id, next);
+  }
+};
+
+const collapseReplies = () => {
+  currentPage.value = 0;
+};
 
 const toggleShowReplies = async () => {
   if (isAnimating.value) return;
-  
-  if (!showReplies.value && (!props.comment.replies || props.comment.replies.length === 0) && (props.comment.replyCount || 0) > 0) {
-      emit('fetch-replies', props.comment.id);
+
+  // Already expanded → collapse
+  if (currentPage.value > 0) {
+    collapseReplies();
+    return;
+  }
+
+  // Expand: load if needed
+  if ((!props.comment.replies || props.comment.replies.length === 0) && (props.comment.replyCount || 0) > 0) {
+    emit('fetch-replies', props.comment.id, 1);
   }
 
   const el = collapsibleRef.value;
   if (!el) {
-    showReplies.value = !showReplies.value;
+    currentPage.value = 1;
     return;
   }
 
@@ -132,7 +161,7 @@ const toggleShowReplies = async () => {
     el.removeEventListener('transitionend', onEnd);
     el.classList.remove('is-animating');
     isAnimating.value = false;
-    if (showReplies.value) {
+    if (currentPage.value > 0) {
       el.style.maxHeight = 'none';
       el.style.opacity = '1';
     } else {
@@ -141,47 +170,30 @@ const toggleShowReplies = async () => {
     }
   };
 
-  if (!showReplies.value) {
-    showReplies.value = true;
-    await nextTick();
-    const h = el.scrollHeight;
-    if (reduce) {
-      el.style.maxHeight = 'none';
-      el.style.opacity = '1';
-      onEnd();
-      return;
-    }
-    el.style.maxHeight = '0px';
-    el.style.opacity = '0';
-    void el.offsetHeight;
-    requestAnimationFrame(() => {
-      el.style.maxHeight = h + 'px';
-      el.style.opacity = '1';
-    });
-  } else {
-    const h = el.scrollHeight;
-    if (reduce) {
-      showReplies.value = false;
-      onEnd();
-      return;
-    }
+  // Expand animation
+  currentPage.value = 1;
+  await nextTick();
+  const h = el.scrollHeight;
+  if (reduce) {
+    el.style.maxHeight = 'none';
+    el.style.opacity = '1';
+    onEnd();
+    return;
+  }
+  el.style.maxHeight = '0px';
+  el.style.opacity = '0';
+  void el.offsetHeight;
+  requestAnimationFrame(() => {
     el.style.maxHeight = h + 'px';
     el.style.opacity = '1';
-    requestAnimationFrame(() => {
-      el.style.maxHeight = '0px';
-      el.style.opacity = '0';
-    });
-    el.addEventListener('transitionend', () => {
-      showReplies.value = false;
-    }, { once: true });
-  }
+  });
 
   el.addEventListener('transitionend', onEnd);
 };
 
 // Watch for replies loading to update height if expanded
 watch(() => props.comment.replies, async () => {
-  if (showReplies.value && collapsibleRef.value) {
+  if (currentPage.value > 0 && collapsibleRef.value) {
     await nextTick();
     // Recalculate height if needed, but since max-height is 'none' when open, it should adjust automatically.
     // However, if we were in loading state, we might need to ensure it stays open correctly.
@@ -254,7 +266,7 @@ const handleVote = (type: 'like' | 'dislike') => {
     setTimeout(() => {
       isContentHidden.value = true;
       saveHiddenState();
-      showReplies.value = false; // Auto collapse replies
+      currentPage.value = 0; // Auto collapse replies
       if (el) el.style.opacity = '1'; // Reset for when it's shown again
     }, 300);
   } else if (wasDisliked) {
@@ -443,13 +455,33 @@ const handleNestedVote = (id: number, type: 'like' | 'dislike') => {
               />
             </div>
           </div>
-          
+
+          <!-- Pagination Bar -->
+          <div v-if="currentPage > 0 && totalPages > 1" class="pagination-bar">
+            <span class="page-info">共 {{ totalPages }} 页</span>
+            <div class="page-numbers">
+              <button
+                v-for="p in totalPages"
+                :key="p"
+                class="page-btn"
+                :class="{ active: p === currentPage }"
+                @click="goToPage(p)"
+              >{{ p }}</button>
+            </div>
+            <button
+              class="page-nav-btn"
+              :disabled="currentPage >= totalPages"
+              @click="nextPage"
+            >{{ t('common.nextPage', '下一页') }}</button>
+            <button class="collapse-btn" @click="collapseReplies">{{ t('common.collapse', '收起') }}</button>
+          </div>
+
           <!-- Expand Button -->
           <div class="expand-action">
             <button
               class="expand-btn"
               @click="toggleShowReplies"
-              :aria-expanded="showReplies ? 'true' : 'false'"
+              :aria-expanded="currentPage > 0 ? 'true' : 'false'"
               :aria-controls="`replies-${comment.id}`"
               :disabled="isAnimating || loadingReplies"
               :aria-disabled="(isAnimating || loadingReplies) ? 'true' : 'false'"
@@ -458,11 +490,11 @@ const handleNestedVote = (id: number, type: 'like' | 'dislike') => {
               <span class="text">
                 <span v-if="loadingReplies">{{ t('home.loadingTitle') }}</span>
                 <span v-else>
-                  {{ showReplies ? t('common.collapse') : t('common.viewReplies', { count: comment.replyCount || flattenedReplies.length }) }}
+                  {{ currentPage > 0 ? t('common.collapse') : t('common.viewReplies', { count: comment.replyCount || flattenedReplies.length }) }}
                 </span>
               </span>
               <span class="icon" aria-hidden="true">
-                <svg v-if="!showReplies" class="chevron-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
+                <svg v-if="currentPage === 0" class="chevron-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
                   <path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
                 <svg v-else class="chevron-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none">
@@ -756,6 +788,67 @@ const handleNestedVote = (id: number, type: 'like' | 'dislike') => {
     }
   }
   
+  .pagination-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    padding: 6px 0;
+    font-size: 13px;
+    color: $color-text-secondary;
+
+    .page-info {
+      margin-right: 4px;
+    }
+
+    .page-numbers {
+      display: flex;
+      gap: 4px;
+    }
+
+    .page-btn {
+      min-width: 28px;
+      height: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      color: $color-text-secondary;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: $color-text-primary;
+      }
+
+      &.active {
+        background: $color-accent-primary;
+        color: #fff;
+        border-color: $color-accent-primary;
+      }
+    }
+
+    .page-nav-btn,
+    .collapse-btn {
+      background: none;
+      border: none;
+      color: $color-text-secondary;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 8px;
+
+      &:hover {
+        color: $color-text-primary;
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+    }
+  }
+
   .expand-action {
     margin-top: 8px;
     

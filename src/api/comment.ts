@@ -64,7 +64,13 @@ export interface ResultListCommentReply {
   errCode: number;
   errMsg: string;
   isSuccess: boolean;
-  data: CommentReply[];
+  data: {
+    currentPage: number;
+    pageSize: number;
+    total: number;
+    totalPages: number;
+    data: CommentReply[];
+  };
 }
 
 export interface ResultNumber {
@@ -86,8 +92,10 @@ export const getCommentCount = (articleId: string) => {
 };
 
 // Query Replies List (if needed, usually embedded)
-export const getReplies = (commentId: number) => {
-  return request.get<any, ResultListCommentReply>(baseUrl+`/article/comment/${commentId}/replies`);
+export const getReplies = (commentId: number, pageNum: number = 1, pageSize: number = 10) => {
+  return request.get<any, ResultListCommentReply>(baseUrl+`/article/comment/${commentId}/replies`, {
+    params: { pageNum, pageSize }
+  });
 };
 
 // Add Comment

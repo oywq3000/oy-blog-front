@@ -101,6 +101,7 @@ const articleHtml = ref(''); // Stores HTML fallback
 const isLoading = ref(false);
 const isSubmittingComment = ref(false);
 const comments = ref<UIComment[]>([]);
+const totalCommentCount = ref<number>(0);
 const newComment = ref('');
 
 // Formatted date YYYY-MM-DD HH:mm:ss
@@ -230,7 +231,7 @@ const loadComments = async (articleId: string) => {
       // Based on user feedback: "data": [ { ... }, { ... } ]
       const rawComments = Array.isArray(res.data.data) ? res.data.data : (res.data.data.items || []);
       const mapped = rawComments.map(mapComment);
-
+     
       // Helper to process a list of comments (including replies)
       const processComments = async (list: UIComment[]) => {
         for (const c of list) {
@@ -249,10 +250,6 @@ const loadComments = async (articleId: string) => {
             const name = await fetchUserInfo(c.user);
             if (name) c.user = name;
           }
-
-          // Lazy loading replies is now handled by CommentItem event 'fetch-replies'
-          // We just need to ensure if replies are already present, we process them (usernames)
-
           // Also process replies
           if (c.replies && c.replies.length > 0) {
             await processComments(c.replies);
@@ -262,6 +259,7 @@ const loadComments = async (articleId: string) => {
 
       await processComments(mapped);
       comments.value = mapped;
+      totalCommentCount.value = res.data.data?.totalCommentCount;
     }
   } catch (error) {
     console.error('Failed to load comments:', error);
@@ -802,7 +800,7 @@ const handleEdit = () => {
     </main>
     <!-- Comments Section Moved Outside Main to allow Sidebar to stop scrolling with Article -->
     <section class="comments-section glass-panel">
-      <h4>{{ t('articleDetail.comments') }} ({{ articleInfo?.commentCount ?? comments.length }})</h4>
+      <h4>{{ t('articleDetail.comments') }} ({{totalCommentCount}})</h4>
       <div class="comment-form">
         <div class="avatar-wrapper">
           <div class="user-avatar">

@@ -8,7 +8,7 @@ const { t } = useI18n();
 const footerNav = {
   resources: [
     { key: 'footer.community', url: 'https://github.com/oywq3000/oy-blog', external: true }, // Placeholder
-    { key: 'footer.helpCenter', url: '/about', external: false } // Placeholder to About
+    { key: 'footer.helpCenter', url: 'https://github.com/oywq3000/oy-blog', external: true } // Placeholder to About
   ],
   legal: [
     { label: 'Privacy', url: '/privacy', external: false },
@@ -17,11 +17,11 @@ const footerNav = {
   ]
 };
 
-const socials = [
-  { name: 'GitHub', icon: 'GH', url: 'https://github.com/oywq3000/oy-blog' },
-  { name: 'Twitter', icon: 'TW', url: 'https://twitter.com' },
-  { name: 'LinkedIn', icon: 'LI', url: 'https://linkedin.com' }
-];
+// const socials = [
+//   { name: 'GitHub', icon: 'GH', url: 'https://github.com/oywq3000/oy-blog' },
+//   { name: 'Twitter', icon: 'TW', url: 'https://twitter.com' },
+//   { name: 'LinkedIn', icon: 'LI', url: 'https://linkedin.com' }
+// ];
 </script>
 
 <template>
@@ -40,7 +40,7 @@ const socials = [
           </p>
           
           <!-- Social Links -->
-          <div class="footer__socials">
+          <!-- <div class="footer__socials">
             <a 
               v-for="social in socials" 
               :key="social.name" 
@@ -54,7 +54,7 @@ const socials = [
                 <template #icon>{{ social.icon }}</template>
               </IconButton>
             </a>
-          </div>
+          </div> -->
         </div>
 
         <!-- Links Grid -->
@@ -111,7 +111,7 @@ const socials = [
       <div class="footer__divider"></div>
 
       <!-- Bottom Section: Copyright & Utility -->
-      <div class="footer__bottom">
+      <!-- <div class="footer__bottom">
         <p class="copyright">{{ t('footer.rights') }}</p>
         
         <div class="footer__utility">
@@ -128,15 +128,9 @@ const socials = [
               <router-link v-else :to="item.url">{{ item.label }}</router-link>
             </template>
           </div>
-          
-          <!-- Language Switcher Placeholder (Removed as requested) -->
-          <!-- 
-          <button class="lang-switch">
-            <span class="icon">🌐</span> English
-          </button>
-          -->
+        
         </div>
-      </div>
+      </div> -->
     </div>
   </footer>
 </template>

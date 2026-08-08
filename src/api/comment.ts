@@ -54,6 +54,7 @@ export interface ResultListComment {
     total:number;
     totalPages:number;
     data: {
+      totalCommentCount:number;
       items: Comment[];
     }
   };

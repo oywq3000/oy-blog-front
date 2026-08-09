@@ -1332,7 +1332,6 @@ const handleEdit = () => {
 .comments-list {
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
 }
 
 // Skeleton Loader Styles

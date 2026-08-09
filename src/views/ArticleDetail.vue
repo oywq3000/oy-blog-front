@@ -24,6 +24,7 @@ import {
   checkIsFavorited,
   favoriteArticle,
   unfavoriteArticle,
+  recordArticleView,
   checkArticleOwnership,
   type ArticleInfo,
   type ArticleChapter,
@@ -309,6 +310,17 @@ const loadArticle = async (slug: string) => {
       };
 
       if (articleData.id) {
+        // Record view (dedup: same article once per session tab)
+        const VIEWED_KEY = `viewed_${articleData.id}`;
+        if (!sessionStorage.getItem(VIEWED_KEY)) {
+          recordArticleView(articleData.id).then(res => {
+            if (res.isSuccess && articleInfo.value) {
+              articleInfo.value.viewCount = res.data;
+            }
+          });
+          sessionStorage.setItem(VIEWED_KEY, '1');
+        }
+
         // Load chapters
         loadChapters(articleData.id);
 
@@ -677,6 +689,8 @@ const handleEdit = () => {
           <h1 class="article-title">{{ articleInfo.title }}</h1>
           <div class="article-meta">
             <span class="date">{{ formattedDate }}</span>
+            <span class="dot">•</span>
+            <span class="views">{{ articleInfo.viewCount || 0 }} {{ t('articleDetail.views') }}</span>
             <span class="dot" v-if="articleInfo.tags && articleInfo.tags.length > 0">•</span>
             <div class="tags" v-if="articleInfo.tags && articleInfo.tags.length > 0">
               <TagBadge v-for="tag in articleInfo.tags" :key="tag" :label="tag" size="sm" />

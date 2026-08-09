@@ -157,6 +157,11 @@ export const getFavoriteCount = (articleId: string) => {
   return request.get<any, ResultNumber>(baseUrl+`/article/interaction/${articleId}/favorite-count`);
 };
 
+// Record Article View
+export const recordArticleView = (articleId: string) => {
+  return request.post<any, ResultNumber>(baseUrl+`/article/interaction/${articleId}/view`);
+};
+
 // Check if User is Owner of Article
 export const checkArticleOwnership = (articleId: string) => {
   return request.get<any, ResultBoolean>(baseUrl+`/article/${articleId}/check`);

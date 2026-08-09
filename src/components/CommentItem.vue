@@ -28,16 +28,18 @@ const props = withDefaults(defineProps<{
   parentUser?: string;
   suppressReplies?: boolean;
   loadingReplies?: boolean;
+  rootCommentId?: number;
 }>(), {
   depth: 0,
   parentUser: '',
   suppressReplies: false,
-  loadingReplies: false
+  loadingReplies: false,
+  rootCommentId: undefined,
 });
 
 const emit = defineEmits<{
   (e: 'reply', commentId: number, content: string): void;
-  (e: 'vote', commentId: number, type: 'like' | 'dislike'): void;
+  (e: 'vote', commentId: number, replyId: number | undefined, type: 'like' | 'dislike'): void;
   (e: 'fetch-replies', commentId: number, page: number): void;
 }>();
 
@@ -275,7 +277,12 @@ const handleVote = (type: 'like' | 'dislike') => {
     isContentHidden.value = false;
     removeHiddenId(props.comment.id);
   }
-  emit('vote', props.comment.id, type);
+  // Distinguish root comment vs reply: root sends (rootId, undefined, type), reply sends (rootId, replyId, type)
+  if (props.depth > 0) {
+    emit('vote', props.rootCommentId!, props.comment.id, type);
+  } else {
+    emit('vote', props.comment.id, undefined, type);
+  }
 };
 
 const showComment = () => {
@@ -339,8 +346,8 @@ const handleNestedReply = (id: number, content: string) => {
   emit('reply', id, content);
 };
 
-const handleNestedVote = (id: number, type: 'like' | 'dislike') => {
-  emit('vote', id, type);
+const handleNestedVote = (commentId: number, replyId: number | undefined, type: 'like' | 'dislike') => {
+  emit('vote', commentId, replyId, type);
 };
 </script>
 
@@ -443,13 +450,14 @@ const handleNestedVote = (id: number, type: 'like' | 'dislike') => {
               <div v-if="loadingReplies" class="loading-replies" style="padding: 10px; text-align: center; color: var(--color-text-secondary);">
                  {{ t('articleDetail.loadingReplies') }}
               </div>
-              <CommentItem 
+              <CommentItem
                 v-else
-                v-for="fr in displayedFlatReplies" 
-                :key="fr.comment.id" 
-                :comment="fr.comment" 
+                v-for="fr in displayedFlatReplies"
+                :key="fr.comment.id"
+                :comment="fr.comment"
                 :depth="fr.depth"
                 :parentUser="fr.parentUser"
+                :rootCommentId="comment.id"
                 :suppressReplies="true"
                 @vote="handleNestedVote"
                 @reply="handleNestedReply"

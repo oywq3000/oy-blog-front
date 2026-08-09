@@ -420,7 +420,7 @@ watch(isLoggedIn, (newVal) => {
 const PAGE_SIZE = 10;
 
 const handleFetchReplies = async (commentId: number, page: number = 1) => {
-  const comment = findCommentById(comments.value, commentId);
+  const comment = findCommentById(commentId);
   if (!comment) return;
 
   // page 0 = collapse signal — just clear replies, no API call
@@ -448,29 +448,39 @@ const handleFetchReplies = async (commentId: number, page: number = 1) => {
 
 const loadingRepliesSet = ref(new Set<number>());
 
-
-const findCommentById = (items: UIComment[], id: number): UIComment | undefined => {
-  for (const item of items) {
-    if (item.id === id) return item;
-    const found = findCommentById(item.replies, id);
-    if (found) return found;
-  }
-  return undefined;
+// 找根评论 — 纯平层查找
+const findCommentById = (id: number): UIComment | undefined => {
+  return comments.value.find(c => c.id === id);
 };
 
-const handleVote = async (commentId: number, type: 'like' | 'dislike') => {
+// 找回复 — 知道父评论 ID 时直接定位
+const findReplyById = (commentId: number, replyId: number): UIComment | undefined => {
+  const root = findCommentById(commentId);
+  return root?.replies?.find(r => r.id === replyId);
+};
+
+
+
+
+const handleVote = async (commentId: number, replyId: number | undefined, type: 'like' | 'dislike') => {
   if (!isLoggedIn.value) {
     alert(t('articleDetail.loginToVote'));
     return;
   }
-
+  let comment: UIComment | undefined;
+  if (replyId) {
+    // Voting on a reply — find it within the root comment's replies
+    comment = findReplyById(commentId, replyId);
+  } else {
+    // Voting on a root comment
+    comment = findCommentById(commentId);
+  }
   // Optimistic update
-  const comment = findCommentById(comments.value, commentId);
   if (!comment) return;
 
   // Call API
   try {
-    await reactToComment(type, String(props.id), commentId);
+    await reactToComment(type, String(props.id),commentId,replyId);
     // Reload comments to get fresh state? Or update locally?
     // Updating locally is complex with logic. 
     // For now, simple reload or just assume success
@@ -544,7 +554,7 @@ const handleReply = async (commentId: number, content: string) => {
 
     if (res.isSuccess) {
       // Refresh the last page of this comment's replies, preserving expansion state
-      const rootComment = findCommentById(comments.value, rootCommentId);
+      const rootComment = findCommentById(rootCommentId);
       const totalAfterReply = (rootComment?.replyCount || 0) + 1;
       const lastPage = Math.ceil(totalAfterReply / PAGE_SIZE);
       await handleFetchReplies(rootCommentId, lastPage);

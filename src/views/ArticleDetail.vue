@@ -423,6 +423,12 @@ const handleFetchReplies = async (commentId: number, page: number = 1) => {
   const comment = findCommentById(comments.value, commentId);
   if (!comment) return;
 
+  // page 0 = collapse signal — just clear replies, no API call
+  if (page === 0) {
+    comment.replies = [];
+    return;
+  }
+
   if (loadingRepliesSet.value.has(commentId)) return;
   loadingRepliesSet.value.add(commentId);
 
@@ -537,8 +543,11 @@ const handleReply = async (commentId: number, content: string) => {
     );
 
     if (res.isSuccess) {
-      // Reload comments
-      loadComments(articleInfo.value.id);
+      // Refresh the last page of this comment's replies, preserving expansion state
+      const rootComment = findCommentById(comments.value, rootCommentId);
+      const totalAfterReply = (rootComment?.replyCount || 0) + 1;
+      const lastPage = Math.ceil(totalAfterReply / PAGE_SIZE);
+      await handleFetchReplies(rootCommentId, lastPage);
     }
   } catch (error) {
     console.error('Failed to reply:', error);

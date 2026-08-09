@@ -131,6 +131,7 @@ const nextPage = () => {
 
 const collapseReplies = () => {
   currentPage.value = 0;
+  emit('fetch-replies', props.comment.id, 0); // signal parent to clear cached replies
 };
 
 const toggleShowReplies = async () => {

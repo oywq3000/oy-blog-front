@@ -31,7 +31,7 @@ export interface SaTokenInfo {
   accessToken: string;
   tokenType: number;
   expiresIn: number;
-  refreshToken: number;
+  refreshToken: string;
   refreshTokenExpiresIn: number;
   userId: string;
 }
@@ -92,6 +92,10 @@ export const updateUserInfo = (data: UpdateProfileDto) => {
 
 export const logout = () => {
   return request.post<any, ResultObject>(baseUrl+'/auth/logout');
+};
+
+export const refreshAccessToken = (rt: string) => {
+  return request.post<any, ResultSaTokenInfo>(baseUrl+'/auth/refresh', { refreshToken: rt });
 };
 
 export interface ResultBoolean {

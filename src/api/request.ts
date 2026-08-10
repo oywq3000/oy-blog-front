@@ -30,6 +30,23 @@ service.interceptors.request.use(
   }
 );
 
+// Token refresh state
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (value: any) => void; reject: (reason?: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
+const REFRESH_URL = '/api/user-service/auth/refresh';
+
 // Response interceptor
 service.interceptors.response.use(
   (response) => {
@@ -47,7 +64,9 @@ service.interceptors.response.use(
 
     return res;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
     let errMsg = error.message || 'Request Failed';
     if (error.response && error.response.data) {
        // Try to extract errMsg from the backend JSON response
@@ -59,31 +78,87 @@ service.interceptors.response.use(
        }
     }
 
-    // Create a new error with the extracted message to ensure callers get the right text
-    const customError = new Error(errMsg);
-    (customError as any).response = error.response; // Keep the response for debugging
-
-    // On 401 (Unauthorized): clear stored token and user info, then notify app to show login
+    // On 401 (Unauthorized): try to refresh token and retry
     if (error.response && error.response.status === 401) {
-        const hadToken = !!localStorage.getItem('token');
+      // If the refresh endpoint itself returns 401, don't retry (avoid infinite loop)
+      if (originalRequest.url?.includes(REFRESH_URL)) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userInfo');
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        return Promise.reject(new Error(errMsg));
+      }
+
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers['Authorization'] = 'Bearer ' + token;
+          return service(originalRequest);
+        });
+      }
+
+      isRefreshing = true;
+
+      const storedRefreshToken = localStorage.getItem('refreshToken');
+      if (!storedRefreshToken) {
+        // No refresh token available — clean up and show login
+        isRefreshing = false;
         localStorage.removeItem('token');
         localStorage.removeItem('userInfo');
-        // Only trigger login modal if the user was previously logged in (had a token)
-        if (hadToken) {
+        const hadToken = !!localStorage.getItem('token') || true; // had token previously
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        return Promise.reject(new Error(errMsg));
+      }
+
+      try {
+        // Dynamically import to avoid circular dependency
+        const { refreshAccessToken } = await import('../api/auth');
+        const res = await refreshAccessToken(storedRefreshToken);
+
+        if (res.isSuccess && res.data) {
+          const { accessToken, refreshToken: newRefreshToken } = res.data;
+          localStorage.setItem('token', accessToken);
+          localStorage.setItem('refreshToken', newRefreshToken);
+
+          // Retry all queued requests with the new token
+          processQueue(null, accessToken);
+
+          // Retry the original request
+          originalRequest.headers['Authorization'] = 'Bearer ' + accessToken;
+          return service(originalRequest);
+        } else {
+          // Refresh returned non-success
+          processQueue(new Error('Refresh failed'), null);
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('userInfo');
           window.dispatchEvent(new CustomEvent('auth:unauthorized'));
         }
-    } else {
-        console.error('API Error:', customError);
-        // Safely attempt to show toast notification
-        // The useToast composable uses module-level reactive state, so it works
-        // outside of component context
-        try {
-          const { addToast } = useToast();
-          addToast(errMsg, 'error', 5000);
-        } catch {
-          // Fallback: toast system not yet initialized
-          console.warn('Toast system unavailable:', errMsg);
-        }
+      } catch (refreshError) {
+        // Refresh threw an error
+        processQueue(refreshError, null);
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userInfo');
+        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+      } finally {
+        isRefreshing = false;
+      }
+
+      return Promise.reject(new Error(errMsg));
+    }
+
+    // Non-401 errors: show toast
+    const customError = new Error(errMsg);
+    (customError as any).response = error.response;
+    console.error('API Error:', customError);
+    try {
+      const { addToast } = useToast();
+      addToast(errMsg, 'error', 5000);
+    } catch {
+      console.warn('Toast system unavailable:', errMsg);
     }
 
     return Promise.reject(customError);

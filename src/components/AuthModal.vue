@@ -183,6 +183,7 @@ const handleSubmit = async () => {
       if (res.isSuccess) {
         success.value = true;
         localStorage.setItem('token', res.data.accessToken);
+        localStorage.setItem('refreshToken', res.data.refreshToken);
         setTimeout(() => {
           emit('success');
           emit('close');

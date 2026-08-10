@@ -54,7 +54,8 @@ export const useUserStore = () => {
   const clearUser = () => {
     state.userInfo = null;
     localStorage.removeItem('userInfo');
-    localStorage.removeItem('token')
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
   };
 
   const logoutUser = async () => {

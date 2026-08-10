@@ -102,7 +102,7 @@ const isLoading = ref(false);
 const isSubmittingComment = ref(false);
 const comments = ref<UIComment[]>([]);
 const totalCommentCount = ref<number>(0);
-const commentSortMode = ref<'newest' | 'hot'>('newest');
+const commentSortMode = ref<'newest' | 'hot'>('hot');
 const newComment = ref('');
 
 // Formatted date YYYY-MM-DD HH:mm:ss

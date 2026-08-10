@@ -43,7 +43,7 @@ const emit = defineEmits<{
   (e: 'fetch-replies', commentId: number, page: number): void;
 }>();
 
-const { t, d } = useI18n();
+const { t } = useI18n();
 
 const isReplying = ref(false);
 const replyContent = ref('');
@@ -331,14 +331,21 @@ const parseDate = (dateStr: string): Date => {
   // If it's already a standard ISO string or compatible, Date constructor works
   const d = new Date(dateStr);
   if (!isNaN(d.getTime())) return d;
-  
+
   // Fallback: If backend returns 'YYYY-MM-DD HH:mm:ss', replace space with T for standard ISO parsing in some browsers (like Safari)
   // Example: '2025-12-04 22:44:11' -> '2025-12-04T22:44:11'
   const isoStr = dateStr.replace(' ', 'T');
   const d2 = new Date(isoStr);
   if (!isNaN(d2.getTime())) return d2;
-  
+
   return new Date(); // Valid fallback to avoid crash
+};
+
+// Format date as YYYY-MM-DD HH:mm:ss
+const formatDateTime = (dateStr: string): string => {
+  const d = parseDate(dateStr);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
 
 // Recursive handlers
@@ -389,7 +396,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
             </div>
             <p v-if="depth === 0" class="text">{{ comment.content }}</p>
             <div class="footer-meta">
-              <span class="date">{{ d(parseDate(comment.date), 'short') }}</span>
+              <span class="date">{{ formatDateTime(comment.date) }}</span>
               <button class="reply-trigger" @click.stop="toggleReply">{{ t('common.reply', 'Reply') }}</button>
               
               <!-- Inline Actions -->

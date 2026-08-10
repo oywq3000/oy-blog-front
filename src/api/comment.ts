@@ -82,7 +82,7 @@ export interface ResultNumber {
 
 const baseUrl = '/api/article-service'
 // Query Comments List
-export const getComments = (articleId: string, sortBy: string = 'newest') => {
+export const getComments = (articleId: string, sortBy: string = 'hot') => {
   return request.get<any, ResultListComment>(baseUrl+`/article/comment/${articleId}/comments`, {
     params: { sortBy }
   });

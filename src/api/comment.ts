@@ -82,8 +82,10 @@ export interface ResultNumber {
 
 const baseUrl = '/api/article-service'
 // Query Comments List
-export const getComments = (articleId: string) => {
-  return request.get<any, ResultListComment>(baseUrl+`/article/comment/${articleId}/comments`);
+export const getComments = (articleId: string, sortBy: string = 'newest') => {
+  return request.get<any, ResultListComment>(baseUrl+`/article/comment/${articleId}/comments`, {
+    params: { sortBy }
+  });
 };
 
 // Get Comment Count

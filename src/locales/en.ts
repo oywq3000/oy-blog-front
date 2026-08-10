@@ -222,6 +222,8 @@ export default {
     report: 'Report',
     copy: 'Copy',
     cancel: 'Cancel',
+    sortByHot: 'Hot',
+    sortByNewest: 'Newest',
   },
   cookie: {
     title: 'Privacy & Data Protection',

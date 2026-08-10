@@ -222,6 +222,8 @@ export default {
     report: '举报',
     copy: '复制',
     cancel: '取消',
+    sortByHot: '按热度',
+    sortByNewest: '按最新',
   },
   cookie: {
     title: '隐私保护声明',

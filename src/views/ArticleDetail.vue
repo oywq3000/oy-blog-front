@@ -102,6 +102,7 @@ const isLoading = ref(false);
 const isSubmittingComment = ref(false);
 const comments = ref<UIComment[]>([]);
 const totalCommentCount = ref<number>(0);
+const commentSortMode = ref<'newest' | 'hot'>('newest');
 const newComment = ref('');
 
 // Formatted date YYYY-MM-DD HH:mm:ss
@@ -205,7 +206,7 @@ const fetchUserInfo = async (userId: string) => {
 
 const loadComments = async (articleId: string) => {
   try {
-    const res = await getComments(articleId);
+    const res = await getComments(articleId, commentSortMode.value);
     if (res.isSuccess && res.data) {
       // API might return array directly or { items: [] }
       // Based on user feedback: "data": [ { ... }, { ... } ]
@@ -245,6 +246,14 @@ const loadComments = async (articleId: string) => {
     console.error('Failed to load comments:', error);
   }
 };
+
+// 监听排序模式变化，重新加载评论
+watch(commentSortMode, () => {
+  if (articleInfo.value?.id) {
+    loadComments(articleInfo.value.id);
+  }
+});
+
 interface ArticleLink {
   id: number | string;
   title: string;
@@ -759,7 +768,21 @@ const handleEdit = () => {
     </main>
     <!-- Comments Section Moved Outside Main to allow Sidebar to stop scrolling with Article -->
     <section class="comments-section glass-panel">
-      <h4>{{ t('articleDetail.comments') }} ({{totalCommentCount}})</h4>
+      <div class="comments-header">
+        <h4>{{ t('articleDetail.comments') }} ({{totalCommentCount}})</h4>
+        <div class="sort-tabs">
+          <button
+            class="sort-tab"
+            :class="{ active: commentSortMode === 'hot' }"
+            @click="commentSortMode = 'hot'"
+          >{{ t('articleDetail.sortByHot') }}</button>
+          <button
+            class="sort-tab"
+            :class="{ active: commentSortMode === 'newest' }"
+            @click="commentSortMode = 'newest'"
+          >{{ t('articleDetail.sortByNewest') }}</button>
+        </div>
+      </div>
       <div class="comment-form">
         <div class="avatar-wrapper">
           <div class="user-avatar">
@@ -870,6 +893,50 @@ const handleEdit = () => {
 
   @media (max-width: $breakpoint-desktop) {
     grid-column: 1;
+  }
+}
+
+.comments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: $spacing-md;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+
+  h4 {
+    margin: 0;
+  }
+}
+
+.sort-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.sort-tab {
+  background: none;
+  border: none;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: $color-text-secondary;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: $color-text-primary;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  &.active {
+    color: #fff;
+    background: $color-accent-primary;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
 }
 

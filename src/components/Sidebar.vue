@@ -29,6 +29,7 @@ const tags: Tag[] = ([
 
 <template>
   <aside class="sidebar">
+    <!---->
     <div class="sidebar__widget author-card glass-panel" v-if="isLoggedIn && user">
       <div class="author-card__avatar">
         <img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.username" class="user-avatar-img" />
@@ -50,23 +51,23 @@ const tags: Tag[] = ([
       </div>
     </div>
 
-    <div class="sidebar__widget author-card glass-panel" v-else>
-      <div class="author-card__avatar">
-        <div class="avatar-placeholder">RC</div>
-      </div>
-      <h3 class="author-card__name text-gradient">{{ t('sidebar.author') }}</h3>
-      <div class="author-card__info">
-        <p class="bio-text">
-          {{ t('sidebar.bio') }}
-        </p>
-      </div>
-      <div class="author-card__socials">
-        <a href="#" class="social-link">GH</a>
-        <a href="#" class="social-link">TW</a>
-        <a href="#" class="social-link">LI</a>
+<div class="sidebar__widget tags-card glass-panel">
+    <h3 class="sidebar__title">
+      <HotTagIcon class="sidebar-icon" />
+      {{ t('sidebar.hotTags') }}
+    </h3>
+    <div class="card-content">
+      <div class="tags-list">
+        <a v-for="tag in tags" :key="tag.name" href="#" class="tag-item">
+          <div class="tag-info">
+            <TechIcon :name="tag.name" :size="16" class="tag-icon" />
+            <span class="tag-name">{{ tag.name }}</span>
+          </div>
+          <span class="tag-count">{{ tag.count }}</span>
+        </a>
       </div>
     </div>
-
+  </div>
   <div class="sidebar__widget tags-card glass-panel">
     <h3 class="sidebar__title">
       <HotTagIcon class="sidebar-icon" />

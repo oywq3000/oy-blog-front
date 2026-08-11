@@ -7,12 +7,11 @@ export interface ResultString {
   data: string;
 }
 
-const baseUrl = '/api/user-service'
 // Upload User Avatar
 export const uploadAvatar = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return request.post<any, ResultString>(baseUrl+'/profile/avatar', formData, {
+  return request.post<any, ResultString>('/api/user-service/profile/avatar', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -23,7 +22,7 @@ export const uploadAvatar = (file: File) => {
 export const uploadCover = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return request.post<any, ResultString>(baseUrl+'/article/cover', formData, {
+  return request.post<any, ResultString>('/api/article-service/article/cover', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -34,7 +33,7 @@ export const uploadCover = (file: File) => {
 export const uploadContentImage = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return request.post<any, ResultString>(baseUrl+'/article/image', formData, {
+  return request.post<any, ResultString>('/api/article-service/article/image', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

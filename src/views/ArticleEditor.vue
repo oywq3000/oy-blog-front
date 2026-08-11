@@ -75,6 +75,39 @@ const publishForm = reactive({
   tags: ''
 });
 
+// Strip markdown formatting to get plain text
+const stripMarkdown = (md: string): string => {
+  return md
+    .replace(/^#{1,6}\s+/gm, '')        // headings
+    .replace(/\*\*(.*?)\*\*/g, '$1')     // bold
+    .replace(/__(.*?)__/g, '$1')         // bold (underscores)
+    .replace(/\*(.*?)\*/g, '$1')         // italic
+    .replace(/_(.*?)_/g, '$1')           // italic (underscore)
+    .replace(/~~(.*?)~~/g, '$1')         // strikethrough
+    .replace(/`{1,3}[^`]*`{1,3}/g, '')  // inline code & code blocks
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1') // links
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1') // images
+    .replace(/^>\s*/gm, '')              // blockquotes
+    .replace(/^[-*+]\s+/gm, '')          // unordered lists
+    .replace(/^\d+\.\s+/gm, '')          // ordered lists
+    .replace(/^---+/gm, '')              // horizontal rules
+    .replace(/\n+/g, ' ')                // newlines → spaces
+    .replace(/\s+/g, ' ')                // collapse whitespace
+    .trim();
+};
+
+// Default summary: first 50 chars of stripped markdown content
+const defaultSummary = computed(() => {
+  if (!content.value.trim()) return '';
+  const plainText = stripMarkdown(content.value);
+  return plainText.length > 50 ? plainText.slice(0, 50) : plainText;
+});
+
+// Dynamic placeholder: show default summary when user hasn't typed custom one
+const summaryPlaceholder = computed(() => {
+  return defaultSummary.value || (t('editor.summary') as string);
+});
+
 const wordCount = computed(() => {
   return content.value.length;
 });
@@ -108,12 +141,13 @@ const handleSaveDraft = async () => {
 
   isSavingDraft.value = true;
   try {
+    const summary = publishForm.summary || defaultSummary.value;
     const res = await saveDraft({
       id: draftId.value,
       title: title.value,
       contentMd: content.value,
       contentHtml: contentHtml.value,
-      summary: publishForm.summary,
+      summary,
       coverUrl: publishForm.coverUrl,
       tags: getTagsArray()
     });
@@ -276,12 +310,13 @@ const submitArticle = async () => {
 
   isSubmitting.value = true;
   try {
+    const summary = publishForm.summary || defaultSummary.value;
     const res = await publishArticle({
       id: draftId.value, // Use captured draft ID for update (undefined for new)
       title: title.value,
       contentMd: content.value,
       contentHtml: contentHtml.value,
-      summary: publishForm.summary,
+      summary,
       coverUrl: publishForm.coverUrl,
       tags: getTagsArray()
     });
@@ -420,10 +455,10 @@ const submitArticle = async () => {
                 <div class="form-col summary-col">
                   <div class="form-group full-height">
                     <label>{{ t('editor.summary') }}</label>
-                    <textarea 
-                      v-model="publishForm.summary" 
-                      rows="4" 
-                      :placeholder="t('editor.summary')"
+                    <textarea
+                      v-model="publishForm.summary"
+                      rows="4"
+                      :placeholder="summaryPlaceholder"
                       class="custom-input summary-input"
                     ></textarea>
                   </div>
@@ -532,9 +567,9 @@ const submitArticle = async () => {
     border: none;
     border-radius: 8px;
     font-size: 1.25rem; // Smaller font size
-    font-family: inherit; 
-    font-weight: 600; 
-    color: $color-text-primary;
+    font-family: inherit;
+    font-weight: 400;
+    color: $color-text-secondary;
     outline: none;
     padding: 0.4rem 0.8rem; // Smaller padding
     min-width: 0;
@@ -542,22 +577,25 @@ const submitArticle = async () => {
 
     :global(.dark) & {
       background: rgba(255, 255, 255, 0.1); /* Increased contrast */
-      color: #fff;
+      color: rgba(255, 255, 255, 0.6);
     }
 
     &:focus {
       background: rgba(255, 255, 255, 0.2);
+      color: $color-text-primary;
       box-shadow: none; // Ensure no blue glow/border
-      
+
       :global(.dark) & {
         background: rgba(255, 255, 255, 0.15);
+        color: #fff;
       }
     }
 
     &::placeholder {
       color: rgba($color-text-primary, 0.4); /* Increased contrast */
       font-style: normal;
-      
+      font-weight: 300;
+
       :global(.dark) & {
         color: rgba(255, 255, 255, 0.5);
       }

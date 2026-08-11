@@ -4,8 +4,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import ArticleCard from '../components/ArticleCard.vue';
 import IconSearch from '../components/icons/IconSearch.vue';
-import { searchArticles, type ArticleInfo } from '../api/article';
-import { getSimpleUserProfile } from '../api/user';
+import { searchArticles, type ArticleInfo, type SearchParams } from '../api/article';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -14,6 +13,17 @@ const router = useRouter();
 const searchQuery = ref('');
 const activeFilter = ref('all');
 const filters = ['all', 'article', 'tag', 'author'];
+
+// Sort & date filter state
+const sortBy = ref('relevance');
+const sortOptions = computed(() => [
+  { value: 'relevance', label: t('search.sortRelevance') },
+  { value: 'createdAt', label: t('search.sortNewest') },
+  { value: 'likeCount', label: t('search.sortMostLiked') },
+  { value: 'viewCount', label: t('search.sortMostViewed') },
+]);
+const dateFrom = ref('');
+const dateTo = ref('');
 
 const isLoading = ref(false);
 
@@ -43,46 +53,21 @@ const enrichedResults = ref<EnrichedArticle[]>([]);
 const totalResults = ref(0);
 const totalPages = ref(0);
 
-async function fetchAuthorProfiles(
-  authorIds: string[]
-): Promise<Map<string, { name: string; avatar: string }>> {
-  const map = new Map<string, { name: string; avatar: string }>();
-  const uniqueIds = [...new Set(authorIds.filter(Boolean))];
-  await Promise.all(
-    uniqueIds.map(async (userId) => {
-      try {
-        const res = await getSimpleUserProfile(userId);
-        if (res.isSuccess && res.data) {
-          map.set(userId, { name: res.data.name, avatar: res.data.avatar });
-        }
-      } catch {
-        // Silently ignore
-      }
-    })
-  );
-  return map;
-}
-
-async function enrichArticles(articles: ArticleInfo[]) {
-  const authorIds = articles.map((a) => a.authorId);
-  const authorMap = await fetchAuthorProfiles(authorIds);
-  enrichedResults.value = articles.map((a) => {
-    const author = authorMap.get(a.authorId);
-    return {
-      id: a.slug || a.id,
-      title: a.title,
-      summary: a.summary || '',
-      date: a.publishAt || a.createdAt,
-      tags: a.tags || [],
-      image: a.coverUrl || '',
-      viewCount: a.viewCount,
-      likeCount: a.likeCount,
-      favorites: a.favorites,
-      readingTimeMinutes: a.readingTimeMinutes,
-      authorName: author?.name,
-      authorAvatar: author?.avatar,
-    };
-  });
+function enrichArticles(articles: ArticleInfo[]) {
+  enrichedResults.value = articles.map((a) => ({
+    id: a.slug || a.id,
+    title: a.title,
+    summary: a.summary || '',
+    date: a.publishAt || a.createdAt,
+    tags: a.tags || [],
+    image: a.coverUrl || '',
+    viewCount: a.viewCount,
+    likeCount: a.likeCount,
+    favorites: a.favorites,
+    readingTimeMinutes: a.readingTimeMinutes,
+    authorName: a.authorName,      // ES 已含 authorName + authorAvatar
+    authorAvatar: a.authorAvatar,
+  }));
 }
 
 const searchHistory = ref<string[]>([]);
@@ -114,11 +99,7 @@ const performSearch = async () => {
   currentPage.value = 1;
 
   try {
-      const response = await searchArticles({
-      keyword: searchQuery.value,
-      page: currentPage.value,
-      size: itemsPerPage
-    });
+      const response = await searchArticles(buildSearchParams(currentPage.value));
     if (response.isSuccess) {
       searchResults.value = response.data.data;
       totalResults.value = response.data.total;
@@ -180,17 +161,54 @@ const selectTag = (tag: string) => {
   performSearch();
 };
 
+// Translate filter value to display label
+function getFilterLabel(filter: string): string {
+  const map: Record<string, string> = {
+    all: t('search.filterAll'),
+    article: t('search.filterArticle'),
+    tag: t('search.filterTag'),
+    author: t('search.filterAuthor'),
+  };
+  return map[filter] || filter;
+}
+
+// Wire filter buttons
+const setFilter = (filter: string) => {
+  activeFilter.value = filter;
+  performSearch();
+};
+
+// Shared search params builder
+function buildSearchParams(page: number): SearchParams {
+  const params: SearchParams = {
+    keyword: searchQuery.value,
+    filter: activeFilter.value,
+    page,
+    size: itemsPerPage,
+    sortBy: sortBy.value,
+    sortOrder: 'desc',
+  };
+  if (dateFrom.value) params.dateFrom = dateFrom.value;
+  if (dateTo.value) params.dateTo = dateTo.value;
+  return params;
+}
+
+// Reset all filters
+const resetFilters = () => {
+  activeFilter.value = 'all';
+  sortBy.value = 'relevance';
+  dateFrom.value = '';
+  dateTo.value = '';
+  performSearch();
+};
+
 const changePage = async  (page: number) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page;
     
     // Fetch new page data
     try {
-        const response = await searchArticles({
-        keyword: searchQuery.value,
-        page: currentPage.value,
-        size: itemsPerPage
-      });
+        const response = await searchArticles(buildSearchParams(currentPage.value));
       if (response.isSuccess) {
         searchResults.value = response.data.data;
         await enrichArticles(response.data.data);
@@ -236,17 +254,17 @@ onMounted(() => {
           <!-- Filters Section -->
           <div class="sidebar-widget">
             <h3 class="widget-title">
-              {{ t('common.filter', 'Filters') }}
+              {{ t('search.filter') }}
             </h3>
             <div class="vertical-filters">
-              <button 
-                v-for="filter in filters" 
-                :key="filter" 
+              <button
+                v-for="filter in filters"
+                :key="filter"
                 class="filter-item"
                 :class="{ active: activeFilter === filter }"
-                @click="activeFilter = filter"
+                @click="setFilter(filter)"
               >
-                <span class="filter-name">{{ filter.charAt(0).toUpperCase() + filter.slice(1) }}</span>
+                <span class="filter-name">{{ getFilterLabel(filter) }}</span>
                 <span class="filter-indicator" v-if="activeFilter === filter"></span>
               </button>
             </div>
@@ -255,7 +273,7 @@ onMounted(() => {
           <!-- Hot Searches Section -->
           <div class="sidebar-widget">
             <h3 class="widget-title">
-              {{ t('common.hotSearches', 'Trending') }}
+              {{ t('search.hotSearches') }}
             </h3>
             <div class="tags-cloud compact">
               <button 
@@ -304,19 +322,19 @@ onMounted(() => {
                   v-model="searchQuery" 
                   @keydown.enter="performSearch"
                   type="text" 
-                  :placeholder="t('common.searchPlaceholder', 'Type to search...')" 
+                  :placeholder="t('search.searchPlaceholder')"
                   class="search-input"
                   autofocus
                 />
                 <button v-if="searchQuery" class="clear-query-btn" @click="searchQuery = ''">×</button>
                 <button class="search-btn" @click="performSearch">
-                  {{ t('common.search', 'Search') }}
+                  {{ t('common.search') }}
                 </button>
              </div>
              
              <!-- Inline History (Below Search Box) -->
              <div class="inline-history" v-if="!searchQuery && searchHistory.length > 0">
-                <span class="history-label">{{ t('common.history', 'History') }}:</span>
+                <span class="history-label">{{ t('common.history') }}:</span>
                 <div class="history-chips">
                   <button 
                     v-for="item in searchHistory.slice(0, 6)" 
@@ -326,26 +344,47 @@ onMounted(() => {
                   >
                     {{ item }}
                   </button>
-                  <button @click="clearHistory" class="clear-history-text" :title="t('common.clear', 'Clear')">
-                    {{ t('common.clear', 'Clear') }}
+                  <button @click="clearHistory" class="clear-history-text" :title="t('common.clear')">
+                    {{ t('common.clear') }}
                   </button>
                 </div>
              </div>
           </div>
 
+          <!-- Results Toolbar: Sort & Date Filters -->
+          <div class="results-toolbar" v-if="searchResults.length > 0 || isLoading || dateFrom || dateTo || activeFilter !== 'all'">
+            <div class="toolbar-left">
+              <label class="toolbar-label">{{ t('search.sort') }}</label>
+              <select v-model="sortBy" class="toolbar-select" @change="performSearch">
+                <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+            </div>
+            <div class="toolbar-right">
+              <label class="toolbar-label">{{ t('search.dateFrom') }}</label>
+              <input type="date" v-model="dateFrom" class="toolbar-date" @change="performSearch" />
+              <label class="toolbar-label">{{ t('search.dateTo') }}</label>
+              <input type="date" v-model="dateTo" class="toolbar-date" @change="performSearch" />
+              <button v-if="dateFrom || dateTo || sortBy !== 'relevance' || activeFilter !== 'all'"
+                      class="toolbar-reset" @click="resetFilters">{{ t('search.reset') }}</button>
+            </div>
+          </div>
+
           <!-- Content Area -->
           <transition name="fade" mode="out-in">
-             
-             <!-- Loading State -->
+
+            <!-- Loading State -->
              <div v-if="isLoading" class="state-container">
                 <div class="spinner"></div>
-                <p>Searching...</p>
+                <p>{{ t('search.searching') }}</p>
              </div>
 
              <!-- Results State -->
              <div v-else-if="paginatedResults.length > 0" class="results-container">
-                <div class="results-meta" v-if="searchQuery!=''">
-                   <span class="count">Found {{ totalResults  }} results for "{{ searchQuery }}"</span>
+                <div class="results-meta" v-if="searchQuery || activeFilter !== 'all' || dateFrom || dateTo">
+                   <span class="count" v-if="activeFilter === 'tag'">{{ t('search.resultsForTag', { count: totalResults, keyword: searchQuery }) }}</span>
+                   <span class="count" v-else-if="activeFilter === 'author'">{{ t('search.resultsForAuthor', { count: totalResults, keyword: searchQuery }) }}</span>
+                   <span class="count" v-else-if="searchQuery">{{ t('search.resultsFor', { count: totalResults, keyword: searchQuery }) }}</span>
+                   <span class="count" v-else>{{ t('search.resultsAll', { count: totalResults }) }}</span>
                 </div>
                 <div class="results-list">
                   <ArticleCard
@@ -366,12 +405,12 @@ onMounted(() => {
              <div v-else class="state-container empty-state">
                 <div v-if="searchQuery" class="no-results">
                    <IconSearch :size="48" class="icon-muted" />
-                   <h3>No results found</h3>
-                   <p>Try different keywords or filters.</p>
+                   <h3>{{ t('search.noResults') }}</h3>
+                   <p>{{ t('search.noResultsHint') }}</p>
                 </div>
                 <div v-else class="start-search">
-                   <h3>Ready to explore?</h3>
-                   <p>Select a topic from the sidebar or type to search.</p>
+                   <h3>{{ t('search.readyToExplore') }}</h3>
+                   <p>{{ t('search.readyToExploreHint') }}</p>
                 </div>
              </div>
 
@@ -612,6 +651,72 @@ onMounted(() => {
       color: var(--color-accent-primary);
       text-decoration: underline;
     }
+  }
+}
+
+/* --- Results Toolbar (Sort & Date) --- */
+.results-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: $spacing-lg;
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.toolbar-select,
+.toolbar-date {
+  background: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  outline: none;
+
+  &:focus {
+    border-color: var(--color-accent-primary);
+  }
+}
+
+.toolbar-reset {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-accent-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-left: 4px;
+
+  &:hover {
+    background: rgba($color-accent-primary-rgb, 0.1);
+    border-color: var(--color-accent-primary);
   }
 }
 
@@ -1076,6 +1181,37 @@ onMounted(() => {
     
     .page-info {
       color: #aaaaaa !important;
+    }
+  }
+
+  /* --- Toolbar Dark Mode --- */
+  .results-toolbar {
+    background-color: #1e1e1e !important;
+    border-color: #444444 !important;
+
+    .toolbar-label {
+      color: #cccccc !important;
+    }
+
+    .toolbar-select,
+    .toolbar-date {
+      background-color: #2a2a2a !important;
+      border-color: #555555 !important;
+      color: #ffffff !important;
+
+      &:focus {
+        border-color: #818cf8 !important;
+      }
+    }
+
+    .toolbar-reset {
+      color: #818cf8 !important;
+      border-color: #555555 !important;
+
+      &:hover {
+        background-color: rgba(129, 140, 248, 0.15) !important;
+        border-color: #818cf8 !important;
+      }
     }
   }
 }

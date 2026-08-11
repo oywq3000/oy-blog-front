@@ -231,14 +231,18 @@ export const getMyStats = () => {
 
 
 // Search Articles
-interface SearchParams {
+export interface SearchParams {
   keyword: string;
+  filter?: string,
   page?: number;
   size?: number;
   author?: string;
   tag?: string;
-  category?: string
   status?: string;
+  sortBy?: string;     // 'relevance' | 'createdAt' | 'likeCount' | 'viewCount'
+  sortOrder?: string;  // 'asc' | 'desc'
+  dateFrom?: string;   // 'yyyy-MM-dd'
+  dateTo?: string;     // 'yyyy-MM-dd'
 }
 
 export interface SearchResult {

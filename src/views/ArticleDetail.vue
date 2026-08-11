@@ -660,7 +660,7 @@ const toggleShare = async () => {
 
 const handleEdit = () => {
   if (articleInfo.value) {
-    router.push(`/editor?id=${articleInfo.value.id}`);
+    router.push(`/creator/articles/${articleInfo.value.id}/edit`);
   }
 };
 </script>

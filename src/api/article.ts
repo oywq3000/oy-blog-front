@@ -90,7 +90,23 @@ export interface ResultNumber {
   isSuccess: boolean;
   data: number;
 }
-//base url 
+
+// Generic paginated result
+export interface PageResult<T> {
+  total: number;
+  data: T[];
+  currentPage: number;
+  totalPages: number;
+}
+
+export interface ResultPageArticle {
+  errCode: number;
+  errMsg: string;
+  isSuccess: boolean;
+  data: PageResult<ArticleInfo>;
+}
+
+//base url
 const baseUrl = "/api/article-service"
 // Query Published Articles List
 export const getPublishedArticles = () => {
@@ -229,6 +245,18 @@ export const getMyStats = () => {
   return request.get<any, ResultUserArticleStats>(baseUrl+'/article/stats/me');
 };
 
+// Params for fetching current user's own articles
+export interface MyArticlesParams {
+  status: 'published' | 'draft';
+  page?: number;
+  size?: number;
+}
+
+// Get Current User's Articles (published or drafts, paged)
+export const getMyArticles = (params: MyArticlesParams) => {
+  return request.get<any, ResultPageArticle>(baseUrl+'/article/read/me', { params });
+};
+
 
 // Search Articles
 export interface SearchParams {
@@ -261,7 +289,7 @@ export interface ResultSearchResult {
 
 // 搜索文章接口
 export const searchArticles = (params: SearchParams) => {
-  return request.get<any, ResultSearchResult>('api/search-service/essearch/search', { params });
+  return request.get<any, ResultSearchResult>('/api/search-service/essearch/search', { params });
 };
 
 

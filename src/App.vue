@@ -65,7 +65,7 @@ watch(locale, (newLocale) => {
       <NavBar />
       <router-view v-slot="{ Component, route: r }">
         <transition name="page" mode="out-in">
-          <component :is="Component" :key="r.path" />
+          <component :is="Component" :key="r.path.startsWith('/creator/') && !r.path.startsWith('/creator/articles/') ? '/creator' : r.path" />
         </transition>
       </router-view>
       <Footer />

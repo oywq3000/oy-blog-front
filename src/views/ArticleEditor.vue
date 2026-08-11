@@ -8,16 +8,21 @@ import { publishArticle, saveDraft, getArticleBySlug, getArticleContent, getArti
 import { uploadCover, uploadContentImage } from '../api/upload';
 // import { useUserStore } from '../store/user';
 import { useTheme } from '../composables/useTheme';
+import { useToast } from '../composables/useToast';
+import { useCreatorStore } from '../store/creator';
 
 const router = useRouter();
 const route = useRoute();
 const { t } = useI18n();
 // const userStore = useUserStore();
 const { theme } = useTheme();
+const { addToast } = useToast();
+const { refreshDraftCount } = useCreatorStore();
 
 const title = ref('');
 const content = ref('');
 const contentHtml = ref('');
+const draftId = ref<string | undefined>(undefined);
 const isSubmitting = ref(false);
 const isSavingDraft = ref(false);
 const showPublishModal = ref(false);
@@ -95,7 +100,7 @@ const handleHtmlChanged = (html: string) => {
 
 const handleSaveDraft = async () => {
   if (isSavingDraft.value || isSubmitting.value) return;
-  
+
   if (!title.value.trim()) {
     alert('Please enter a title to save draft');
     return;
@@ -104,6 +109,7 @@ const handleSaveDraft = async () => {
   isSavingDraft.value = true;
   try {
     const res = await saveDraft({
+      id: draftId.value,
       title: title.value,
       contentMd: content.value,
       contentHtml: contentHtml.value,
@@ -113,15 +119,21 @@ const handleSaveDraft = async () => {
     });
 
     if (res.isSuccess) {
-      // Maybe show a small toast or status instead of alert?
-      // For now, using console and a temporary status indicator could be better
-      // but alert is consistent with current implementation
-      console.log('Draft saved');
+      // Capture the draft ID from response for subsequent saves
+      if (res.data && typeof res.data === 'string') {
+        draftId.value = res.data;
+      } else if (res.data && res.data.id) {
+        draftId.value = res.data.id;
+      }
+      refreshDraftCount();
+      addToast(t('editor.draftSaved') || 'Draft saved', 'success');
     } else {
       console.error('Failed to save draft:', res.errMsg);
+      addToast(res.errMsg || 'Failed to save draft', 'error');
     }
   } catch (error) {
     console.error('Save draft error:', error);
+    addToast('Failed to save draft', 'error');
   } finally {
     isSavingDraft.value = false;
   }
@@ -216,10 +228,11 @@ onMounted(() => {
     isMobile.value = true;
     return;
   }
-  
+
   window.addEventListener('keydown', handleKeydown);
-  const id = route.query.id as string;
+  const id = (route.params.id as string) || (route.query.id as string);
   if (id) {
+    draftId.value = id;
     loadArticleForEdit(id);
   }
 });
@@ -260,11 +273,11 @@ const handleUploadImage = async (files: File[], callback: (urls: string[]) => vo
 
 const submitArticle = async () => {
   if (isSubmitting.value) return;
-  
+
   isSubmitting.value = true;
   try {
     const res = await publishArticle({
-      id: route.query.id as string, // Pass ID for update
+      id: draftId.value, // Use captured draft ID for update (undefined for new)
       title: title.value,
       contentMd: content.value,
       contentHtml: contentHtml.value,
@@ -274,8 +287,9 @@ const submitArticle = async () => {
     });
 
     if (res.isSuccess) {
-      // Success Feedback
-      router.push('/'); 
+      addToast(t('editor.publishSuccess') || 'Published successfully', 'success');
+      refreshDraftCount();
+      router.push('/creator/published');
     } else {
       alert('Failed to publish: ' + res.errMsg);
     }

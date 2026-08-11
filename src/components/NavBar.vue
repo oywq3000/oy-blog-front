@@ -28,7 +28,7 @@ const menuItems = computed(() => {
   ];
 
   if (isLoggedIn.value) {
-    items.push({ name: t('nav.editor'), link: '/editor' });
+    items.push({ name: t('nav.editor'), link: '/creator' });
     items.push({ name: t('nav.profile'), link: '/profile' });
   }
 

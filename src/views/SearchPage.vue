@@ -48,6 +48,8 @@ interface EnrichedArticle {
   readingTimeMinutes?: number;
   authorName?: string;
   authorAvatar?: string;
+  highlightSnippet?: string;
+  highlightTitle?: string;
 }
 const enrichedResults = ref<EnrichedArticle[]>([]);
 const totalResults = ref(0);
@@ -67,6 +69,8 @@ function enrichArticles(articles: ArticleInfo[]) {
     readingTimeMinutes: a.readingTimeMinutes,
     authorName: a.authorName,      // ES 已含 authorName + authorAvatar
     authorAvatar: a.authorAvatar,
+    highlightSnippet: a.highlightSnippet,
+    highlightTitle: a.highlightTitle,
   }));
 }
 
@@ -391,6 +395,8 @@ onMounted(() => {
                     v-for="result in paginatedResults"
                     :key="result.id"
                     v-bind="result"
+                    :highlight-snippet="result.highlightSnippet"
+                    :highlight-title="result.highlightTitle"
                   />
                 </div>
                 <!-- Pagination -->

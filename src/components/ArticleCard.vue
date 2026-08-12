@@ -17,6 +17,10 @@ const props = defineProps<{
   likeCount?: number;
   favorites?: number;
   readingTimeMinutes?: number;
+  /** ES 高亮摘要片段（含 <em class="highlight"> 标签） */
+  highlightSnippet?: string;
+  /** ES 高亮标题片段（含 <em class="highlight"> 标签） */
+  highlightTitle?: string;
 }>();
 
 const router = useRouter();
@@ -56,9 +60,11 @@ function formatCount(n: number | undefined): string {
       </div>
     </div>
     <!-- Row 2: Title -->
-    <h3 class="article-title">{{ title }}</h3>
-    <!-- Row 3: Summary -->
-    <p class="article-summary">{{ summary }}</p>
+    <h3 v-if="highlightTitle" class="article-title" v-html="highlightTitle"></h3>
+    <h3 v-else class="article-title">{{ title }}</h3>
+    <!-- Row 3: Summary / Highlight Snippet -->
+    <p v-if="highlightSnippet" class="article-summary highlight-snippet" v-html="highlightSnippet"></p>
+    <p v-else class="article-summary">{{ summary }}</p>
     <!-- Row 4: Stats -->
     <div class="article-meta">
       <div class="article-stats">
@@ -274,5 +280,24 @@ function formatCount(n: number | undefined): string {
   .article-row:hover & img {
     transform: scale(1.06);
   }
+}
+</style>
+
+<!-- Non-scoped highlight styles (required for v-html rendered content) -->
+<style lang="scss">
+em.highlight {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--color-accent-primary, #6366f1);
+  background: linear-gradient(180deg, transparent 60%, rgba(99, 102, 241, 0.2) 60%);
+  padding: 0 0.1em;
+  border-radius: 2px;
+}
+
+// Dark mode highlight
+:root[class~="dark"] em.highlight,
+:root[data-theme="dark"] em.highlight {
+  background: linear-gradient(180deg, transparent 60%, rgba(129, 140, 248, 0.35) 60%);
+  color: #a5b4fc;
 }
 </style>

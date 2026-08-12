@@ -31,6 +31,9 @@ export interface ArticleInfo {
   readingTimeMinutes?: number;
   authorName?: string;
   authorAvatar?: string;
+  // ES 高亮字段：命中的内容上下文（~200字，含 <em class="highlight"> 标签）
+  highlightSnippet?: string;
+  highlightTitle?: string;
 }
 
 export interface ArticleChapter {

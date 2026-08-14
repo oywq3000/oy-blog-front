@@ -65,6 +65,36 @@
   
   /* Code Syntax Highlighting */
   --color-code-string: #10b981;
+
+  /* ========================================
+     Agent Chat Theme Variables
+     ======================================== */
+
+  /* Agent message bubbles */
+  --agent-user-bg: #2060C0;
+  --agent-user-text: #FFFFFF;
+  --agent-ai-bg: var(--color-bg-primary);
+  --agent-ai-border: var(--color-border);
+
+  /* Agent sidebar */
+  --agent-sidebar-bg: var(--color-bg-secondary);
+  --agent-sidebar-hover: var(--color-bg-glass);
+  --agent-sidebar-active: rgba(32, 96, 192, 0.08);
+
+  /* Agent thinking panel */
+  --agent-thinking-bg: var(--color-bg-secondary);
+  --agent-thinking-border: var(--color-border);
+  --agent-thinking-text: var(--color-text-muted, #94a3b8);
+
+  /* Agent code blocks */
+  --agent-code-bg: #1E1E2E;
+  --agent-code-text: #D4D4D4;
+
+  /* Agent input area */
+  --agent-input-bg: var(--color-bg-secondary);
+  --agent-input-border: var(--color-border);
+  --agent-input-focus-border: #2060C0;
+  --agent-input-focus-ring: rgba(32, 96, 192, 0.15);
 }
 
 /* Dark Theme (Premium Zinc & Neon) */
@@ -136,6 +166,26 @@
 
     /* Code Syntax Highlighting */
     --color-code-string: #4ade80;
+
+    /* ========================================
+       Agent Chat Theme Variables (Dark)
+       ======================================== */
+    --agent-user-bg: #3B82F6;
+    --agent-user-text: #FFFFFF;
+    --agent-ai-bg: #2D2D3F;
+    --agent-ai-border: rgba(255, 255, 255, 0.08);
+    --agent-sidebar-bg: #1E1E2E;
+    --agent-sidebar-hover: rgba(255, 255, 255, 0.05);
+    --agent-sidebar-active: rgba(59, 130, 246, 0.12);
+    --agent-thinking-bg: rgba(255, 255, 255, 0.03);
+    --agent-thinking-border: rgba(255, 255, 255, 0.1);
+    --agent-thinking-text: #a1a1aa;
+    --agent-code-bg: #0D1117;
+    --agent-code-text: #D4D4D4;
+    --agent-input-bg: #2D2D3F;
+    --agent-input-border: rgba(255, 255, 255, 0.08);
+    --agent-input-focus-border: #3B82F6;
+    --agent-input-focus-ring: rgba(59, 130, 246, 0.2);
   }
 }
 
@@ -195,6 +245,24 @@ html.dark {
   --particle-bg: radial-gradient(circle at center, #18181b 0%, #000000 100%);
   
   --color-code-string: #4ade80;
+
+  /* Agent Chat Theme Variables (Dark class) */
+  --agent-user-bg: #3B82F6;
+  --agent-user-text: #FFFFFF;
+  --agent-ai-bg: #2D2D3F;
+  --agent-ai-border: rgba(255, 255, 255, 0.08);
+  --agent-sidebar-bg: #1E1E2E;
+  --agent-sidebar-hover: rgba(255, 255, 255, 0.05);
+  --agent-sidebar-active: rgba(59, 130, 246, 0.12);
+  --agent-thinking-bg: rgba(255, 255, 255, 0.03);
+  --agent-thinking-border: rgba(255, 255, 255, 0.1);
+  --agent-thinking-text: #a1a1aa;
+  --agent-code-bg: #0D1117;
+  --agent-code-text: #D4D4D4;
+  --agent-input-bg: #2D2D3F;
+  --agent-input-border: rgba(255, 255, 255, 0.08);
+  --agent-input-focus-border: #3B82F6;
+  --agent-input-focus-ring: rgba(59, 130, 246, 0.2);
 }
 
 body {

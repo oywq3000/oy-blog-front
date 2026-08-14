@@ -6,11 +6,12 @@ export default {
     profile: '个人中心',
     logout: '退出登录',
     about: '关于项目',
+    agent: 'AI 助手'
   },
   about: {
-    title: '关于 Rookie Blog',
+    title: '关于 OY Blog',
     introTitle: '项目简介',
-    introText: 'Rookie Blog 是一款基于 Spring Boot 3 + Vue 3 的现代化全栈个人博客系统。它采用了前后端分离架构，旨在为开发者提供一个功能完整、性能优越、代码优雅的博客解决方案。无论是作为个人技术博客，还是作为全栈开发的学习案例，它都是一个不错的选择。',
+    introText: 'OY Blog 是一款基于 Spring Boot 3 + Vue 3 的现代化全栈个人博客系统。它采用了前后端分离架构，旨在为开发者提供一个功能完整、性能优越、代码优雅的博客解决方案。无论是作为个人技术博客，还是作为全栈开发的学习案例，它都是一个不错的选择。',
     techStackTitle: '技术栈概览',
     frontend: '前端技术 (Frontend)',
     backend: '后端技术 (Backend)',
@@ -20,7 +21,7 @@ export default {
     feature3: '强大的搜索能力：基于 Elasticsearch 的全文检索',
     feature4: '完善的社区互动：多级评论、点赞收藏、防刷机制',
     authorTitle: '关于作者',
-    authorText: '我们是 Rookie Blog Team，一群热爱技术的开发者。致力于打造高质量的开源项目，与社区共同成长。如果您喜欢这个项目，欢迎在 GitHub 上点个 Star！',
+    authorText: '我们是 OY Blog Team，一群热爱技术的开发者。致力于打造高质量的开源项目，与社区共同成长。如果您喜欢这个项目，欢迎在 GitHub 上点个 Star！',
   },
   auth: {
     login: '登录',
@@ -144,7 +145,7 @@ export default {
     goBack: '返回上页',
   },
   sidebar: {
-    author: 'Rookie Coder',
+    author: 'OY Coder',
     bio: '全栈开发者，热衷于构建可扩展系统并探索新技术。',
     hotTags: '热门标签',
     defaultBio: '这个人真高冷，没什么想说的呢！',
@@ -154,7 +155,7 @@ export default {
     stayUpdated: '保持更新',
     emailPlaceholder: '输入您的邮箱',
     subscribe: '订阅',
-    rights: '© 2023 Rookie Blog. 保留所有权利。',
+    rights: '© 2023 OY Blog. 保留所有权利。',
     privacy: '隐私政策',
     terms: '服务条款',
     product: '产品',

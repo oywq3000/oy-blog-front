@@ -1,6 +1,6 @@
 <p align="center">
   <img src="public/logo.svg" alt="Rookie Blog Logo" width="120" height="120">
-  <h1 align="center">Rookie Blog Web</h1>
+  <h1 align="center">OY Blog Web</h1>
   <p align="center">基于 Vue 3 + TypeScript 的现代化个人博客前端系统</p>
 </p>
 
@@ -14,13 +14,13 @@
 
 <br>
 
-## <img src="https://api.iconify.design/mdi:information-variant.svg?color=%23000000" width="24" height="24" valign="bottom"> 项目介绍
+##  项目介绍
 
 **Rookie Blog Web** 是 Rookie Blog 的前端部分，采用当下流行的 **Vue 3 (Composition API)** + **TypeScript** 技术栈开发。项目秉持“简约而不简单”的设计理念，实现了全端响应式布局、沉浸式阅读体验、流畅的交互动画以及暗黑模式支持。它与后端 API 深度协同，共同构建了一个功能完备、体验优秀的现代化博客平台。
 
 ---
 
-## <img src="https://api.iconify.design/mdi:layers-triple.svg?color=%23000000" width="24" height="24" valign="bottom"> 技术栈
+##  技术栈
 
 <table align="center">
     <tr>
@@ -64,23 +64,23 @@
     </tr>
 </table>
 
-## <img src="https://api.iconify.design/mdi:sitemap.svg?color=%23000000" width="24" height="24" valign="bottom"> 目录结构
+##  目录结构
 
 项目结构清晰，遵循 Vue 3 最佳实践与模块化开发规范：
 
-| 目录名称 | 职责说明 | 关键内容 |
-| :--- | :--- | :--- |
-| **src/api** | **接口层**<br>封装 Axios 请求，集中管理 API 定义 | `request.ts`, `article.ts` |
-| **src/components** | **组件层**<br>通用的 UI 组件，复用性强 | `CommentItem`, `NavBar` |
-| **src/composables** | **组合式函数**<br>复用逻辑封装 (Hooks) | `useTheme.ts`, `useToast.ts` |
-| **src/views** | **视图层**<br>页面级组件，承载业务逻辑 | `ArticleDetail`, `HomeView` |
-| **src/store** | **状态层**<br>全局状态管理，响应式数据流 | `user.ts`, `app.ts` |
-| **src/router** | **路由层**<br>页面路由定义、权限守卫 | `index.ts` |
-| **src/styles** | **样式层**<br>全局 SCSS 变量、混合与主题定义 | `variables.scss`, `theme.css` |
-| **src/locales** | **语言包**<br>国际化资源文件 (JSON/TS) | `zh.ts`, `en.ts` |
-| **src/utils** | **工具层**<br>通用辅助函数与类库 | `text3dEffect.ts` |
+| 目录名称                  | 职责说明                                           | 关键内容                          |
+| :------------------------ | :------------------------------------------------- | :-------------------------------- |
+| **src/api**         | **接口层**封装 Axios 请求，集中管理 API 定义 | `request.ts`, `article.ts`    |
+| **src/components**  | **组件层**通用的 UI 组件，复用性强           | `CommentItem`, `NavBar`       |
+| **src/composables** | **组合式函数**复用逻辑封装 (Hooks)           | `useTheme.ts`, `useToast.ts`  |
+| **src/views**       | **视图层**页面级组件，承载业务逻辑           | `ArticleDetail`, `HomeView`   |
+| **src/store**       | **状态层**全局状态管理，响应式数据流         | `user.ts`, `app.ts`           |
+| **src/router**      | **路由层**页面路由定义、权限守卫             | `index.ts`                      |
+| **src/styles**      | **样式层**全局 SCSS 变量、混合与主题定义     | `variables.scss`, `theme.css` |
+| **src/locales**     | **语言包**国际化资源文件 (JSON/TS)           | `zh.ts`, `en.ts`              |
+| **src/utils**       | **工具层**通用辅助函数与类库                 | `text3dEffect.ts`               |
 
-## <img src="https://api.iconify.design/mdi:star-four-points.svg?color=%23000000" width="24" height="24" valign="bottom"> 核心功能
+##  核心功能
 
 <table align="center">
     <tr>
@@ -137,21 +137,24 @@
     </tr>
 </table>
 
-## <img src="https://api.iconify.design/mdi:rocket-launch-outline.svg?color=%23000000" width="24" height="24" valign="bottom"> 快速开始
+##  快速开始
 
 ### 环境准备
-*   **Node.js**: 16+ (推荐 18+)
-*   **Package Manager**: npm, yarn, or pnpm
+
+* **Node.js**: 16+ (推荐 18+)
+* **Package Manager**: npm, yarn, or pnpm
 
 ### 安装步骤
 
 #### 1. 克隆项目
+
 ```bash
 git clone https://github.com/yourusername/rookie-blog-web.git
 cd rookie-blog-web
 ```
 
 #### 2. 安装依赖
+
 ```bash
 npm install
 # 或者
@@ -159,20 +162,24 @@ yarn install
 ```
 
 #### 3. 启动开发服务器
+
 ```bash
 npm run dev
 ```
+
 启动后访问：[http://localhost:5173](http://localhost:5173)
 
 #### 4. 构建生产环境
+
 ```bash
 npm run build
 ```
+
 构建产物将输出到 `dist` 目录。
 
 ---
 
-## <img src="https://api.iconify.design/mdi:license.svg?color=%23000000" width="24" height="24" valign="bottom"> 开源协议
+##  开源协议
 
 本项目采用 [MIT License](LICENSE) 开源协议。
 

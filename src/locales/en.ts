@@ -6,11 +6,12 @@ export default {
     profile: 'Profile',
     logout: 'Logout',
     about: 'About',
+    agent: 'AI Assistant'
   },
   about: {
-    title: 'About Rookie Blog',
+    title: 'About OY Blog',
     introTitle: 'Introduction',
-    introText: 'Rookie Blog is a modern full-stack personal blog system based on Spring Boot 3 + Vue 3. It adopts a separation of frontend and backend architecture, aiming to provide developers with a fully functional, high-performance, and elegant blog solution. Whether as a personal tech blog or a full-stack learning case, it is an excellent choice.',
+    introText: 'OY Blog is a modern full-stack personal blog system based on Spring Boot 3 + Vue 3. It adopts a separation of frontend and backend architecture, aiming to provide developers with a fully functional, high-performance, and elegant blog solution. Whether as a personal tech blog or a full-stack learning case, it is an excellent choice.',
     techStackTitle: 'Tech Stack Overview',
     frontend: 'Frontend Tech',
     backend: 'Backend Tech',
@@ -20,7 +21,7 @@ export default {
     feature3: 'Powerful Search: Full-text search based on Elasticsearch',
     feature4: 'Community Interaction: Nested comments, likes/favorites, anti-spam',
     authorTitle: 'About Author',
-    authorText: 'We are the Rookie Blog Team, a group of developers passionate about technology. Dedicated to building high-quality open-source projects and growing with the community. If you like this project, please give us a Star on GitHub!',
+    authorText: 'We are the OY Blog Team, a group of developers passionate about technology. Dedicated to building high-quality open-source projects and growing with the community. If you like this project, please give us a Star on GitHub!',
   },
   auth: {
     login: 'Login',
@@ -47,7 +48,7 @@ export default {
     passwordsDoNotMatch: 'Passwords do not match',
   },
   home: {
-    title: 'Rookie Blog',
+    title: 'OY Blog',
     subtitle: 'Exploring The Tech Frontier',
     tag: '<DEV_ZONE />',
     featured: 'Featured Story',
@@ -144,7 +145,7 @@ export default {
     goBack: 'Go Back',
   },
   sidebar: {
-    author: 'Rookie Coder',
+    author: 'OY Coder',
     bio: 'Full Stack Developer passionate about building scalable systems and exploring new technologies.',
     hotTags: 'Hot Tags',
     defaultBio: 'This person is too cool to say anything!',
@@ -154,7 +155,7 @@ export default {
     stayUpdated: 'Stay Updated',
     emailPlaceholder: 'Enter your email',
     subscribe: 'Subscribe',
-    rights: '© 2023 Rookie Blog. All rights reserved.',
+    rights: '© 2023 OY Blog. All rights reserved.',
     privacy: 'Privacy Policy',
     terms: 'Terms of Service',
     product: 'Product',

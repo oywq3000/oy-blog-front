@@ -89,6 +89,18 @@ const router = createRouter({
       component: () => import('../views/SecurityPolicy.vue')
     },
     {
+      path: '/agent',
+      name: 'agent',
+      component: () => import('../views/AgentView.vue'),
+
+    },
+    {
+      path: '/agent/:conversationId',
+      name: 'agent-conversation',
+      component: () => import('../views/AgentView.vue'),
+      props: true,
+    },
+    {
       path: '/about',
       name: 'about',
       component: () => import('../views/AboutView.vue')

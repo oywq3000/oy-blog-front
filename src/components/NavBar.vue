@@ -24,7 +24,8 @@ const { theme } = useTheme();
 const menuItems = computed(() => {
   const items = [
     { name: t('nav.home'), link: '/' },
-    { name: t('nav.articles'), link: '/search' }
+    { name: t('nav.articles'), link: '/search' },
+    { name: t('nav.agent'), link: '/agent' }
   ];
 
   if (isLoggedIn.value) {

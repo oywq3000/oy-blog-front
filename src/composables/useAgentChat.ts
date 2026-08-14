@@ -1,4 +1,4 @@
-import { ref, computed, watch, shallowRef } from 'vue'
+import { ref, computed, watch, shallowRef, reactive } from 'vue'
 import type {
   Conversation,
   Message,
@@ -73,7 +73,7 @@ const loading = ref(false)
 const sidebarSearch = ref('')
 
 const defaultSettings: ChatSettings = {
-  model: 'rookie-ai',
+  model: 'deepseek-v4-pro',
   temperature: 0.7,
   deepThinking: false,
 }
@@ -216,13 +216,15 @@ async function sendMessage(
   }
 
   // Create placeholder for assistant message
-  const assistantMsg: Message = {
+  // reactive() so that streaming mutations below trigger Vue re-renders;
+  // a plain object mutated directly would bypass reactivity entirely
+  const assistantMsg = reactive<Message>({
     id: generateId(),
     role: 'assistant',
     content: '',
     createdAt: new Date().toISOString(),
     streaming: true,
-  }
+  })
   msgs.push(assistantMsg)
   messagesMap.value.set(convId, [...msgs])
 
@@ -368,7 +370,7 @@ async function streamChat(
   onDone: (messageId?: string) => void,
   onError: (error: string) => void
 ): Promise<void> {
-  const url = `/api/agent/chat/stream`
+  const url = `/api/agent-service/chat/stream`
   const body = JSON.stringify({
     conversationId,
     message,
@@ -400,6 +402,38 @@ async function streamChat(
 
   const decoder = new TextDecoder()
   let buffer = ''
+  // currentEvent must live OUTSIDE the read loop: SSE frames can be split
+  // across chunks, and resetting it per read silently drops data lines
+  // whose event: line arrived in the previous chunk.
+  let currentEvent = ''
+
+  const processLine = (line: string) => {
+    const trimmedLine = line.trim()
+    if (!trimmedLine) {
+      currentEvent = '' // blank line terminates the current event block
+      return
+    }
+    if (trimmedLine.startsWith('event:')) {
+      currentEvent = trimmedLine.slice(6).trim()
+      return
+    }
+    if (!trimmedLine.startsWith('data:')) return
+    const dataStr = trimmedLine.slice(5).trim()
+    try {
+      const data = JSON.parse(dataStr)
+      if (currentEvent === 'token' && data.content) {
+        onToken(data.content)
+      } else if (currentEvent === 'thinking' && data.content) {
+        onThinking(data.content)
+      } else if (currentEvent === 'done') {
+        onDone(data.messageId)
+      } else if (currentEvent === 'error') {
+        onError(data.message || 'Server error')
+      }
+    } catch {
+      // Skip unparseable lines
+    }
+  }
 
   try {
     while (true) {
@@ -410,44 +444,15 @@ async function streamChat(
       const lines = buffer.split('\n')
       buffer = lines.pop() ?? ''
 
-      let currentEvent = ''
       for (const line of lines) {
-        const trimmedLine = line.trim()
-        if (trimmedLine.startsWith('event:')) {
-          currentEvent = trimmedLine.slice(6).trim()
-        } else if (trimmedLine.startsWith('data:')) {
-          const dataStr = trimmedLine.slice(5).trim()
-          try {
-            const data = JSON.parse(dataStr)
-            if (currentEvent === 'token' && data.content) {
-              onToken(data.content)
-            } else if (currentEvent === 'thinking' && data.content) {
-              onThinking(data.content)
-            } else if (currentEvent === 'done') {
-              onDone(data.messageId)
-            } else if (currentEvent === 'error') {
-              onError(data.message || 'Server error')
-            }
-          } catch {
-            // Skip unparseable lines
-          }
-        }
+        processLine(line)
       }
     }
 
-    // Process remaining buffer
+    // Process remaining buffer (may hold one or more complete lines)
     if (buffer.trim()) {
-      const trimmedLine = buffer.trim()
-      if (trimmedLine.startsWith('data:')) {
-        const dataStr = trimmedLine.slice(5).trim()
-        try {
-          const data = JSON.parse(dataStr)
-          if (data.messageId) {
-            onDone(data.messageId)
-          }
-        } catch {
-          // ignore
-        }
+      for (const line of buffer.split('\n')) {
+        processLine(line)
       }
     }
   } catch (err: any) {

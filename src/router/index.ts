@@ -122,12 +122,19 @@ const router = createRouter({
 
 let loadStartTime = 0;
 
+// Internal creator tab switches (published ↔ drafts) don't show the loading overlay
+const isCreatorTab = (path: string) => path.startsWith('/creator/') && !path.startsWith('/creator/articles/');
+
 router.beforeEach((to, from, next) => {
   const { startLoading } = useAppStore();
 
-  // Skip loading overlay for internal creator tab switches (published ↔ drafts)
-  const isCreatorTab = (path: string) => path.startsWith('/creator/') && !path.startsWith('/creator/articles/');
-  if (!isCreatorTab(from.path) || !isCreatorTab(to.path)) {
+  // Skip loading overlay for:
+  // - internal creator tab switches (published ↔ drafts)
+  // - same-path query-only navigation (e.g. /search?q= changes)
+  const isCreatorTabSwitch = isCreatorTab(from.path) && isCreatorTab(to.path);
+  const isQueryOnlyNav = to.path === from.path;
+
+  if (!isCreatorTabSwitch && !isQueryOnlyNav) {
     loadStartTime = Date.now();
     startLoading();
   }
@@ -142,7 +149,8 @@ router.beforeEach((to, from, next) => {
 });
 
 router.afterEach((to, from) => {
-  const isCreatorTab = (path: string) => path.startsWith('/creator/') && !path.startsWith('/creator/articles/');
+  // Query-only navigation (same path) never started the loader, nothing to stop
+  if (to.path === from.path) return;
   if (isCreatorTab(from.path) && isCreatorTab(to.path)) return;
 
   const { stopLoading } = useAppStore();

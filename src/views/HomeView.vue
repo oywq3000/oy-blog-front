@@ -75,14 +75,8 @@ onMounted(async () => {
     const res = await getPublishedArticles();
     if (res.isSuccess && res.data) {
       const fetchedArticles = res.data;
-
-      // Collect all author IDs to batch-fetch profiles
-      const authorIds = fetchedArticles.map((a) => a.authorId);
-      const authorMap = await fetchAuthorProfiles(authorIds);
-
       // Map all articles with full data
       articles.value = fetchedArticles.map((a) => {
-        const author = authorMap.get(a.authorId);
         return {
           id: a.slug || a.id,
           title: a.title,

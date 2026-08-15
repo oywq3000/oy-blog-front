@@ -46,6 +46,13 @@ export default {
     noAccount: "Don't have an account?",
     hasAccount: 'Already have an account?',
     passwordsDoNotMatch: 'Passwords do not match',
+    verifyCode: 'Verification Code',
+    verifyCodePlaceholder: '6-digit code',
+    sendCode: 'Send Code',
+    resendInSeconds: 'Resend in {seconds}s',
+    codeSent: 'Verification code sent, please check your email',
+    codeRequired: 'Please enter the verification code',
+    codeSendFailed: 'Failed to send verification code',
   },
   home: {
     title: 'OY Blog',

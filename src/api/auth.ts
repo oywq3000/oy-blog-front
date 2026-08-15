@@ -12,6 +12,7 @@ export interface RegisterDto {
   confirmPassword?: string;
   email?: string;
   ipAddress?: string;
+  emailCode?: string;
 }
 
 export interface UpdatePasswordDto {
@@ -108,6 +109,11 @@ export interface ResultBoolean {
 // 1.5 Check email verification status
 export const getEmailVerificationStatus = () => {
   return request.get<any, ResultBoolean>(baseUrl+'/email/verification/status');
+};
+
+// Send email verification code (register)
+export const sendEmailCode = (data: { email: string }) => {
+  return request.post<any, ResultObject>(baseUrl+'/email/verification/send-code', data);
 };
 
 // 1.6 Request email verification (send email)

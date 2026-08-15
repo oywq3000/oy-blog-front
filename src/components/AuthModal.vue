@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { login, register } from '../api/auth';
+import { login, register, sendEmailCode } from '../api/auth';
 import { useUserStore } from '../store/user';
+import { useEmailCode } from '../composables/useEmailCode';
 import AnimatedLogo from './AnimatedLogo.vue';
 import AnimatedTextLogo from './AnimatedTextLogo.vue';
 
@@ -27,9 +28,30 @@ const username = ref('');
 const email = ref('');
 const password = ref('');
 const confirmPassword = ref('');
+const emailCode = ref('');
 const isLoading = ref(false);
 const error = ref('');
 const success = ref(false);
+
+// 邮箱验证码发送 + 60s 倒计时
+const { cooldown: sendCodeCooldown, sending: isSendingCode, send: sendCode, reset: resetEmailCode } = useEmailCode(
+  async (email: string) => {
+    await sendEmailCode({ email });
+  }
+);
+
+const handleSendCode = async () => {
+  if (!email.value) {
+    error.value = t('auth.fillAll');
+    return;
+  }
+  error.value = '';
+  try {
+    await sendCode(email.value);
+  } catch (err: any) {
+    error.value = err.message || t('auth.codeSendFailed');
+  }
+};
 
 // WeChat Mock Timer
 let scanTimer: any = null;
@@ -58,12 +80,14 @@ const resetState = () => {
   email.value = '';
   password.value = '';
   confirmPassword.value = '';
+  emailCode.value = '';
   error.value = '';
   success.value = false;
   isLoading.value = false;
   loginMethod.value = 'password';
   wechatStep.value = 'scan';
   stopScanSimulation();
+  resetEmailCode();
 };
 
 const title = computed(() => {
@@ -168,6 +192,10 @@ const handleSubmit = async () => {
       error.value = t('auth.passwordsDoNotMatch');
       return;
     }
+    if (!emailCode.value) {
+      error.value = t('auth.codeRequired');
+      return;
+    }
   }
 
   isLoading.value = true;
@@ -204,7 +232,8 @@ const handleSubmit = async () => {
         password: password.value,
         confirmPassword: confirmPassword.value,
         email: email.value,
-        ipAddress: '127.0.0.1'
+        ipAddress: '127.0.0.1',
+        emailCode: emailCode.value
       });
 
       if (res.isSuccess) {
@@ -236,6 +265,7 @@ const handleClose = () => {
 
 onUnmounted(() => {
   stopScanSimulation();
+  resetEmailCode();
 });
 </script>
 
@@ -380,13 +410,37 @@ onUnmounted(() => {
                   <!-- Email Field (Register Only) -->
                   <div class="form-group" v-if="mode === 'register'">
                     <label>{{ t('auth.email') }}</label>
-                    <input 
-                      type="email" 
-                      v-model="email" 
-                      :placeholder="t('auth.emailPlaceholder')" 
+                    <input
+                      type="email"
+                      v-model="email"
+                      :placeholder="t('auth.emailPlaceholder')"
                       :class="{ 'has-error': !!error }"
                       required
                     />
+                  </div>
+
+                  <!-- Email Verification Code (Register Only) -->
+                  <div class="form-group" v-if="mode === 'register'">
+                    <label>{{ t('auth.verifyCode') }}</label>
+                    <div class="code-row">
+                      <input
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="6"
+                        v-model="emailCode"
+                        :placeholder="t('auth.verifyCodePlaceholder')"
+                        :class="{ 'has-error': !!error }"
+                        required
+                      />
+                      <button
+                        type="button"
+                        class="code-send-btn"
+                        :disabled="isSendingCode || sendCodeCooldown > 0 || !email"
+                        @click="handleSendCode"
+                      >
+                        {{ isSendingCode ? t('auth.processing') : (sendCodeCooldown > 0 ? t('auth.resendInSeconds', { seconds: sendCodeCooldown }) : t('auth.sendCode')) }}
+                      </button>
+                    </div>
                   </div>
 
                   <!-- Password Field -->
@@ -637,6 +691,39 @@ onUnmounted(() => {
     &.has-error {
       border-color: var(--color-accent-tertiary);
     }
+  }
+}
+
+.code-row {
+  display: flex;
+  gap: 8px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.code-send-btn {
+  flex-shrink: 0;
+  padding: 0 14px;
+  border: 1px solid var(--color-accent-primary);
+  background: transparent;
+  color: var(--color-accent-primary);
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: rgba(var(--color-accent-primary-rgb), 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 

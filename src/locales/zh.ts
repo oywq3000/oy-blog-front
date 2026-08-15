@@ -46,6 +46,13 @@ export default {
     noAccount: '还没有账户？',
     hasAccount: '已经有账户？',
     passwordsDoNotMatch: '密码不匹配',
+    verifyCode: '邮箱验证码',
+    verifyCodePlaceholder: '6位数字验证码',
+    sendCode: '发送验证码',
+    resendInSeconds: '{seconds}秒后重发',
+    codeSent: '验证码已发送，请查收邮箱',
+    codeRequired: '请输入验证码',
+    codeSendFailed: '验证码发送失败',
   },
   home: {
     title: 'oyblog',

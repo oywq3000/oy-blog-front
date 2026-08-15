@@ -2,6 +2,11 @@
 import { computed, ref } from 'vue'
 import MarkdownViewer from '../MarkdownViewer.vue'
 import ThinkingPanel from './ThinkingPanel.vue'
+import IconCopy from '../icons/IconCopy.vue'
+import IconRefresh from '../icons/IconRefresh.vue'
+import IconCheck from '../icons/IconCheck.vue'
+import IconThumbUp from '../icons/IconThumbUp.vue'
+import IconThumbDown from '../icons/IconThumbDown.vue'
 import type { Message } from '../../types/agent'
 
 const props = defineProps<{
@@ -110,14 +115,16 @@ function handleFeedback(type: 'like' | 'dislike') {
           <div class="chat-message__header">
             <span class="chat-message__name">OY AI</span>
             <div class="chat-message__header-actions">
-              <buttonOY
+              <button
                 v-if="!isStreaming && message.content"
                 class="chat-message__copy-btn"
+                :class="{ 'chat-message__copy-btn--copied': copied }"
                 @click="handleCopy"
                 :title="copied ? '已复制' : '复制'"
               >
-                {{ copied ? '✓ 已复制' : '📋' }}
-              </buttonOY>
+                <IconCheck v-if="copied" :size="13" />
+                <IconCopy v-else :size="13" />
+              </button>
             </div>
           </div>
           <div class="chat-message__bubble chat-message__bubble--assistant">
@@ -139,10 +146,10 @@ function handleFeedback(type: 'like' | 'dislike') {
           <!-- Actions for completed AI messages -->
           <div v-if="!isStreaming && message.content" class="chat-message__actions">
             <button class="chat-message__action-btn" @click="handleCopy" :title="'复制'">
-              📋
+              <IconCopy :size="15" />
             </button>
             <button class="chat-message__action-btn" @click="handleResend" :title="'重新生成'">
-              🔄
+              <IconRefresh :size="15" />
             </button>
             <button
               class="chat-message__action-btn"
@@ -150,7 +157,7 @@ function handleFeedback(type: 'like' | 'dislike') {
               @click="handleFeedback('like')"
               :title="'赞'"
             >
-              👍
+              <IconThumbUp :size="15" :filled="userFeedback === 'like'" />
             </button>
             <button
               class="chat-message__action-btn"
@@ -158,7 +165,7 @@ function handleFeedback(type: 'like' | 'dislike') {
               @click="handleFeedback('dislike')"
               :title="'踩'"
             >
-              👎
+              <IconThumbDown :size="15" :filled="userFeedback === 'dislike'" />
             </button>
           </div>
           <!-- Error display -->
@@ -255,10 +262,16 @@ function handleFeedback(type: 'like' | 'dislike') {
     padding: 2px 6px;
     border-radius: 4px;
     transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
 
     &:hover {
       background: var(--color-bg-glass);
       color: var(--color-text-primary);
+    }
+
+    &--copied {
+      color: var(--color-accent-primary, #2060C0);
     }
   }
 
@@ -322,6 +335,9 @@ function handleFeedback(type: 'like' | 'dislike') {
     border-radius: 6px;
     transition: all 0.2s;
     color: var(--color-text-muted, #94a3b8);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
     &:hover {
       background: var(--color-bg-secondary);
@@ -329,8 +345,8 @@ function handleFeedback(type: 'like' | 'dislike') {
     }
 
     &--active {
-      color: var(--color-accent-primary, #6366f1);
-      background: rgba(99, 102, 241, 0.1);
+      color: var(--color-accent-primary, #2060C0);
+      background: rgba(32, 96, 192, 0.1);
     }
   }
 

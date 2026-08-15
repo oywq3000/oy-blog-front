@@ -186,7 +186,10 @@ function toggleSidebar() {
 @use '../styles/variables' as *;
 
 .agent-page {
-  min-height: 100vh;
+  // 必须是确定高度而非 min-height：高度不定时子元素 flex-basis: 0%
+  // 会按 CSS 规范退化为内容尺寸，整条 flex 链被消息撑开，页面随消息增长
+  height: 100vh;
+  overflow: hidden;
   background: var(--color-bg-primary);
   display: flex;
   flex-direction: column;
@@ -194,9 +197,8 @@ function toggleSidebar() {
 
 .agent-layout {
   display: flex;
-  flex: 1;
+  flex: 1; // 高度由 .agent-page 的确定高度分配而来，无需再声明 height
   padding-top: 60px; // NavBar height
-  height: 100vh;
   overflow: hidden;
 }
 

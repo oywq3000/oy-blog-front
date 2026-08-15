@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch, onMounted } from 'vue';
+import { watch, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import NavBar from './components/NavBar.vue';
 import Footer from './components/Footer.vue';
@@ -13,6 +13,7 @@ import CookieNotice from './components/CookieNotice.vue';
 import { useUserStore } from './store/user';
 import { useAppStore } from './store/app';
 import { useTheme } from './composables/useTheme';
+import { shouldShowFooter } from './utils/pageChrome';
 
 import { useRouter, useRoute } from 'vue-router';
 
@@ -21,6 +22,9 @@ const { fetchUserInfo } = useUserStore();
 const { isLoading, startLoading, stopLoading } = useAppStore();
 const { initTheme } = useTheme();
 const route = useRoute();
+
+// Chat pages are fullscreen app pages with internal scrolling — no footer
+const showFooter = computed(() => shouldShowFooter(route.name));
 
 // Start loading immediately on app initialization
 startLoading();
@@ -68,7 +72,7 @@ watch(locale, (newLocale) => {
           <component :is="Component" :key="r.path.startsWith('/creator/') && !r.path.startsWith('/creator/articles/') ? '/creator' : r.path" />
         </transition>
       </router-view>
-      <Footer />
+      <Footer v-if="showFooter" />
       <BackToTop />
     </div>
   </div>

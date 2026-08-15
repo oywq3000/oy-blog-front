@@ -108,16 +108,16 @@ function handleFeedback(type: 'like' | 'dislike') {
         <div class="chat-message__avatar chat-message__avatar--assistant">🤖</div>
         <div class="chat-message__body">
           <div class="chat-message__header">
-            <span class="chat-message__name">Rookie AI</span>
+            <span class="chat-message__name">OY AI</span>
             <div class="chat-message__header-actions">
-              <button
+              <buttonOY
                 v-if="!isStreaming && message.content"
                 class="chat-message__copy-btn"
                 @click="handleCopy"
                 :title="copied ? '已复制' : '复制'"
               >
                 {{ copied ? '✓ 已复制' : '📋' }}
-              </button>
+              </buttonOY>
             </div>
           </div>
           <div class="chat-message__bubble chat-message__bubble--assistant">

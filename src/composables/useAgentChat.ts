@@ -131,6 +131,7 @@ function createConversation(): string {
     updatedAt: now,
     messageCount: 0,
   }
+  //insert the start of the array (conversations array)
   conversations.value.unshift(conv)
   messagesMap.value.set(id, [])
   activeConversationId.value = id

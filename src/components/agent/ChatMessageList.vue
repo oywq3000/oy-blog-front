@@ -65,11 +65,13 @@ watch(
   }
 )
 
-// Watch for streaming content changes
+// Watch for streaming content changes (tokens and thinking both grow the bubble)
 watch(
   () => {
     const lastMsg = props.messages[props.messages.length - 1]
-    return lastMsg?.content?.length ?? 0
+    const contentLen = lastMsg?.content?.length ?? 0
+    const thinkingLen = lastMsg?.thinking?.length ?? 0
+    return contentLen + thinkingLen
   },
   () => {
     if (!userScrolledUp.value) {

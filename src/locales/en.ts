@@ -68,6 +68,12 @@ export default {
     registerFailed: 'Registration failed',
     unknownError: 'An error occurred',
     or: 'or',
+    resetTitle: 'Reset Password',
+    resetSubtitle: 'Verify your email and set a new password',
+    resetPassword: 'Reset Password',
+    newPassword: 'New Password',
+    resetSuccess: 'Password reset successfully. Please sign in with your new password.',
+    resetFailed: 'Password reset failed',
   },
   home: {
     title: 'OY Blog',

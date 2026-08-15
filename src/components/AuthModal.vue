@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { login, register, sendEmailCode } from '../api/auth';
+import { login, register, sendEmailCode, resetPassword } from '../api/auth';
 import { useUserStore } from '../store/user';
 import { useEmailCode } from '../composables/useEmailCode';
+import { useToast } from '../composables/useToast';
 import AnimatedTextLogo from './AnimatedTextLogo.vue';
 
 interface Props {
   isOpen: boolean;
-  initialMode?: 'login' | 'register';
+  initialMode?: 'login' | 'register' | 'reset';
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -19,6 +20,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits(['close', 'success']);
 const { t } = useI18n();
 const { fetchUserInfo } = useUserStore();
+const { addToast } = useToast();
 
 const mode = ref(props.initialMode);
 const loginMethod = ref<'password' | 'wechat'>('password');
@@ -32,10 +34,10 @@ const isLoading = ref(false);
 const error = ref('');
 const success = ref(false);
 
-// 邮箱验证码发送 + 60s 倒计时
+// 邮箱验证码发送 + 60s 倒计时（reset 模式发送重置密码验证码，register 模式发送注册验证码）
 const { cooldown: sendCodeCooldown, sending: isSendingCode, send: sendCode, reset: resetEmailCode } = useEmailCode(
   async (email: string) => {
-    await sendEmailCode({ email });
+    await sendEmailCode({ email, purpose: mode.value === 'reset' ? 'reset' : undefined });
   }
 );
 
@@ -90,9 +92,13 @@ const resetState = () => {
 };
 
 const title = computed(() => {
-  if (success.value) return mode.value === 'login' ? t('auth.successTitle') : t('auth.welcomeTitle');
+  if (success.value) {
+    if (mode.value === 'reset') return t('auth.resetTitle');
+    return mode.value === 'login' ? t('auth.successTitle') : t('auth.welcomeTitle');
+  }
   if (loginMethod.value === 'wechat') return t('auth.wechatLoginTitle');
   if (mode.value === 'register') return t('auth.joinTitle');
+  if (mode.value === 'reset') return t('auth.resetTitle');
   return t('auth.title');
 });
 
@@ -100,19 +106,28 @@ const subtitle = computed(() => {
   if (success.value) return '';
   if (loginMethod.value === 'wechat') return t('auth.wechatSubtitle');
   if (mode.value === 'register') return t('auth.registerSubtitle');
+  if (mode.value === 'reset') return t('auth.resetSubtitle');
   return t('auth.loginSubtitle');
 });
 
 const buttonText = computed(() => {
   if (isLoading.value) return t('auth.processing');
   if (mode.value === 'login' && loginMethod.value === 'wechat' && wechatStep.value === 'set-password') return t('auth.completeSetup');
-  return mode.value === 'login' ? t('auth.signIn') : t('auth.signUp');
+  if (mode.value === 'login') return t('auth.signIn');
+  if (mode.value === 'reset') return t('auth.resetPassword');
+  return t('auth.signUp');
 });
 
 const toggleMode = () => {
   mode.value = mode.value === 'login' ? 'register' : 'login';
   error.value = '';
   loginMethod.value = 'password'; // Reset to password on mode switch
+};
+
+const switchToReset = () => {
+  mode.value = 'reset';
+  error.value = '';
+  loginMethod.value = 'password';
 };
 
 const switchToWeChat = () => {
@@ -173,6 +188,47 @@ const handleSubmit = async () => {
             fetchUserInfo(); 
         }, 1500);
     }, 1500);
+    return;
+  }
+
+  // Forgot Password Flow
+  if (mode.value === 'reset') {
+    if (!email.value || !emailCode.value || !password.value || !confirmPassword.value) {
+      error.value = t('auth.fillAll');
+      return;
+    }
+    if (password.value !== confirmPassword.value) {
+      error.value = t('auth.passwordsDoNotMatch');
+      return;
+    }
+    isLoading.value = true;
+    try {
+      const res = await resetPassword({
+        email: email.value,
+        emailCode: emailCode.value,
+        newPassword: password.value,
+        confirmPassword: confirmPassword.value
+      });
+      if (res.isSuccess) {
+        addToast(t('auth.resetSuccess'), 'success', 3000);
+        success.value = true;
+        setTimeout(() => {
+          // Switch back to login mode
+          mode.value = 'login';
+          success.value = false;
+          password.value = '';
+          confirmPassword.value = '';
+          emailCode.value = '';
+        }, 1500);
+      } else {
+        error.value = res.errMsg || t('auth.resetFailed');
+      }
+    } catch (err: any) {
+      console.error(err);
+      error.value = err.response?.data?.errmsg || err.message || t('auth.unknownError');
+    } finally {
+      isLoading.value = false;
+    }
     return;
   }
 
@@ -299,8 +355,8 @@ onUnmounted(() => {
               </svg>
             </button> -->
 
-            <!-- 左上角返回按钮：仅注册模式显示，点击切换回登录模式 -->
-            <button v-if="mode === 'register'" class="back-btn-corner" @click="toggleMode" :aria-label="t('auth.backToLogin')">
+            <!-- 左上角返回按钮：注册 / 重置密码模式显示，点击切换回登录模式 -->
+            <button v-if="mode === 'register' || mode === 'reset'" class="back-btn-corner" @click="toggleMode" :aria-label="t('auth.backToLogin')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
@@ -318,7 +374,8 @@ onUnmounted(() => {
               <div class="success-content">
                 <h3>{{ title }}</h3>
                 <p v-if="mode === 'login'">{{ t('auth.welcomeBackExcl') }}</p>
-                <p v-else>{{ t('auth.accountCreated') }}</p>
+                <p v-else-if="mode === 'register'">{{ t('auth.accountCreated') }}</p>
+                <p v-else>{{ t('auth.resetSuccess') }}</p>
               </div>
             </div>
 
@@ -339,8 +396,8 @@ onUnmounted(() => {
                 <!-- 表单主体：提交触发 handleSubmit（登录/注册逻辑都在里面）；error 有值时加 shake 抖动动画 -->
                 <form @submit.prevent="handleSubmit" class="auth-form" :class="{ 'shake': !!error }">
 
-                  <!-- ① 用户名输入框（登录 / 注册两种模式都显示） -->
-                  <div class="form-group">
+                  <!-- ① 用户名输入框（登录 / 注册两种模式显示，重置密码模式隐藏） -->
+                  <div class="form-group" v-if="mode === 'login' || mode === 'register'">
                     <label>{{ t('auth.username') }}</label>
                     <input
                       type="text"
@@ -351,8 +408,8 @@ onUnmounted(() => {
                     />
                   </div>
 
-                  <!-- ② 邮箱输入框（仅注册模式显示，v-if="mode === 'register'"） -->
-                  <div class="form-group" v-if="mode === 'register'">
+                  <!-- ② 邮箱输入框（注册 / 重置密码模式显示） -->
+                  <div class="form-group" v-if="mode === 'register' || mode === 'reset'">
                     <label>{{ t('auth.email') }}</label>
                     <input
                       type="email"
@@ -363,8 +420,8 @@ onUnmounted(() => {
                     />
                   </div>
 
-                  <!-- ③ 邮箱验证码（仅注册模式）：输入框 + 发送按钮（带 60s 倒计时，由 useEmailCode 管理） -->
-                  <div class="form-group" v-if="mode === 'register'">
+                  <!-- ③ 邮箱验证码（注册 / 重置密码模式）：输入框 + 发送按钮（带 60s 倒计时，由 useEmailCode 管理） -->
+                  <div class="form-group" v-if="mode === 'register' || mode === 'reset'">
                     <label>{{ t('auth.verifyCode') }}</label>
                     <div class="code-row">
                       <input
@@ -388,10 +445,10 @@ onUnmounted(() => {
                     </div>
                   </div>
 
-                  <!-- ④ 密码输入框（两种模式都显示） -->
+                  <!-- ④ 密码输入框（两种模式都显示；重置密码模式下作为新密码输入框） -->
                   <div class="form-group">
                     <div class="password-header">
-                      <label>{{ t('auth.password') }}</label>
+                      <label>{{ mode === 'reset' ? t('auth.newPassword') : t('auth.password') }}</label>
                     </div>
                     <input
                       type="password"
@@ -402,8 +459,8 @@ onUnmounted(() => {
                     />
                   </div>
 
-                  <!-- ⑤ 确认密码输入框（仅注册模式显示） -->
-                  <div class="form-group" v-if="mode === 'register'">
+                  <!-- ⑤ 确认密码输入框（注册 / 重置密码模式显示） -->
+                  <div class="form-group" v-if="mode === 'register' || mode === 'reset'">
                     <label>{{ t('auth.confirmPassword') }}</label>
                     <input
                       type="password"
@@ -414,9 +471,9 @@ onUnmounted(() => {
                     />
                   </div>
 
-                  <!-- ⑥ 忘记密码链接（仅登录模式显示，暂无实际跳转逻辑） -->
+                  <!-- ⑥ 忘记密码链接（仅登录模式显示，点击进入重置密码模式） -->
                    <div class="form-actions" v-if="mode === 'login'">
-                      <a href="#" class="forgot-password">{{ t('auth.forgotPassword') }}</a>
+                      <a href="#" class="forgot-password" @click.prevent="switchToReset">{{ t('auth.forgotPassword') }}</a>
                    </div>
 
                   <!-- ⑦ 错误提示条：error 有值时才显示（登录失败、验证码错误等都会写进 error） -->
@@ -445,10 +502,17 @@ onUnmounted(() => {
                     </div>
                   </template>
                   <!-- 注册模式："已有账户？去登录"（点击切换回登录模式） -->
-                  <template v-else>
+                  <template v-else-if="mode === 'register'">
                      <p>
                       {{ t('auth.hasAccount') }}
                       <a href="#" @click.prevent="toggleMode">{{ t('auth.signIn') }}</a>
+                    </p>
+                  </template>
+                  <!-- 重置密码模式：返回登录 -->
+                  <template v-else>
+                     <p>
+                      {{ t('auth.hasAccount') }}
+                      <a href="#" @click.prevent="toggleMode">{{ t('auth.backToLogin') }}</a>
                     </p>
                   </template>
                 </div>

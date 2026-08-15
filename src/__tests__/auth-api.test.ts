@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import service from '../api/request'
-import { sendEmailCode, register } from '../api/auth'
+import { sendEmailCode, register, resetPassword } from '../api/auth'
 
 // ============================================================
 // 邮箱验证码 API 契约测试（adapter-mock 模式）
@@ -49,5 +49,32 @@ describe('email verification API', () => {
       username: 'newuser',
       emailCode: '123456',
     })
+  })
+
+  it('resetPassword should POST to password/reset endpoint with full body', async () => {
+    await resetPassword({
+      email: 'a@b.com',
+      emailCode: '123456',
+      newPassword: 'NewPass123',
+      confirmPassword: 'NewPass123',
+    })
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url).toBe('/api/user-service/auth/password/reset')
+    expect(calls[0].method).toBe('post')
+    expect(JSON.parse(calls[0].data)).toEqual({
+      email: 'a@b.com',
+      emailCode: '123456',
+      newPassword: 'NewPass123',
+      confirmPassword: 'NewPass123',
+    })
+  })
+
+  it('sendEmailCode should pass purpose=reset through when provided', async () => {
+    await sendEmailCode({ email: 'a@b.com', purpose: 'reset' })
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url).toBe('/api/user-service/email/verification/send-code')
+    expect(JSON.parse(calls[0].data)).toEqual({ email: 'a@b.com', purpose: 'reset' })
   })
 })

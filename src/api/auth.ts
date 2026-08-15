@@ -111,9 +111,21 @@ export const getEmailVerificationStatus = () => {
   return request.get<any, ResultBoolean>(baseUrl+'/email/verification/status');
 };
 
-// Send email verification code (register)
-export const sendEmailCode = (data: { email: string }) => {
+// Send email verification code (register / reset password)
+export const sendEmailCode = (data: { email: string; purpose?: 'register' | 'reset' }) => {
   return request.post<any, ResultObject>(baseUrl+'/email/verification/send-code', data);
+};
+
+export interface ResetPasswordDto {
+  email: string;
+  emailCode: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+// Reset password via email verification code (forgot password)
+export const resetPassword = (data: ResetPasswordDto) => {
+  return request.post<any, ResultObject>(baseUrl+'/auth/password/reset', data);
 };
 
 // 1.6 Request email verification (send email)

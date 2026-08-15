@@ -68,6 +68,12 @@ export default {
     registerFailed: '注册失败',
     unknownError: '发生未知错误',
     or: '或',
+    resetTitle: '重置密码',
+    resetSubtitle: '验证邮箱后设置新密码',
+    resetPassword: '重置密码',
+    newPassword: '新密码',
+    resetSuccess: '密码重置成功，请使用新密码登录',
+    resetFailed: '密码重置失败',
   },
   home: {
     title: 'oyblog',

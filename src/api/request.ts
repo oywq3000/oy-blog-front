@@ -47,6 +47,14 @@ const processQueue = (error: any, token: string | null) => {
 
 const REFRESH_URL = '/api/user-service/auth/refresh';
 
+// 清除本地凭证并通知应用进入未授权状态（打开登录弹窗）
+const clearAuthAndNotify = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('userInfo');
+  window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+};
+
 // Response interceptor
 service.interceptors.response.use(
   (response) => {
@@ -82,10 +90,14 @@ service.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       // If the refresh endpoint itself returns 401, don't retry (avoid infinite loop)
       if (originalRequest.url?.includes(REFRESH_URL)) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('userInfo');
-        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        clearAuthAndNotify();
+        return Promise.reject(new Error(errMsg));
+      }
+
+      // A request already retried after a successful refresh must not trigger
+      // another refresh — otherwise an endpoint that keeps 401ing loops forever
+      if ((originalRequest as any)._retry) {
+        clearAuthAndNotify();
         return Promise.reject(new Error(errMsg));
       }
 
@@ -94,6 +106,7 @@ service.interceptors.response.use(
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then(token => {
+          (originalRequest as any)._retry = true;
           originalRequest.headers['Authorization'] = 'Bearer ' + token;
           return service(originalRequest);
         });
@@ -105,10 +118,7 @@ service.interceptors.response.use(
       if (!storedRefreshToken) {
         // No refresh token available — clean up and show login
         isRefreshing = false;
-        localStorage.removeItem('token');
-        localStorage.removeItem('userInfo');
-        const hadToken = !!localStorage.getItem('token') || true; // had token previously
-        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        clearAuthAndNotify();
         return Promise.reject(new Error(errMsg));
       }
 
@@ -126,23 +136,18 @@ service.interceptors.response.use(
           processQueue(null, accessToken);
 
           // Retry the original request
+          (originalRequest as any)._retry = true;
           originalRequest.headers['Authorization'] = 'Bearer ' + accessToken;
           return service(originalRequest);
         } else {
           // Refresh returned non-success
           processQueue(new Error('Refresh failed'), null);
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('userInfo');
-          window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+          clearAuthAndNotify();
         }
       } catch (refreshError) {
         // Refresh threw an error
         processQueue(refreshError, null);
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('userInfo');
-        window.dispatchEvent(new CustomEvent('auth:unauthorized'));
+        clearAuthAndNotify();
       } finally {
         isRefreshing = false;
       }

@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 import { login, register, sendEmailCode } from '../api/auth';
 import { useUserStore } from '../store/user';
 import { useEmailCode } from '../composables/useEmailCode';
-import AnimatedLogo from './AnimatedLogo.vue';
 import AnimatedTextLogo from './AnimatedTextLogo.vue';
 
 interface Props {
@@ -91,22 +90,22 @@ const resetState = () => {
 };
 
 const title = computed(() => {
-  if (success.value) return mode.value === 'login' ? 'Success' : 'Welcome';
-  if (loginMethod.value === 'wechat') return 'WeChat Login';
-  if (mode.value === 'register') return 'Join Rookie Blog';
-  return 'Rookie Blog';
+  if (success.value) return mode.value === 'login' ? t('auth.successTitle') : t('auth.welcomeTitle');
+  if (loginMethod.value === 'wechat') return t('auth.wechatLoginTitle');
+  if (mode.value === 'register') return t('auth.joinTitle');
+  return t('auth.title');
 });
 
 const subtitle = computed(() => {
   if (success.value) return '';
-  if (loginMethod.value === 'wechat') return 'Scan with WeChat to login or register';
-  if (mode.value === 'register') return 'Share knowledge, Connect the world';
-  return 'Start your technical journey';
+  if (loginMethod.value === 'wechat') return t('auth.wechatSubtitle');
+  if (mode.value === 'register') return t('auth.registerSubtitle');
+  return t('auth.loginSubtitle');
 });
 
 const buttonText = computed(() => {
   if (isLoading.value) return t('auth.processing');
-  if (mode.value === 'login' && loginMethod.value === 'wechat' && wechatStep.value === 'set-password') return 'Complete Setup';
+  if (mode.value === 'login' && loginMethod.value === 'wechat' && wechatStep.value === 'set-password') return t('auth.completeSetup');
   return mode.value === 'login' ? t('auth.signIn') : t('auth.signUp');
 });
 
@@ -218,7 +217,7 @@ const handleSubmit = async () => {
           fetchUserInfo();
         }, 1500);
       } else {
-        error.value = res.errMsg || 'Login failed';
+        error.value = res.errMsg || t('auth.loginFailed');
       }
     } else {
       if (password.value !== confirmPassword.value) {
@@ -246,12 +245,12 @@ const handleSubmit = async () => {
           confirmPassword.value = '';
         }, 1500);
       } else {
-        error.value = res.errMsg || 'Registration failed';
+        error.value = res.errMsg || t('auth.registerFailed');
       }
     }
   } catch (err: any) {
     console.error(err);
-    error.value = err.response?.data?.errmsg || err.message || 'An error occurred';
+    error.value = err.response?.data?.errmsg || err.message || t('auth.unknownError');
   } finally {
     isLoading.value = false;
   }
@@ -270,39 +269,42 @@ onUnmounted(() => {
 </script>
 
 <template>
+  <!-- Teleport：把弹窗渲染到 <body> 节点下，避免被父容器的 overflow / transform 影响定位 -->
   <Teleport to="body">
+    <!-- Transition：弹窗打开 / 关闭时的进出场过渡动画 -->
     <Transition name="modal">
+      <!-- 遮罩层：半透明黑色背景，铺满全屏（位于弹窗主体之下） -->
       <div v-if="isOpen" class="modal-backdrop">
+        <!-- 弹窗主体卡片；@click.stop 阻止点击事件冒泡到遮罩层（防御性写法） -->
         <div class="modal-container glass-panel" @click.stop>
-          
-          <!-- Left Side: Dynamic Logo (No Text) -->
-          <div class="modal-left">
-            <AnimatedLogo />
-          </div>
 
-          <!-- Right Side: Auth Form -->
+          <!-- ============ 一、表单内容区（原左侧动画面板已删除，这是弹窗唯一的内容区） ============ -->
           <div class="modal-right">
-            <!-- Close Button -->
+
+            <!-- 右上角关闭按钮：点击触发 handleClose（加载中禁止关闭） -->
             <button class="modal-close" @click="handleClose" aria-label="Close modal">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
-            
-            <!-- Back Button (Stable Position) -->
-            <button v-if="loginMethod === 'wechat'" class="back-btn-corner" @click="switchToPassword" aria-label="Back to login">
+
+            <!-- 微信登录流程的"返回密码登录"按钮：已注释停用，代码保留备用（对应 switchToPassword） -->
+            <!-- <button v-if="loginMethod === 'wechat'" class="back-btn-corner" @click="switchToPassword" aria-label="Back to login">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M19 12H5M12 19l-7-7 7-7"/>
               </svg>
-            </button>
+            </button> -->
 
+            <!-- ============ 二、成功状态视图（登录/注册成功后显示，替换掉整个表单） ============ -->
             <div v-if="success" class="success-state">
+              <!-- 绿色对勾图标 -->
               <div class="success-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M20 6L9 17l-5-5"/>
                 </svg>
               </div>
+              <!-- 成功标题 + 提示文案（按登录 / 注册模式显示不同文案） -->
               <div class="success-content">
                 <h3>{{ title }}</h3>
                 <p v-if="mode === 'login'">{{ t('auth.welcomeBackExcl') }}</p>
@@ -310,11 +312,13 @@ onUnmounted(() => {
               </div>
             </div>
 
-            <!-- Main Content Area with Transition -->
+            <!-- 视图切换过渡：mode="out-in" 先出后入。目前内部只剩 standard-view 一个视图（微信视图已移除） -->
             <Transition name="fade-slide" mode="out-in">
-              
-              <!-- State 1: WeChat Login -->
-              <div v-if="loginMethod === 'wechat'" key="wechat" class="auth-view wechat-view">
+
+              <!-- ============ 三、标准登录/注册视图（核心表单） ============ -->
+              <div  key="standard" class="auth-view standard-view">
+
+                <!-- 弹窗头部：品牌动画 Logo + 副标题（副标题按登录/注册切换文案，已国际化） -->
                 <div class="modal-header">
                   <div class="logo-wrapper">
                      <AnimatedTextLogo :width="200" :height="34" :delay="300" />
@@ -322,92 +326,22 @@ onUnmounted(() => {
                   <p class="modal-subtitle">{{ subtitle }}</p>
                 </div>
 
-                <div v-if="wechatStep === 'scan'" class="qr-container">
-                  <div class="qr-placeholder">
-                    <svg viewBox="0 0 24 24" width="120" height="120" stroke="currentColor" fill="none">
-                      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                      <path d="M4 4h6v6h-6z" />
-                      <path d="M14 4h6v6h-6z" />
-                      <path d="M4 14h6v6h-6z" />
-                      <path d="M14 14h6v6h-6z" />
-                      <path d="M7 7m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                      <path d="M17 7m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                      <path d="M7 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                      <path d="M17 17m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" />
-                    </svg>
-                    <div class="scan-line"></div>
-                  </div>
-                  <p class="scan-tip">Use WeChat to scan</p>
-                </div>
-
-                <div v-else-if="wechatStep === 'set-password'" class="set-password-form">
-                  <form @submit.prevent="handleSubmit" class="auth-form">
-                    <p class="info-text">Scan successful! Set a password to continue.</p>
-                     <!-- Password Field -->
-                    <div class="form-group">
-                      <label>{{ t('auth.password') }}</label>
-                      <input 
-                        type="password" 
-                        v-model="password" 
-                        :placeholder="t('auth.passwordPlaceholder')" 
-                        :class="{ 'has-error': !!error }"
-                        required
-                      />
-                    </div>
-
-                    <!-- Confirm Password Field -->
-                    <div class="form-group">
-                      <label>{{ t('auth.confirmPassword') }}</label>
-                      <input 
-                        type="password" 
-                        v-model="confirmPassword" 
-                        :placeholder="t('auth.passwordPlaceholder')" 
-                        :class="{ 'has-error': !!error }"
-                        required
-                      />
-                    </div>
-                    
-                    <span class="error-msg" v-if="error">{{ error }}</span>
-
-                     <button 
-                      type="submit" 
-                      class="submit-btn" 
-                      :disabled="isLoading"
-                      :class="{ 'loading': isLoading }"
-                    >
-                      <span v-if="!isLoading">{{ buttonText }}</span>
-                      <div v-else class="spinner"></div>
-                    </button>
-                  </form>
-                </div>
-
-                <!-- Removed bottom back button as it is now in corner -->
-              </div>
-
-              <!-- State 2: Standard Login/Register -->
-              <div v-else key="standard" class="auth-view standard-view">
-                <div class="modal-header">
-                  <div class="logo-wrapper">
-                     <AnimatedTextLogo :width="200" :height="34" :delay="300" />
-                  </div>
-                  <p class="modal-subtitle">{{ subtitle }}</p>
-                </div>
-
+                <!-- 表单主体：提交触发 handleSubmit（登录/注册逻辑都在里面）；error 有值时加 shake 抖动动画 -->
                 <form @submit.prevent="handleSubmit" class="auth-form" :class="{ 'shake': !!error }">
-                  
-                  <!-- Username Field (Both Modes) -->
+
+                  <!-- ① 用户名输入框（登录 / 注册两种模式都显示） -->
                   <div class="form-group">
                     <label>{{ t('auth.username') }}</label>
-                    <input 
-                      type="text" 
-                      v-model="username" 
-                      :placeholder="t('auth.usernamePlaceholder')" 
+                    <input
+                      type="text"
+                      v-model="username"
+                      :placeholder="t('auth.usernamePlaceholder')"
                       :class="{ 'has-error': !!error }"
                       required
                     />
                   </div>
 
-                  <!-- Email Field (Register Only) -->
+                  <!-- ② 邮箱输入框（仅注册模式显示，v-if="mode === 'register'"） -->
                   <div class="form-group" v-if="mode === 'register'">
                     <label>{{ t('auth.email') }}</label>
                     <input
@@ -419,7 +353,7 @@ onUnmounted(() => {
                     />
                   </div>
 
-                  <!-- Email Verification Code (Register Only) -->
+                  <!-- ③ 邮箱验证码（仅注册模式）：输入框 + 发送按钮（带 60s 倒计时，由 useEmailCode 管理） -->
                   <div class="form-group" v-if="mode === 'register'">
                     <label>{{ t('auth.verifyCode') }}</label>
                     <div class="code-row">
@@ -432,6 +366,7 @@ onUnmounted(() => {
                         :class="{ 'has-error': !!error }"
                         required
                       />
+                      <!-- 发送验证码按钮：发送中 / 倒计时中 / 未填邮箱时禁用 -->
                       <button
                         type="button"
                         class="code-send-btn"
@@ -443,42 +378,44 @@ onUnmounted(() => {
                     </div>
                   </div>
 
-                  <!-- Password Field -->
+                  <!-- ④ 密码输入框（两种模式都显示） -->
                   <div class="form-group">
                     <div class="password-header">
                       <label>{{ t('auth.password') }}</label>
                     </div>
-                    <input 
-                      type="password" 
-                      v-model="password" 
-                      :placeholder="t('auth.passwordPlaceholder')" 
+                    <input
+                      type="password"
+                      v-model="password"
+                      :placeholder="t('auth.passwordPlaceholder')"
                       :class="{ 'has-error': !!error }"
                       required
                     />
                   </div>
 
-                  <!-- Confirm Password Field (Register Only) -->
+                  <!-- ⑤ 确认密码输入框（仅注册模式显示） -->
                   <div class="form-group" v-if="mode === 'register'">
                     <label>{{ t('auth.confirmPassword') }}</label>
-                    <input 
-                      type="password" 
-                      v-model="confirmPassword" 
-                      :placeholder="t('auth.passwordPlaceholder')" 
+                    <input
+                      type="password"
+                      v-model="confirmPassword"
+                      :placeholder="t('auth.passwordPlaceholder')"
                       :class="{ 'has-error': !!error }"
                       required
                     />
                   </div>
-                  
-                  <!-- Forgot Password (Login Only) -->
+
+                  <!-- ⑥ 忘记密码链接（仅登录模式显示，暂无实际跳转逻辑） -->
                    <div class="form-actions" v-if="mode === 'login'">
                       <a href="#" class="forgot-password">{{ t('auth.forgotPassword') }}</a>
                    </div>
 
+                  <!-- ⑦ 错误提示条：error 有值时才显示（登录失败、验证码错误等都会写进 error） -->
                   <span class="error-msg" v-if="error">{{ error }}</span>
 
-                  <button 
-                    type="submit" 
-                    class="submit-btn" 
+                  <!-- ⑧ 提交按钮：加载中显示 spinner；平时显示 buttonText（登录/注册自动切换文案） -->
+                  <button
+                    type="submit"
+                    class="submit-btn"
                     :disabled="isLoading"
                     :class="{ 'loading': isLoading }"
                   >
@@ -488,31 +425,19 @@ onUnmounted(() => {
                   </button>
                 </form>
 
+                <!-- ============ 四、弹窗底部：登录 ⇄ 注册 模式切换 ============ -->
                 <div class="modal-footer">
+                  <!-- 登录模式：分隔线 "or" + "没有账户？立即注册"（点击切换为注册模式） -->
                   <template v-if="mode === 'login'">
-                    <!-- WeChat Prompt -->
-                    <button class="wechat-prompt-btn" @click="switchToWeChat">
-                      <!-- Nuclear Option: Solid Green Circle with White Icon -->
-                      <div class="wechat-icon-container">
-                        <svg viewBox="0 0 24 24" width="20" height="20" class="wechat-icon">
-                          <path d="M19.05,4.91H5.08c-2.31,0-4.18,1.87-4.18,4.18v9.84c0,2.31,1.87,4.18,4.18,4.18h13.97c2.31,0,4.18-1.87,4.18-4.18V9.09C23.23,6.78,21.36,4.91,19.05,4.91z M8.8,9.78c0.55,0,1,0.45,1,1s-0.45,1-1,1s-1-0.45-1-1S8.25,9.78,8.8,9.78z M12.8,9.78c0.55,0,1,0.45,1,1s-0.45,1-1,1s-1-0.45-1-1S12.25,9.78,12.8,9.78z M10.8,16.5c-2.67,0-4.83-1.64-4.83-3.66s2.17-3.66,4.83-3.66c2.67,0,4.83,1.64,4.83,3.66S13.47,16.5,10.8,16.5z M18.47,14.5c0.55,0,1,0.45,1,1s-0.45,1-1,1s-1-0.45-1-1S17.92,14.5,18.47,14.5z M20.47,10.5c0.55,0,1,0.45,1,1s-0.45,1-1,1s-1-0.45-1-1S19.92,10.5,20.47,10.5z" opacity="0" />
-                          <path d="M8 5C4.686 5 2 7.239 2 10c0 1.564.86 2.955 2.19 3.895-.1.6-.335 1.485-.385 1.685-.05.2-.1.39.15.535.24.14.52.025 1.52-.64 1.04.59 2.22.925 3.48.925.14 0 .28-.005.42-.015.27 3.36 3.035 6.015 6.355 6.015 1.08 0 2.1-.28 3-.765.87.555 1.11.655 1.32.535.22-.125.17-.29.13-.465-.04-.19-.27-.975-.35-1.475 1.23-1.02 2.04-2.54 2.04-4.25 0-3.006-2.694-5.415-5.905-5.415-3.216 0-5.905 2.409-5.905 5.415 0 .155.01.3.03.455-.05-.01-.1-.01-.15-.01-3.811 0-6.905-2.771-6.905-6.245S5.689 5 8 5zm-1.5 3c.552 0 1 .448 1 1s-.448 1-1 1-1-.448-1-1 .448-1 1-1zm3 0c.552 0 1 .448 1 1s-.448 1-1 1-1-.448-1-1 .448-1 1-1zm5.5 6c.552 0 1 .448 1 1s-.448 1-1 1-1-.448-1-1 .448-1 1-1zm3 0c.552 0 1 .448 1 1s-.448 1-1 1-1-.448-1-1 .448-1 1-1z" />
-                        </svg>
-                      </div>
-                      <strong>WeChat Login</strong>
-                    </button>
-                    
-                    <div class="divider">or</div>
-
                     <div class="register-prompt">
-                      <span>Don't have an account?</span>
-                      <a href="#" class="register-link" @click.prevent="toggleMode">Register now</a>
+                      <span>{{ t('auth.noAccount') }}</span>
+                      <a href="#" class="register-link" @click.prevent="toggleMode">{{ t('auth.registerNow') }}</a>
                     </div>
                   </template>
-                  
+                  <!-- 注册模式："已有账户？去登录"（点击切换回登录模式） -->
                   <template v-else>
                      <p>
-                      {{ t('auth.hasAccount') }} 
+                      {{ t('auth.hasAccount') }}
                       <a href="#" @click.prevent="toggleMode">{{ t('auth.signIn') }}</a>
                     </p>
                   </template>
@@ -548,7 +473,7 @@ onUnmounted(() => {
 .modal-container {
   display: flex;
   width: 100%;
-  max-width: 720px;
+  max-width: 446px; // 表单区原宽度（720px × 62%），删除左侧动画后保持页面宽度不变
   height: 480px;
   background: var(--color-card-bg);
   border: 1px solid var(--color-border);
@@ -556,18 +481,6 @@ onUnmounted(() => {
   box-shadow: var(--shadow-lg);
   position: relative;
   overflow: hidden;
-}
-
-.modal-left {
-  flex: 0 0 38%;
-  // Use theme gradient or subtle background
-  background: linear-gradient(135deg, rgba(var(--color-accent-primary-rgb), 0.05) 0%, rgba(var(--color-accent-secondary-rgb), 0.05) 100%);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  overflow: hidden;
-  border-right: 1px solid var(--color-border);
 }
 
 .modal-right {
@@ -1010,10 +923,6 @@ onUnmounted(() => {
     overflow-y: auto;
   }
 
-  .modal-left {
-    display: none;
-  }
-  
   .modal-right {
     padding: 32px 24px;
   }

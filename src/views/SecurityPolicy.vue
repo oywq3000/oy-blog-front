@@ -18,7 +18,7 @@ onMounted(() => {
         <div class="policy-section">
           <h2>1. Security Measures</h2>
           <p>
-            At Rookie Blog, we take the security of your data seriously. We employ industry-standard security measures to protect against unauthorized access, alteration, disclosure, or destruction of your personal information.
+            At OY Blog, we take the security of your data seriously. We employ industry-standard security measures to protect against unauthorized access, alteration, disclosure, or destruction of your personal information.
           </p>
           <ul>
             <li><strong>Encryption:</strong> All data transmitted between your device and our servers is encrypted using TLS (Transport Layer Security).</li>

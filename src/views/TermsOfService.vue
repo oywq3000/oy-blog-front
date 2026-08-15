@@ -18,7 +18,7 @@ onMounted(() => {
         <div class="policy-section">
           <h2>1. Agreement to Terms</h2>
           <p>
-            These Terms of Service constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("you") and Rookie Blog ("we," "us" or "our"), concerning your access to and use of the Rookie Blog website as well as any other media form, media channel, mobile website or mobile application related, linked, or otherwise connected thereto (collectively, the "Site").
+            These Terms of Service constitute a legally binding agreement made between you, whether personally or on behalf of an entity ("you") and OY Blog ("we," "us" or "our"), concerning your access to and use of the OY Blog website as well as any other media form, media channel, mobile website or mobile application related, linked, or otherwise connected thereto (collectively, the "Site").
           </p>
           <p>
             You agree that by accessing the Site, you have read, understood, and agreed to be bound by all of these Terms of Service. IF YOU DO NOT AGREE WITH ALL OF THESE TERMS OF SERVICE, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SITE AND YOU MUST DISCONTINUE USE IMMEDIATELY.

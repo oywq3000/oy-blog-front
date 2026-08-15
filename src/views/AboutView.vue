@@ -169,7 +169,7 @@ onMounted(() => {
               <span class="decorative-line"></span>
             </div>
             <p class="lead-text">
-              Rookie Blog is a modern full-stack personal blog system designed for developers who appreciate 
+              OY Blog is a modern full-stack personal blog system designed for developers who appreciate
               <span class="highlight">clean aesthetics</span> and <span class="highlight">robust architecture</span>.
             </p>
             <p class="sub-text">
@@ -244,7 +244,7 @@ onMounted(() => {
         </section>
 
         <footer class="content-footer">
-          <p>© 2023 Rookie Blog Team. Open Source under MIT License.</p>
+          <p>© 2023 OY Blog Team. Open Source under MIT License.</p>
         </footer>
 
       </main>

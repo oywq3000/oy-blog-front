@@ -9,7 +9,7 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <svg :width="width" :height="height" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Rookie Blog Logo" shape-rendering="geometricPrecision">
+  <svg :width="width" :height="height" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="OY Blog Logo" shape-rendering="geometricPrecision">
     <defs>
       <!-- Tech Gradient matching the text logo -->
       <linearGradient id="logo_gradient_match" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">

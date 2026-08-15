@@ -53,7 +53,7 @@ const containerClass = computed(() => `footer-logo footer-logo--${props.variant}
     <template v-else>
       <div class="logo-minimal-wrapper">
         <Logo width="40" height="40" class="logo-icon" />
-        <span class="logo-text-simple">Rookie<span class="highlight">Blog</span></span>
+        <span class="logo-text-simple">OY<span class="highlight">Blog</span></span>
       </div>
     </template>
   </div>

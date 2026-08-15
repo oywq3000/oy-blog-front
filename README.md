@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo.svg" alt="Rookie Blog Logo" width="120" height="120">
+  <img src="public/logo.svg" alt="OY Blog Logo" width="120" height="120">
   <h1 align="center">OY Blog Web</h1>
   <p align="center">基于 Vue 3 + TypeScript 的现代化个人博客前端系统</p>
 </p>
@@ -16,7 +16,7 @@
 
 ##  项目介绍
 
-**Rookie Blog Web** 是 Rookie Blog 的前端部分，采用当下流行的 **Vue 3 (Composition API)** + **TypeScript** 技术栈开发。项目秉持“简约而不简单”的设计理念，实现了全端响应式布局、沉浸式阅读体验、流畅的交互动画以及暗黑模式支持。它与后端 API 深度协同，共同构建了一个功能完备、体验优秀的现代化博客平台。
+**OY Blog Web** 是 OY Blog 的前端部分，采用当下流行的 **Vue 3 (Composition API)** + **TypeScript** 技术栈开发。项目秉持“简约而不简单”的设计理念，实现了全端响应式布局、沉浸式阅读体验、流畅的交互动画以及暗黑模式支持。它与后端 API 深度协同，共同构建了一个功能完备、体验优秀的现代化博客平台。
 
 ---
 
@@ -149,8 +149,8 @@
 #### 1. 克隆项目
 
 ```bash
-git clone https://github.com/yourusername/rookie-blog-web.git
-cd rookie-blog-web
+git clone https://github.com/yourusername/oy-blog-web.git
+cd oy-blog-web
 ```
 
 #### 2. 安装依赖
@@ -184,5 +184,5 @@ npm run build
 本项目采用 [MIT License](LICENSE) 开源协议。
 
 <p align="center">
-  Made by Rookie Blog Team
+  Made by OY Blog Team
 </p>

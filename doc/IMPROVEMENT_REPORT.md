@@ -1,7 +1,7 @@
 # OY Blog 项目优化与美化改进报告
 
 > 生成日期：2026-05-31  
-> 项目：Rookie Blog (oy-blog-front)  
+> 项目：OY Blog (oy-blog-front)  
 > 技术栈：Vue 3 + TypeScript + Vite + SCSS
 
 ---

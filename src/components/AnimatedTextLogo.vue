@@ -29,7 +29,7 @@ onMounted(() => {
 
 <template>
   <div class="animated-text-logo" :class="{ 'is-animating': isAnimating }">
-    <svg :width="width" :height="height" viewBox="0 0 211 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Rookie Blog">
+    <svg :width="width" :height="height" viewBox="0 0 211 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="OY BLOG">
       <defs>
         <linearGradient :id="gradientId" x1="0" y1="0" x2="211" y2="40" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stop-color="#00f2ff" />
@@ -44,23 +44,19 @@ onMounted(() => {
       </defs>
 
       <g class="logo-text">
-        <!-- "Rookie" -->
-        <path class="letter-path" d="M10 30V10H18C22 10 24 12 24 16C24 19 22.5 21 20 22L25 30H21L16.5 22H13V30H10Z" :stroke="gradientUrl" stroke-width="1.5" :fill="gradientUrl" />
-        <path class="letter-path" d="M28 20C28 14.5 32.5 10 38 10C43.5 10 48 14.5 48 20C48 25.5 43.5 30 38 30C32.5 30 28 25.5 28 20ZM31 20C31 23.8 34.2 27 38 27C41.8 27 45 23.8 45 20C45 16.2 41.8 13 38 13C34.2 13 31 16.2 31 20Z" :stroke="gradientUrl" stroke-width="1.5" :fill="gradientUrl" />
-        <path class="letter-path" d="M52 20C52 14.5 56.5 10 62 10C67.5 10 72 14.5 72 20C72 25.5 67.5 30 62 30C56.5 30 52 25.5 52 20ZM55 20C55 23.8 58.2 27 62 27C65.8 27 69 23.8 69 20C69 16.2 65.8 13 62 13C58.2 13 55 16.2 55 20Z" :stroke="gradientUrl" stroke-width="1.5" :fill="gradientUrl" />
-        <path class="letter-path" d="M76 10V30H79V22L84 17V10H81V15L79 17V10H76ZM84 30V22L81 25V30H84Z" :stroke="gradientUrl" stroke-width="1.5" :fill="gradientUrl" />
-        <path class="letter-path" d="M88 10V30H91V10H88Z" :stroke="gradientUrl" stroke-width="1.5" :fill="gradientUrl" />
-        <path class="letter-path" d="M96 10V30H106V27H99V21H105V18H99V13H106V10H96Z" :stroke="gradientUrl" stroke-width="1.5" :fill="gradientUrl" />
+        <!-- "OY" -->
+        <path class="letter-path" d="M10 20C10 13 15.5 10 23 10C30.5 10 36 13 36 20C36 27 30.5 30 23 30C15.5 30 10 27 10 20ZM14 20C14 24.2 17.6 27 23 27C28.4 27 32 24.2 32 20C32 15.8 28.4 13 23 13C17.6 13 14 15.8 14 20Z" :stroke="gradientUrl" stroke-width="1.5" :fill="gradientUrl" />
+        <path class="letter-path" d="M42 10L54.5 18.5V30H59.5V18.5L72 10L67 10L57 18.5L47 10Z" :stroke="gradientUrl" stroke-width="1.5" :fill="gradientUrl" />
 
         <!-- Separator Dot -->
-        <circle class="dot-path" cx="116" cy="25" r="2" fill="#00f2ff" :filter="glowUrl" />
+        <circle class="dot-path" cx="86" cy="25" r="2" fill="#00f2ff" :filter="glowUrl" />
 
         <!-- "Blog" -->
         <g class="blog-text" :fill="theme === 'dark' ? '#ffffff' : '#2c3e50'" stroke="currentColor" stroke-width="1">
-           <path class="letter-path-secondary" d="M126 10V30H134C137.5 30 140 28 140 25C140 22.5 138.5 21 136 20.5C138 20 139 18.5 139 16.5C139 13 136.5 10 133 10H126ZM129 13H133C135 13 136 14 136 16C136 18 135 19 133 19H129V13ZM129 21H134C136 21 137 22.5 137 25C137 27.5 136 28 133 28H129V21Z" />
-           <path class="letter-path-secondary" d="M144 10V30H154V27H147V10H144Z" />
-           <path class="letter-path-secondary" d="M158 20C158 14.5 162.5 10 168 10C173.5 10 178 14.5 178 20C178 25.5 173.5 30 168 30C162.5 30 158 25.5 158 20ZM161 20C161 23.8 164.2 27 168 27C171.8 27 175 23.8 175 20C175 16.2 171.8 13 168 13C164.2 13 161 16.2 161 20Z" />
-           <path class="letter-path-secondary" d="M182 20C182 14.5 186.5 10 192 10H198V13H192C188.5 13 186 15.5 186 19V20H194V30H191V23H186V24C186 27.5 188.5 30 192 30H195C196.5 30 197.5 29 198 27.5V22H201V28C200 30.5 197.5 33 194 33H191C185.5 33 182 28.5 182 24V20Z" />
+           <path class="letter-path-secondary" d="M96 10V30H104C107.5 30 110 28 110 25C110 22.5 108.5 21 106 20.5C108 20 109 18.5 109 16.5C109 13 106.5 10 103 10H96ZM99 13H103C105 13 106 14 106 16C106 18 105 19 103 19H99V13ZM99 21H104C106 21 107 22.5 107 25C107 27.5 106 28 103 28H99V21Z" />
+           <path class="letter-path-secondary" d="M114 10V30H124V27H117V10H114Z" />
+           <path class="letter-path-secondary" d="M128 20C128 14.5 132.5 10 138 10C143.5 10 148 14.5 148 20C148 25.5 143.5 30 138 30C132.5 30 128 25.5 128 20ZM131 20C131 23.8 134.2 27 138 27C141.8 27 145 23.8 145 20C145 16.2 141.8 13 138 13C134.2 13 131 16.2 131 20Z" />
+           <path class="letter-path-secondary" d="M152 20C152 14.5 156.5 10 162 10H168V13H162C158.5 13 156 15.5 156 19V20H164V30H161V23H156V24C156 27.5 158.5 30 162 30H165C166.5 30 167.5 29 168 27.5V22H171V28C170 30.5 167.5 33 164 33H161C155.5 33 152 28.5 152 24V20Z" />
         </g>
       </g>
     </svg>

@@ -214,7 +214,10 @@ const handleSubmit = async () => {
         setTimeout(() => {
           emit('success');
           emit('close');
-          fetchUserInfo();
+          // 登录成功后自动刷新当前页面：
+          // 仅更新 userStore 无法同步各页面挂载时拉取的数据（评论登录态、点赞状态、菜单项等），
+          // 刷新后 App.vue 会重新 fetchUserInfo，全站组件以登录态重新渲染
+          window.location.reload();
         }, 1500);
       } else {
         error.value = res.errMsg || t('auth.loginFailed');
@@ -296,6 +299,13 @@ onUnmounted(() => {
               </svg>
             </button> -->
 
+            <!-- 左上角返回按钮：仅注册模式显示，点击切换回登录模式 -->
+            <button v-if="mode === 'register'" class="back-btn-corner" @click="toggleMode" :aria-label="t('auth.backToLogin')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+            </button>
+
             <!-- ============ 二、成功状态视图（登录/注册成功后显示，替换掉整个表单） ============ -->
             <div v-if="success" class="success-state">
               <!-- 绿色对勾图标 -->
@@ -315,8 +325,8 @@ onUnmounted(() => {
             <!-- 视图切换过渡：mode="out-in" 先出后入。目前内部只剩 standard-view 一个视图（微信视图已移除） -->
             <Transition name="fade-slide" mode="out-in">
 
-              <!-- ============ 三、标准登录/注册视图（核心表单） ============ -->
-              <div  key="standard" class="auth-view standard-view">
+              <!-- ============ 三、标准登录/注册视图（核心表单；成功后隐藏，只显示成功状态视图） ============ -->
+              <div v-if="!success" key="standard" class="auth-view standard-view">
 
                 <!-- 弹窗头部：品牌动画 Logo + 副标题（副标题按登录/注册切换文案，已国际化） -->
                 <div class="modal-header">
@@ -488,7 +498,8 @@ onUnmounted(() => {
   padding: 30px 32px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  // 不设 justify-content: center：内容超高时可滚动，避免顶部被裁剪
+  overflow-y: auto;
   position: relative;
   z-index: 1;
   // Use theme background
@@ -525,7 +536,8 @@ onUnmounted(() => {
 
 .auth-view {
   width: 100%;
-  height: 100%;
+  // min-height: 内容不足一屏时撑满并垂直居中；内容超高时随内容增长，交给父容器滚动
+  min-height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -936,6 +948,9 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  // 作为 .modal-right 的独立子项，用 auto margin 实现垂直居中
+  margin-top: auto;
+  margin-bottom: auto;
 
   .success-icon {
     width: 64px;

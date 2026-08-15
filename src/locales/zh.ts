@@ -63,6 +63,7 @@ export default {
     successTitle: '成功',
     welcomeTitle: '欢迎',
     completeSetup: '完成设置',
+    backToLogin: '返回登录',
     loginFailed: '登录失败',
     registerFailed: '注册失败',
     unknownError: '发生未知错误',

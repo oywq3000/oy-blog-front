@@ -63,6 +63,7 @@ export default {
     successTitle: 'Success',
     welcomeTitle: 'Welcome',
     completeSetup: 'Complete Setup',
+    backToLogin: 'Back to login',
     loginFailed: 'Login failed',
     registerFailed: 'Registration failed',
     unknownError: 'An error occurred',

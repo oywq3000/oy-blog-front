@@ -251,7 +251,7 @@ const user = computed(() => {
   if (currentUser.value) {
     return {
       name: currentUser.value.username,
-      bio: t('profile.bio'), // Use localized bio
+      bio: currentUser.value.bio, // Use localized bio
       email: currentUser.value.email,
       emailVerified: currentUser.value.emailVerified,
       avatarUrl: currentUser.value.avatarUrl,
@@ -259,7 +259,8 @@ const user = computed(() => {
         articles: userStats.value.articleCount,
         likes: userStats.value.likeCount,
         favorites: userStats.value.favoriteCount
-      }
+      },
+      createdAt: currentUser.value.createdAt
     };
   }
   return {
@@ -268,6 +269,7 @@ const user = computed(() => {
     email: '',
     emailVerified: false,
     avatarUrl: '',
+    createdAt: '',
     stats: { articles: 0, likes: 0, favorites: 0 }
   };
 });
@@ -331,12 +333,12 @@ const goToArticle = (articleId: string) => {
   router.push({ name: 'article-detail', params: { id: articleId } });
 };
 
-const formatDate = (value: string | undefined) => {
+const formatDate = (value: string | Date | undefined) => {
   if (!value) return '';
   try {
     return d(new Date(value), 'short');
   } catch {
-    return value;
+    return String(value);
   }
 };
 
@@ -547,16 +549,12 @@ onUnmounted(() => {
 
           <div class="info-list">
             <div class="info-item">
-              <svg viewBox="0 0 24 24" class="icon"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z" fill="currentColor"/></svg>
-              <span> Nanchang, China</span>
-            </div>
-            <div class="info-item">
               <svg viewBox="0 0 24 24" class="icon"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/></svg>
               <span>{{ user.email }}</span>
             </div>
             <div class="info-item">
               <svg viewBox="0 0 24 24" class="icon"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" fill="currentColor"/></svg>
-              <span>Joined 2023-10</span>
+              <span>{{ t('profile.joined') }} {{ formatDate(user.createdAt) }}</span>
             </div>
           </div>
 

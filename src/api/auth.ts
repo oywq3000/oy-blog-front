@@ -74,6 +74,7 @@ export interface UserDto {
   emailVerified: boolean;
   ipAddress: string;
   lastLogin: string;
+  createdAt: string
 }
 
 export interface ResultUserDto {

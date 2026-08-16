@@ -317,9 +317,9 @@ onMounted(() => {
              <div class="inline-history" v-if="!searchQuery && searchHistory.length > 0">
                 <span class="history-label">{{ t('common.history') }}:</span>
                 <div class="history-chips">
-                  <button 
-                    v-for="item in searchHistory.slice(0, 6)" 
-                    :key="item" 
+                  <button
+                    v-for="item in searchHistory.slice(0, 6)"
+                    :key="item"
                     class="history-chip"
                     @click="selectTag(item)"
                   >
@@ -330,24 +330,24 @@ onMounted(() => {
                   </button>
                 </div>
              </div>
-          </div>
 
-          <!-- Results Toolbar: Sort & Date Filters -->
-          <div class="results-toolbar" v-if="searchResults.length > 0 || isLoading || dateFrom || dateTo || activeFilter !== 'all'">
-            <div class="toolbar-left">
-              <label class="toolbar-label">{{ t('search.sort') }}</label>
-              <select v-model="sortBy" class="toolbar-select" @change="performSearch">
-                <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-              </select>
-            </div>
-            <div class="toolbar-right">
-              <label class="toolbar-label">{{ t('search.dateFrom') }}</label>
-              <input type="date" v-model="dateFrom" class="toolbar-date" @change="performSearch" />
-              <label class="toolbar-label">{{ t('search.dateTo') }}</label>
-              <input type="date" v-model="dateTo" class="toolbar-date" @change="performSearch" />
-              <button v-if="dateFrom || dateTo || sortBy !== 'relevance' || activeFilter !== 'all'"
-                      class="toolbar-reset" @click="resetFilters">{{ t('search.reset') }}</button>
-            </div>
+             <!-- Results Toolbar: Sort & Date Filters (inside sticky header, pinned with the search box) -->
+             <div class="results-toolbar" v-if="searchResults.length > 0 || isLoading || dateFrom || dateTo || activeFilter !== 'all'">
+               <div class="toolbar-left">
+                 <label class="toolbar-label">{{ t('search.sort') }}</label>
+                 <select v-model="sortBy" class="toolbar-select" @change="performSearch">
+                   <option v-for="opt in sortOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                 </select>
+               </div>
+               <div class="toolbar-right">
+                 <label class="toolbar-label">{{ t('search.dateFrom') }}</label>
+                 <input type="date" v-model="dateFrom" class="toolbar-date" @change="performSearch" />
+                 <label class="toolbar-label">{{ t('search.dateTo') }}</label>
+                 <input type="date" v-model="dateTo" class="toolbar-date" @change="performSearch" />
+                 <button v-if="dateFrom || dateTo || sortBy !== 'relevance' || activeFilter !== 'all'"
+                         class="toolbar-reset" @click="resetFilters">{{ t('search.reset') }}</button>
+               </div>
+             </div>
           </div>
 
           <!-- Content Area -->
@@ -648,6 +648,7 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 12px 16px;
+  margin-top: 12px;
   margin-bottom: $spacing-lg;
 }
 
@@ -713,6 +714,7 @@ onMounted(() => {
   position: sticky;
   top: 80px; // Below navbar
   z-index: 20;
+  background: var(--color-bg-primary); // Solid backdrop: content scrolling behind the pinned block stays hidden
 }
 
 .search-box {

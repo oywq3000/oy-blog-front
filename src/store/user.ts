@@ -16,6 +16,7 @@ export interface UserInfo {
   emailVerified: boolean;
   ipAddress: string;
   lastLogin: string;
+  createdAt: string;
 }
 
 const state = reactive<UserState>({

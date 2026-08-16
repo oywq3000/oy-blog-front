@@ -54,7 +54,7 @@ onMounted(async () => {
       // Map all articles with full data
       articles.value = fetchedArticles.map((a) => {
         return {
-          id: a.slug || a.id,
+          id: a.id,
           title: a.title,
           summary: a.summary,
           date: a.publishAt || a.createdAt,
@@ -71,8 +71,8 @@ onMounted(async () => {
 
       // Sort: pinned articles first, then by publish date descending
       articles.value.sort((a, b) => {
-        const aIsTop = fetchedArticles.find((fa) => (fa.slug || fa.id) === a.id)?.isTop;
-        const bIsTop = fetchedArticles.find((fa) => (fa.slug || fa.id) === b.id)?.isTop;
+        const aIsTop = fetchedArticles.find((fa) => fa.id === a.id)?.isTop;
+        const bIsTop = fetchedArticles.find((fa) => fa.id === b.id)?.isTop;
         if (aIsTop && !bIsTop) return -1;
         if (!aIsTop && bIsTop) return 1;
         return new Date(b.date).getTime() - new Date(a.date).getTime();

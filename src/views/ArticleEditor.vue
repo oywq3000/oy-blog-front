@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { MdEditor } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
-import { publishArticle, saveDraft, getArticleBySlug, getArticleContent, getArticleById } from '../api/article';
+import { publishArticle, saveDraft, getArticleContent, getArticleById } from '../api/article';
 import { uploadCover, uploadContentImage } from '../api/upload';
 // import { useUserStore } from '../store/user';
 import { useTheme } from '../composables/useTheme';
@@ -183,14 +183,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 
 const loadArticleForEdit = async (id: string) => {
   try {
-    // First get metadata (though if we have slug/id, we might just need content if we trust the caller?)
-    // But usually editor might be opened with a slug or id. 
-    // If id is passed in query.
-    
-    // If we assume the route query 'id' is the slug or id.
-    // The user said "id" in the JSON is "e9fd...". 
-    
-    // Let's try to fetch content directly if we assume it's an ID.
+    // Route param is the article ID (UUID)
     const contentRes = await getArticleContent(id);
     
     let contentData: any = null;
@@ -213,40 +206,14 @@ const loadArticleForEdit = async (id: string) => {
         }
     }
 
-    // We also need title and other metadata. 
-    // getArticleBySlug might fail if 'id' is a UUID.
-    // Let's try to get article by ID first (new API endpoint might be needed or check if getArticleBySlug handles ID)
-    // Assuming we added getArticleById or can reuse a generic fetch.
-    // For now, let's try getArticleById if available or fallback to getArticleBySlug.
-    
-    let metaRes;
-    try {
-       metaRes = await getArticleById(id);
-    } catch (e) {
-       // Fallback or maybe it was a slug?
-       metaRes = await getArticleBySlug(id);
-    }
-
+    // Fetch metadata (title/summary/cover/tags) by article ID
+    const metaRes = await getArticleById(id);
     if (metaRes && metaRes.isSuccess && metaRes.data) {
         title.value = metaRes.data.title;
         publishForm.summary = metaRes.data.summary || '';
         publishForm.coverUrl = metaRes.data.coverUrl || '';
         if (metaRes.data.tags) {
             publishForm.tags = metaRes.data.tags.join(', ');
-        }
-    } else {
-        // If getArticleById failed (maybe API not implemented?), try getArticleBySlug as fallback
-        // (If the above try/catch didn't already cover it)
-        if (!metaRes || !metaRes.isSuccess) {
-            const slugRes = await getArticleBySlug(id);
-            if (slugRes.isSuccess && slugRes.data) {
-                title.value = slugRes.data.title;
-                publishForm.summary = slugRes.data.summary || '';
-                publishForm.coverUrl = slugRes.data.coverUrl || '';
-                if (slugRes.data.tags) {
-                    publishForm.tags = slugRes.data.tags.join(', ');
-                }
-            }
         }
     }
 

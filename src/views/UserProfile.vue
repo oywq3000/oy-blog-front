@@ -643,18 +643,19 @@ onUnmounted(() => {
               </div>
               <div v-else-if="favoriteArticles.length" class="articles-grid">
                 <div v-for="article in favoriteArticles" :key="article.id" class="favorite-card-wrap">
-                  <ArticleCard
+                   <ArticleCard
                     :id="article.id"
                     :title="article.title"
                     :summary="article.summary"
-                    :date="article.publishAt"
-                    :tags="article.tags"
+                    :date="article.publishAt || article.createdAt"
                     :image="article.coverUrl"
-                    :author-name="article.authorName"
-                    :author-avatar="article.authorAvatar"
+                    :tags="article.tags"
                     :view-count="article.viewCount"
                     :like-count="article.likeCount"
                     :favorites="article.favorites"
+                    :reading-time-minutes="article.readingTimeMinutes"
+                    :author-name="article.authorName"
+                    :author-avatar="article.authorAvatar"
                   />
                   <button
                     class="unfavorite-btn"

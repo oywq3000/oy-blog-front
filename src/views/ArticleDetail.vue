@@ -15,7 +15,7 @@ import IconShare from '../components/icons/IconShare.vue';
 import CommentItem, { type Comment as UIComment } from '../components/CommentItem.vue';
 import { useToast } from '../composables/useToast';
 import {
-  getArticleBySlug,
+  getArticleById,
   getArticleContent,
   getArticleChapters,
   likeArticle,
@@ -270,13 +270,13 @@ const loadChapters = async (articleId: string) => {
 };
 
 // Fetch Article Details
-const loadArticle = async (slug: string) => {
+const loadArticle = async (articleId: string) => {
   isLoading.value = true;
   try {
     // 1. Get Article Metadata
-    console.log('Fetching article by slug:', slug);
-    const res = await getArticleBySlug(slug);
-    console.log('getArticleBySlug raw response:', res);
+    console.log('Fetching article by id:', articleId);
+    const res = await getArticleById(articleId);
+    console.log('getArticleById raw response:', res);
 
     // Normalize response: Handle both wrapped ResultObject and direct Article object
     let articleData: ArticleInfo | null = null;

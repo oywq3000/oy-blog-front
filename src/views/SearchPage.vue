@@ -57,7 +57,7 @@ const totalPages = ref(0);
 
 function enrichArticles(articles: ArticleInfo[]) {
   enrichedResults.value = articles.map((a) => ({
-    id: a.slug || a.id,
+    id: a.id,
     title: a.title,
     summary: a.summary || '',
     date: a.publishAt || a.createdAt,
@@ -290,29 +290,6 @@ onMounted(() => {
               </button>
             </div>
           </div>
-
-          <!-- History Sidebar (Mini) - Removed as per new layout request -->
-          <!--
-          <div class="sidebar-widget" v-if="searchHistory.length > 0">
-             <div class="widget-header">
-                <h3 class="widget-title">
-                  <span class="icon">🕒</span> {{ t('common.history', 'History') }}
-                </h3>
-                <button @click="clearHistory" class="clear-btn-mini" :title="t('common.clear', 'Clear')">×</button>
-             </div>
-             <div class="history-list-mini">
-                <button 
-                  v-for="item in searchHistory.slice(0, 5)" 
-                  :key="item" 
-                  class="history-item-mini"
-                  @click="selectTag(item)"
-                >
-                  {{ item }}
-                </button>
-             </div>
-          </div>
-          -->
-
         </aside>
 
         <!-- Main Content: Search Bar & Results -->

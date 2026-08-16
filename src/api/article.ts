@@ -122,11 +122,6 @@ export const getPublishedArticles = () => {
   return request.get<any, ResultListArticle>(baseUrl+'/article/read/published');
 };
 
-// Query Article by Slug
-export const getArticleBySlug = (slug: string) => {
-  return request.get<any, ResultArticle>(baseUrl+`/article/read/by-slug/${slug}`);
-};
-
 // Get Article by ID
 export const getArticleById = (id: string) => {
   return request.get<any, ResultArticle>(baseUrl+`/article/read/${id}`);

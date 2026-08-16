@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 import NavBar from './components/NavBar.vue';
 import Footer from './components/Footer.vue';
 import BackToTop from './components/BackToTop.vue';
-import ScrollProgress from './components/ScrollProgress.vue';
 import InteractiveBackground from './components/InteractiveBackground.vue';
 import SvgSprite from './components/SvgSprite.vue';
 import JavaHelloLoader from './components/JavaHelloLoader.vue';
@@ -65,7 +64,6 @@ watch(locale, (newLocale) => {
       <transition name="fade">
         <JavaHelloLoader v-if="isLoading" />
       </transition>
-      <ScrollProgress />
       <NavBar />
       <router-view v-slot="{ Component, route: r }">
         <transition name="page" mode="out-in">

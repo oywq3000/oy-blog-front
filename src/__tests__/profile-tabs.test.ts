@@ -6,8 +6,9 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import en from '../locales/en'
 import zh from '../locales/zh'
 import UserProfile from '../views/UserProfile.vue'
-import { getFavoriteArticles, getReadingHistory, unfavoriteArticle, getMyStats } from '../api/article'
+import { getFavoriteArticles, getReadingHistory, unfavoriteArticle, getMyStats, getMyHeatmap } from '../api/article'
 import { updatePassword } from '../api/auth'
+import { formatLocalDateKey } from '../utils/heatmap'
 
 // ============================================================
 // UserProfile 收藏 / 历史 / 设置 组件行为测试
@@ -18,6 +19,7 @@ vi.mock('../api/article', () => ({
   getReadingHistory: vi.fn(),
   unfavoriteArticle: vi.fn(),
   getMyStats: vi.fn(),
+  getMyHeatmap: vi.fn(),
 }))
 
 vi.mock('../api/auth', () => ({
@@ -106,6 +108,7 @@ describe('UserProfile 收藏 tab', () => {
     })
     ;(unfavoriteArticle as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
     ;(updatePassword as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
+    ;(getMyHeatmap as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: [] })
   })
 
   it('挂载后加载并渲染收藏文章', async () => {
@@ -153,6 +156,7 @@ describe('UserProfile 历史 tab', () => {
     })
     ;(unfavoriteArticle as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
     ;(updatePassword as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
+    ;(getMyHeatmap as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: [] })
   })
 
   it('切换到历史 tab 时加载浏览历史并渲染', async () => {
@@ -193,6 +197,7 @@ describe('UserProfile 设置 tab', () => {
     })
     ;(unfavoriteArticle as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
     ;(updatePassword as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
+    ;(getMyHeatmap as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: [] })
   })
 
   const openSettings = async (wrapper: ReturnType<typeof mount>, subIndex: number) => {
@@ -268,5 +273,58 @@ describe('UserProfile 设置 tab', () => {
     await checks[0].setValue(true)
     const prefs2 = JSON.parse(localStorage.getItem('notification-prefs') || '{}')
     expect(prefs2.emailDigest).toBe(true)
+  })
+})
+
+describe('UserProfile 活跃度热力图', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.clearAllMocks()
+    ;(getFavoriteArticles as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: [] })
+    ;(getReadingHistory as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: [] })
+    ;(getMyStats as any).mockResolvedValue({
+      isSuccess: true, errCode: 200, errMsg: '',
+      data: { articleCount: 0, likeCount: 0, favoriteCount: 0 },
+    })
+    ;(unfavoriteArticle as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
+    ;(updatePassword as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
+    ;(getMyHeatmap as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: [] })
+  })
+
+  const yesterdayKey = () => {
+    const d = new Date()
+    d.setDate(d.getDate() - 1)
+    return formatLocalDateKey(d)
+  }
+
+  it('挂载后调用 getMyHeatmap 并渲染 364 个格子', async () => {
+    const wrapper = await mountProfile()
+
+    expect(getMyHeatmap).toHaveBeenCalledTimes(1)
+    expect(wrapper.findAll('.heatmap-cell')).toHaveLength(364)
+  })
+
+  it('有数据时对应格子（昨天）显示 count 与 intensity', async () => {
+    const yesterday = yesterdayKey()
+    ;(getMyHeatmap as any).mockResolvedValue({
+      isSuccess: true, errCode: 200, errMsg: '',
+      data: [{ date: yesterday, count: 5 }],
+    })
+
+    const wrapper = await mountProfile()
+
+    const cells = wrapper.findAll('.heatmap-cell')
+    const last = cells[cells.length - 1] // 网格最后一格 = 昨天
+    expect(last.attributes('title')).toBe(`5 contributions on ${yesterday}`)
+    // happy-dom 会丢弃含 var() 的内联颜色值，无法从 DOM 断言背景色，改查 vm 数据层
+    const grid = (wrapper.vm as any).heatmapData
+    expect(grid[grid.length - 1][6].intensity).toBe(0.7)
+  })
+
+  it('空数据时格子 tooltip 显示 0 次', async () => {
+    const wrapper = await mountProfile()
+
+    const cells = wrapper.findAll('.heatmap-cell')
+    expect(cells[0].attributes('title')).toContain('0 contributions')
   })
 })

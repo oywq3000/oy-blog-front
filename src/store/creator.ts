@@ -8,7 +8,7 @@ const state = reactive({
 export const useCreatorStore = () => {
   const refreshDraftCount = async () => {
     try {
-      const res = await getMyArticles({ status: 'draft', page: 1, size: 1 });
+      const res = await getMyArticles({ status: 'draft', pageNum: 1, pageSize: 1 });
       if (res.isSuccess && res.data) {
         state.draftCount = res.data.total;
       }

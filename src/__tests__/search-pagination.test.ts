@@ -9,8 +9,9 @@ import { searchArticles, type SearchParams } from '../api/article'
 
 // ============================================================
 // SearchPage 分页行为测试
-// 后端 searchArticles 本身是服务端分页（page/size → 每页数据 + totalPages），
+// 后端 searchArticles 本身是服务端分页（pageNum/pageSize → 每页数据 + totalPages），
 // 前端必须直接渲染返回的那一页，不得再本地切片（双重分页 bug）。
+// 分页参数统一约定 pageNum/pageSize（与后端 search-service 一致）。
 // ============================================================
 
 vi.mock('../api/article', () => ({
@@ -83,7 +84,7 @@ describe('SearchPage 分页', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(searchArticles).mockImplementation(async (params: SearchParams) =>
-      mockServerPage(params.page ?? 1)
+      mockServerPage(params.pageNum ?? 1)
     )
   })
 
@@ -106,9 +107,9 @@ describe('SearchPage 分页', () => {
     expect(wrapper.findAll('.article-row').length).toBe(10)
     expect(wrapper.text()).toContain('Article 2-1')
     expect(wrapper.text()).not.toContain('Article 1-1')
-    // 服务端确实收到了 page=2 的请求
+    // 服务端确实收到了 pageNum=2 的请求
     const lastCall = vi.mocked(searchArticles).mock.calls.at(-1)![0] as SearchParams
-    expect(lastCall.page).toBe(2)
+    expect(lastCall.pageNum).toBe(2)
   })
 
   it('翻到最后一页后下一页按钮禁用且不再请求', async () => {

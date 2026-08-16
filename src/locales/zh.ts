@@ -96,6 +96,7 @@ export default {
     viewedOn: '浏览于',
     joined: '加入于',
     activity: '活跃度',
+    heatmapTooltip: '{date} 贡献 {count} 次',
     accountSecurity: '账户安全',
     emailAddress: '电子邮箱',
     verified: '已验证',

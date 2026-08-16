@@ -181,8 +181,8 @@ function buildSearchParams(page: number): SearchParams {
   const params: SearchParams = {
     keyword: searchQuery.value,
     filter: activeFilter.value,
-    page,
-    size: itemsPerPage,
+    pageNum: page,
+    pageSize: itemsPerPage,
     sortBy: sortBy.value,
     sortOrder: 'desc',
   };

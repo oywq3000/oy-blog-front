@@ -256,6 +256,23 @@ export const getMyStats = () => {
   return request.get<any, ResultUserArticleStats>(baseUrl+'/article/stats/me');
 };
 
+export interface HeatmapDayEntry {
+  date: string;
+  count: number;
+}
+
+export interface ResultListHeatmapDay {
+  errCode: number;
+  errMsg: string;
+  isSuccess: boolean;
+  data: HeatmapDayEntry[];
+}
+
+// Get My Activity Heatmap (recent 12 months, per-day event count)
+export const getMyHeatmap = () => {
+  return request.get<any, ResultListHeatmapDay>(baseUrl+'/article/stats/heatmap/me');
+};
+
 // Params for fetching current user's own articles
 export interface MyArticlesParams {
   status: 'published' | 'draft';
@@ -273,8 +290,8 @@ export const getMyArticles = (params: MyArticlesParams) => {
 export interface SearchParams {
   keyword: string;
   filter?: string,
-  page?: number;
-  size?: number;
+  pageNum?: number;
+  pageSize?: number;
   author?: string;
   tag?: string;
   status?: string;

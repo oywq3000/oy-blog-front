@@ -96,6 +96,7 @@ export default {
     viewedOn: 'Viewed on',
     joined: 'Joined on',
     activity: 'Activity',
+    heatmapTooltip: '{count} contributions on {date}',
     accountSecurity: 'Account Security',
     emailAddress: 'Email Address',
     verified: 'Verified',

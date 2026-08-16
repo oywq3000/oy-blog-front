@@ -7,7 +7,8 @@ import AvatarGenerator from '../components/AvatarGenerator.vue';
 import { useUserStore } from '../store/user';
 import { requestEmailVerification, updateUserInfo, updatePassword as updatePasswordApi, type UpdateProfileDto } from '../api/auth';
 import { uploadAvatar } from '../api/upload';
-import { getFavoriteArticles, getReadingHistory, unfavoriteArticle, getMyStats, type ArticleInfo } from '../api/article';
+import { getFavoriteArticles, getReadingHistory, unfavoriteArticle, getMyStats, getMyHeatmap, type ArticleInfo } from '../api/article';
+import { buildHeatmapData, type HeatmapData } from '../utils/heatmap';
 import { useTheme } from '../composables/useTheme';
 import { useToast } from '../composables/useToast';
 
@@ -196,37 +197,24 @@ const {
   onAfterEnter: onSettingsAfterEnter
 } = useSmoothHeight(settingsContentRef);
 
-// Heatmap Data (Static generation to prevent re-render flickering)
-const generateHeatmapData = () => {
-  const weeks = 52;
-  const days = 7;
-  const data = [];
-  
-  for (let w = 0; w < weeks; w++) {
-    const weekData = [];
-    for (let d = 0; d < days; d++) {
-      // Simulate some activity pattern
-      const isWeekend = d === 0 || d === 6;
-      const baseChance = isWeekend ? 0.3 : 0.7;
-      const hasActivity = Math.random() < baseChance;
-      const intensity = hasActivity ? Math.random() : 0.1;
-      
-      // Add date for tooltip (mock)
-      const date = new Date();
-      date.setDate(date.getDate() - ((weeks - w) * 7) + d);
-      
-      weekData.push({
-        intensity,
-        date: date.toISOString().split('T')[0],
-        count: hasActivity ? Math.floor(Math.random() * 10) + 1 : 0
-      });
-    }
-    data.push(weekData);
-  }
-  return data;
-};
+// --- Heatmap (activity) ---
+const heatmapData = ref<HeatmapData>(buildHeatmapData([])); // 初始全零网格，布局稳定
+const isHeatmapLoading = ref(false);
 
-const heatmapData = ref(generateHeatmapData());
+const loadHeatmap = async () => {
+  if (!currentUser.value) return;
+  isHeatmapLoading.value = true;
+  try {
+    const res = await getMyHeatmap();
+    if (res.isSuccess) {
+      heatmapData.value = buildHeatmapData(res.data || []);
+    }
+  } catch (error) {
+    console.error('Failed to load heatmap:', error);
+  } finally {
+    isHeatmapLoading.value = false;
+  }
+};
 
 // --- Sidebar stats (articles / likes / favorites) ---
 const userStats = ref({ articleCount: 0, likeCount: 0, favoriteCount: 0 });
@@ -351,6 +339,7 @@ watch(activeTab, (tab) => {
 onMounted(() => {
   loadUserStats();
   loadFavorites();
+  loadHeatmap();
 });
 
 // --- Email Verification Logic ---
@@ -595,7 +584,7 @@ onUnmounted(() => {
                     :key="j" 
                     class="heatmap-cell" 
                     :style="{ backgroundColor: `rgba(var(--color-accent-primary-rgb), ${day.intensity})` }"
-                    :title="`${day.count} contributions on ${day.date}`"
+                    :title="t('profile.heatmapTooltip', { count: day.count, date: day.date })"
                   ></div>
                 </div>
               </div>

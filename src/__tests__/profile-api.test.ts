@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import service from '../api/request'
-import { getFavoriteArticles, getReadingHistory, unfavoriteArticle } from '../api/article'
+import { getFavoriteArticles, getReadingHistory, unfavoriteArticle, getMyHeatmap } from '../api/article'
 
 // ============================================================
 // Profile 页收藏/历史 API 契约测试（adapter-mock 模式）
@@ -46,5 +46,13 @@ describe('profile article APIs', () => {
     expect(calls).toHaveLength(1)
     expect(calls[0].url).toBe('/api/article-service/article/interaction/a1/unfavorite')
     expect(calls[0].method).toBe('post')
+  })
+
+  it('getMyHeatmap should GET stats/heatmap/me', async () => {
+    await getMyHeatmap()
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url).toBe('/api/article-service/article/stats/heatmap/me')
+    expect(calls[0].method).toBe('get')
   })
 })

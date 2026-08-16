@@ -1,16 +1,4 @@
 <script setup lang="ts">
-const props = withDefaults(defineProps<{
-  width?: number | string;
-  height?: number | string;
-  variant?: 'light' | 'dark';
-  idSuffix?: string;
-}>(), {
-  width: 200,
-  height: 40,
-  variant: 'light',
-  idSuffix: 'main'
-});
-
 </script>
 
 <template>

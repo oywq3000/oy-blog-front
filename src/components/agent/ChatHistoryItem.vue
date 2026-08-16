@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
 const props = defineProps<{
   id: string
   title: string
@@ -13,8 +11,6 @@ const emit = defineEmits<{
   rename: [id: string, title: string]
   delete: [id: string]
 }>()
-
-const isEditing = computed(() => false)
 
 function handleSelect() {
   emit('select', props.id)

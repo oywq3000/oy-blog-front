@@ -137,6 +137,10 @@ export default {
     bioText: 'Bio', // Renamed to avoid duplicate 'bio' key
     enterBio: 'Tell us about yourself',
     updateSuccess: 'Profile updated successfully',
+    unfavorite: 'Remove Favorite',
+    unfavoriteSuccess: 'Removed from favorites',
+    passwordUpdated: 'Password updated successfully',
+    passwordUpdateFailed: 'Failed to update password',
   },
   verify: {
     verifying: 'Verifying your email...',
@@ -157,6 +161,7 @@ export default {
     searchPlaceholder: 'Search articles...',
     history: 'History',
     clear: 'Clear',
+    loading: 'Loading...',
     filter: 'Filters',
     readMore: 'Read More',
     recommended: 'Recommended',

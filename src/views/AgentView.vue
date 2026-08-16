@@ -94,7 +94,7 @@ async function handleResend(messageId: string) {
 }
 
 // Handle copy
-function handleCopy(content: string) {
+function handleCopy(_content: string) {
   addToast('已复制', 'success', 2000)
 }
 

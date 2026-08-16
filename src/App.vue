@@ -14,7 +14,7 @@ import { useAppStore } from './store/app';
 import { useTheme } from './composables/useTheme';
 import { shouldShowFooter } from './utils/pageChrome';
 
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 
 const { locale } = useI18n();
 const { fetchUserInfo } = useUserStore();

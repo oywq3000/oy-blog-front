@@ -19,6 +19,8 @@ export interface ArticleInfo {
   coverUrl: string;
   language: string;
   allowComment: number;
+  // 分类编码（后端暂未返回，列表页兼容展示，默认显示 '-'）
+  categoryCode?: string;
   publishAt: string;
   createdAt: string;
   updatedAt: string;
@@ -34,6 +36,10 @@ export interface ArticleInfo {
   // ES 高亮字段：命中的内容上下文（~200字，含 <em class="highlight"> 标签）
   highlightSnippet?: string;
   highlightTitle?: string;
+  // 最近浏览时间（仅浏览历史接口返回）
+  viewedAt?: string;
+  // 收藏时间（仅我的收藏接口返回）
+  favoritedAt?: string;
 }
 
 export interface ArticleChapter {
@@ -223,12 +229,19 @@ export const getReadingHistory = () => {
   return request.get<any, ResultListArticle>(baseUrl+'/article/read/history');
 };
 
+// Query My Favorites
+export const getFavoriteArticles = () => {
+  return request.get<any, ResultListArticle>(baseUrl+'/article/interaction/favorites');
+};
+
 export interface UserArticleStats {
   name:string;
   avatar:string;
   bio:string;
   articleCount: number;
+  viewCount?: number;
   likeCount: number;
+  favoriteCount?: number;
 }
 
 export interface ResultUserArticleStats {

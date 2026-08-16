@@ -1,5 +1,5 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 
 // https://vite.dev/config/
@@ -11,9 +11,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          'md-editor': ['md-editor-v3'],
-          'vue-vendor': ['vue', 'vue-router', 'vue-i18n'],
+        // 函数形式（对象形式在 Rollup 4 类型中已移除）
+        manualChunks(id: string) {
+          if (id.includes('node_modules/md-editor-v3')) return 'md-editor'
+          if (id.includes('node_modules/vue-router') || id.includes('node_modules/vue-i18n')) return 'vue-vendor'
+          if (/node_modules[/\\](vue|@vue)[/\\]/.test(id)) return 'vue-vendor'
         }
       }
     },

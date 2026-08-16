@@ -41,13 +41,12 @@ import {
 } from '../api/comment';
 import { getUserPublicProfile, type SimpleUserProfile } from '../api/user';
 import { useUserStore } from '../store/user';
-import { estimateReadingTime, formatReadingTime } from '../utils/readingTime';
 // import { MdPreview } from 'md-editor-v3'; // Removed, using MarkdownViewer
 // import 'md-editor-v3/lib/preview.css'; // Removed
 import MarkdownViewer from '../components/MarkdownViewer.vue';
 // import { useTheme } from '../composables/useTheme'; // unused
 
-const { t, locale } = useI18n();
+const { t } = useI18n();
 // Performance Monitoring
 const perfStart = performance.now();
 onMounted(() => {
@@ -93,9 +92,7 @@ const { addToast } = useToast();
 // Article Data
 const articleInfo = ref<ArticleInfo | null>(null);
 const isOwner = ref(false);
-const authorInfo = ref<UserArticleStats | null>(null);
 const simpleAuthorProfile = ref<SimpleUserProfile | null>(null)
-const authorName = ref(''); // Reactive state for author name
 const articleContent = ref(''); // Stores Markdown
 const articleHtml = ref(''); // Stores HTML fallback
 const isLoading = ref(false);
@@ -113,21 +110,6 @@ const formattedDate = computed(() => {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 });
-
-// Computed reading time
-const readingTime = computed(() => {
-  const content = articleContent.value || articleHtml.value || articleInfo.value?.summary || '';
-  const minutes = estimateReadingTime(
-    typeof content === 'string' ? content : '',
-    locale.value
-  );
-  return formatReadingTime(minutes, locale.value);
-});
-
-// Breadcrumb items
-const breadcrumbItems = computed(() => [
-  { label: articleInfo.value?.title || t('articleDetail.loading'), to: undefined },
-]);
 
 // Helper to convert API Reply to UI Comment
 const mapReplyToUI = (r: APICommentReply): UIComment => ({

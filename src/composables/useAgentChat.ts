@@ -1,4 +1,4 @@
-import { ref, computed, watch, shallowRef, reactive } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import type {
   Conversation,
   Message,
@@ -7,7 +7,6 @@ import type {
   SuggestedQuestion
 } from '../types/agent'
 import * as agentApi from '../api/agent'
-import { useToast } from './useToast'
 
 // ============================================================
 // Helpers
@@ -310,7 +309,14 @@ async function resendMessage(_messageId: string): Promise<void> {
   if (!lastUserMsg) return
 
   // Remove the failed assistant message
-  const failedIdx = msgs.findLastIndex(m => m.role === 'assistant' && m.error)
+  let failedIdx = -1
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i]
+    if (m.role === 'assistant' && m.error) {
+      failedIdx = i
+      break
+    }
+  }
   if (failedIdx >= 0) {
     msgs.splice(failedIdx, 1)
     const convId = activeConversationId.value!

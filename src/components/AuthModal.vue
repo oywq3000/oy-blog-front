@@ -130,20 +130,6 @@ const switchToReset = () => {
   loginMethod.value = 'password';
 };
 
-const switchToWeChat = () => {
-  loginMethod.value = 'wechat';
-  mode.value = 'login'; // WeChat handles both login/register flow usually
-  error.value = '';
-  wechatStep.value = 'scan';
-  startScanSimulation();
-};
-
-const switchToPassword = () => {
-  loginMethod.value = 'password';
-  error.value = '';
-  stopScanSimulation();
-};
-
 const startScanSimulation = () => {
   stopScanSimulation();
   // Simulate a scan after 3 seconds

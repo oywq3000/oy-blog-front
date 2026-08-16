@@ -137,6 +137,10 @@ export default {
     bioText: '个人简介', // Renamed to avoid duplicate 'bio' key
     enterBio: '介绍一下你自己',
     updateSuccess: '个人资料更新成功',
+    unfavorite: '取消收藏',
+    unfavoriteSuccess: '已取消收藏',
+    passwordUpdated: '密码修改成功',
+    passwordUpdateFailed: '密码修改失败',
   },
   verify: {
     verifying: '正在验证您的邮箱...',
@@ -157,6 +161,7 @@ export default {
     searchPlaceholder: '搜索文章...',
     history: '历史',
     clear: '清除',
+    loading: '加载中...',
     filter: '筛选',
     readMore: '阅读更多',
     recommended: '精选博客',

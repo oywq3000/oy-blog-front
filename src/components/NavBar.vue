@@ -3,7 +3,6 @@ import { ref, computed, nextTick, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import AuthModal from './AuthModal.vue';
-import Logo from './Logo.vue';
 import TextLogo from './TextLogo.vue';
 import IconButton from './IconButton.vue';
 import IconUser from './icons/IconUser.vue';

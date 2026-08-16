@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import CreatorSidebar from '../components/CreatorSidebar.vue';
 import { useCreatorStore } from '../store/creator';

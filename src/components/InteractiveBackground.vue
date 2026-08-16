@@ -13,12 +13,7 @@ interface Particle {
   type: 0 | 1; // 0 for color1, 1 for color2
 }
 
-// Theme configurations
-// const themeConfig = { ... } removed as we now use CSS variables directly
-const getThemeColors = () => {
-  // Legacy function removed
-  return {};
-};
+// Theme configurations use CSS variables directly (no JS state needed)
 
 onMounted(() => {
   const canvas = canvasRef.value;
@@ -85,10 +80,6 @@ onMounted(() => {
 
   // Init particles
   // Optimization: Read colors from CSS variables to support dynamic theme switching without JS state
-  const getCssVar = (name: string) => {
-    // Helper function removed in favor of direct access in updateParticleColors
-    return '';
-  };
 
   const updateParticleColors = () => {
     // Force a reflow/re-read of CSS variables

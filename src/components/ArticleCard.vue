@@ -24,19 +24,11 @@ const props = defineProps<{
 }>();
 
 const router = useRouter();
-const { t, d } = useI18n();
+const { t } = useI18n();
 
 function goToArticle() {
   router.push({ name: 'article-detail', params: { id: props.id } });
 }
-
-const formattedDate = computed(() => {
-  try {
-    return d(new Date(props.date), 'short');
-  } catch {
-    return props.date;
-  }
-});
 
 const showCover = computed(() => !!props.image);
 

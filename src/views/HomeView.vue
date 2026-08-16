@@ -5,7 +5,6 @@ import ArticleCard from '../components/ArticleCard.vue';
 import Sidebar from '../components/Sidebar.vue';
 import { useAppStore } from '../store/app';
 import { getPublishedArticles } from '../api/article';
-import { getSimpleUserProfile } from '../api/user';
 
 const { t } = useI18n();
 const { isLoading } = useAppStore();
@@ -29,29 +28,6 @@ interface ArticleItem {
 }
 
 const articles = ref<ArticleItem[]>([]);
-
-// Fetch author profiles for a set of unique author IDs
-async function fetchAuthorProfiles(
-  authorIds: string[]
-): Promise<Map<string, { name: string; avatar: string }>> {
-  const map = new Map<string, { name: string; avatar: string }>();
-  const uniqueIds = [...new Set(authorIds.filter(Boolean))];
-
-  await Promise.all(
-    uniqueIds.map(async (userId) => {
-      try {
-        const res = await getSimpleUserProfile(userId);
-        if (res.isSuccess && res.data) {
-          map.set(userId, { name: res.data.name, avatar: res.data.avatar });
-        }
-      } catch {
-        // Silently ignore failed author fetches
-      }
-    })
-  );
-
-  return map;
-}
 
 const observeElements = () => {
   const observer = new IntersectionObserver((entries) => {

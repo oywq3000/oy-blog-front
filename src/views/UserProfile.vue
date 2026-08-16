@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted, watchEffect, nextTick } from 'vue';
+import { ref, computed, onUnmounted, onMounted, watch, watchEffect, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import ArticleCard from '../components/ArticleCard.vue';
 import AvatarGenerator from '../components/AvatarGenerator.vue';
 import { useUserStore } from '../store/user';
-import { requestEmailVerification, updateUserInfo, type UpdateProfileDto } from '../api/auth';
+import { requestEmailVerification, updateUserInfo, updatePassword as updatePasswordApi, type UpdateProfileDto } from '../api/auth';
 import { uploadAvatar } from '../api/upload';
+import { getFavoriteArticles, getReadingHistory, unfavoriteArticle, getMyStats, type ArticleInfo } from '../api/article';
 import { useTheme } from '../composables/useTheme';
+import { useToast } from '../composables/useToast';
 
-const { t } = useI18n();
+const { t, d } = useI18n();
 const { user: currentUser, fetchUserInfo } = useUserStore();
 const { theme, themePreference, setThemePreference } = useTheme();
+const { addToast } = useToast();
+const router = useRouter();
 
 const profileForm = ref<UpdateProfileDto>({
   username: '',
@@ -223,6 +228,25 @@ const generateHeatmapData = () => {
 
 const heatmapData = ref(generateHeatmapData());
 
+// --- Sidebar stats (articles / likes / favorites) ---
+const userStats = ref({ articleCount: 0, likeCount: 0, favoriteCount: 0 });
+
+const loadUserStats = async () => {
+  if (!currentUser.value) return;
+  try {
+    const res = await getMyStats();
+    if (res.isSuccess && res.data) {
+      userStats.value = {
+        articleCount: res.data.articleCount || 0,
+        likeCount: res.data.likeCount || 0,
+        favoriteCount: res.data.favoriteCount || 0
+      };
+    }
+  } catch (error) {
+    console.error('Failed to load user stats:', error);
+  }
+};
+
 const user = computed(() => {
   if (currentUser.value) {
     return {
@@ -232,9 +256,9 @@ const user = computed(() => {
       emailVerified: currentUser.value.emailVerified,
       avatarUrl: currentUser.value.avatarUrl,
       stats: {
-        articles: 0,
-        likes: 0,
-        following: 0
+        articles: userStats.value.articleCount,
+        likes: userStats.value.likeCount,
+        favorites: userStats.value.favoriteCount
       }
     };
   }
@@ -244,45 +268,88 @@ const user = computed(() => {
     email: '',
     emailVerified: false,
     avatarUrl: '',
-    stats: { articles: 0, likes: 0, following: 0 }
+    stats: { articles: 0, likes: 0, favorites: 0 }
   };
 });
 
-// Mock data for favorites/history
-const mockArticles = [
-  /* {
-    id: 1,
-    title: 'Mastering Vue 3 Composition API',
-    summary: 'Deep dive into the new Composition API features, script setup, and composables for better code organization.',
-    date: '2023-10-15',
-    tags: ['Vue', 'Frontend', 'JavaScript'],
-    image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1080&auto=format&fit=crop'
-  },
-  {
-    id: 3,
-    title: 'Building Microservices with Kubernetes',
-    summary: 'Learn how to deploy, scale, and manage your microservices using Docker and Kubernetes clusters.',
-    date: '2023-11-20',
-    tags: ['DevOps', 'K8s', 'Docker'],
-    image: 'https://images.unsplash.com/photo-1667372393119-c85c020799a3?q=80&w=1080&auto=format&fit=crop'
-  },
-  {
-    id: 4,
-    title: 'Spring Boot 3.0 Migration Guide',
-    summary: 'A comprehensive guide to upgrading your Spring Boot applications to version 3.0 and Java 17.',
-    date: '2023-12-05',
-    tags: ['Java', 'Spring Boot', 'Backend'],
-    image: 'https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?q=80&w=1080&auto=format&fit=crop'
-  },
-  {
-    id: 5,
-    title: 'Optimizing Web Performance',
-    summary: 'Techniques for improving LCP, FID, and CLS scores to boost your website ranking and user experience.',
-    date: '2024-01-10',
-    tags: ['Performance', 'Web', 'SEO'],
-    image: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?q=80&w=1080&auto=format&fit=crop'
-  } */
-];
+// --- Favorites ---
+const favoriteArticles = ref<ArticleInfo[]>([]);
+const isFavoritesLoading = ref(false);
+
+const loadFavorites = async () => {
+  if (!currentUser.value) {
+    favoriteArticles.value = [];
+    return;
+  }
+  isFavoritesLoading.value = true;
+  try {
+    const res = await getFavoriteArticles();
+    favoriteArticles.value = res.isSuccess ? res.data || [] : [];
+  } catch (error) {
+    // 401 / business error already toasted by the request interceptor
+    favoriteArticles.value = [];
+    console.error('Failed to load favorites:', error);
+  } finally {
+    isFavoritesLoading.value = false;
+  }
+};
+
+const removeFavorite = async (articleId: string) => {
+  try {
+    const res = await unfavoriteArticle(articleId);
+    if (res.isSuccess) {
+      favoriteArticles.value = favoriteArticles.value.filter(a => a.id !== articleId);
+      addToast(t('profile.unfavoriteSuccess'), 'success');
+    }
+  } catch (error) {
+    console.error('Unfavorite failed:', error);
+  }
+};
+
+// --- Reading history ---
+const historyArticles = ref<ArticleInfo[]>([]);
+const isHistoryLoading = ref(false);
+
+const loadHistory = async () => {
+  if (!currentUser.value) {
+    historyArticles.value = [];
+    return;
+  }
+  isHistoryLoading.value = true;
+  try {
+    const res = await getReadingHistory();
+    historyArticles.value = res.isSuccess ? res.data || [] : [];
+  } catch (error) {
+    historyArticles.value = [];
+    console.error('Failed to load history:', error);
+  } finally {
+    isHistoryLoading.value = false;
+  }
+};
+
+const goToArticle = (articleId: string) => {
+  router.push({ name: 'article-detail', params: { id: articleId } });
+};
+
+const formatDate = (value: string | undefined) => {
+  if (!value) return '';
+  try {
+    return d(new Date(value), 'short');
+  } catch {
+    return value;
+  }
+};
+
+// Refresh data when switching to a tab, so actions from other pages are reflected
+watch(activeTab, (tab) => {
+  if (tab === 'favorites') loadFavorites();
+  else if (tab === 'history') loadHistory();
+});
+
+onMounted(() => {
+  loadUserStats();
+  loadFavorites();
+});
 
 // --- Email Verification Logic ---
 const emailStatus = ref<'unverified' | 'sending' | 'sent' | 'verified'>('unverified');
@@ -362,6 +429,8 @@ const passwordMatch = computed(() => {
   return passwordForm.value.new === passwordForm.value.confirm && passwordForm.value.new !== '';
 });
 
+const isPasswordUpdating = ref(false);
+
 const updatePassword = async () => {
   // Reset errors
   passwordErrors.value = { current: '', new: '', confirm: '' };
@@ -380,12 +449,50 @@ const updatePassword = async () => {
     return;
   }
 
-  // Simulate API
-  setTimeout(() => {
-    alert('Password updated successfully!');
+  isPasswordUpdating.value = true;
+  try {
+    await updatePasswordApi({
+      oldPassword: passwordForm.value.current,
+      newPassword: passwordForm.value.new,
+      confirmPassword: passwordForm.value.confirm
+    });
+    addToast(t('profile.passwordUpdated'), 'success');
     passwordForm.value = { current: '', new: '', confirm: '' };
-  }, 1500);
+    showPassword.value = { current: false, new: false, confirm: false };
+  } catch (error: any) {
+    console.error('Update password failed:', error);
+    alert(error?.message || t('profile.passwordUpdateFailed'));
+  } finally {
+    isPasswordUpdating.value = false;
+  }
 };
+
+// --- Appearance: reduced motion ---
+const reducedMotion = ref(localStorage.getItem('reduced-motion') === 'true');
+
+watch(reducedMotion, (val) => {
+  localStorage.setItem('reduced-motion', String(val));
+  document.documentElement.classList.toggle('reduce-motion', val);
+}, { immediate: true });
+
+// --- Notification preferences ---
+const readNotificationPrefs = (): { emailDigest: boolean; newComments: boolean } => {
+  try {
+    const stored = JSON.parse(localStorage.getItem('notification-prefs') || '{}');
+    return {
+      emailDigest: stored.emailDigest !== false,
+      newComments: stored.newComments !== false
+    };
+  } catch {
+    return { emailDigest: true, newComments: true };
+  }
+};
+
+const notificationPrefs = ref(readNotificationPrefs());
+
+watch(notificationPrefs, (val) => {
+  localStorage.setItem('notification-prefs', JSON.stringify(val));
+}, { deep: true });
 
 const handleEditProfile = async () => {
   changeSettingTab('profile');
@@ -433,8 +540,8 @@ onUnmounted(() => {
             </div>
             <div class="stat-divider"></div>
             <div class="stat-item">
-              <span class="count">{{ user.stats.following }}</span>
-              <span class="label">{{ t('profile.following') }}</span>
+              <span class="count">{{ user.stats.favorites }}</span>
+              <span class="label">{{ t('profile.favorites') }}</span>
             </div>
           </div>
 
@@ -510,8 +617,8 @@ onUnmounted(() => {
 
         <nav class="profile-tabs glass-panel" ref="tabsContainerRef">
           <div class="tab-indicator" :style="tabIndicatorStyle"></div>
-          <button 
-            v-for="(tab, index) in tabs" 
+          <button
+            v-for="tab in tabs"
             :key="tab.id"
             ref="tabRefs"
             class="tab-btn"
@@ -531,8 +638,34 @@ onUnmounted(() => {
             @after-enter="onMainAfterEnter"
           >
             <div class="tab-content" v-if="activeTab === 'favorites'" key="favorites">
-              <div class="articles-grid" v-if="mockArticles.length">
-                <ArticleCard v-for="article in mockArticles" :key="article.id" v-bind="article" />
+              <div v-if="isFavoritesLoading" class="empty-state glass-panel">
+                <p>{{ t('common.loading', 'Loading...') }}</p>
+              </div>
+              <div v-else-if="favoriteArticles.length" class="articles-grid">
+                <div v-for="article in favoriteArticles" :key="article.id" class="favorite-card-wrap">
+                  <ArticleCard
+                    :id="article.id"
+                    :title="article.title"
+                    :summary="article.summary"
+                    :date="article.publishAt"
+                    :tags="article.tags"
+                    :image="article.coverUrl"
+                    :author-name="article.authorName"
+                    :author-avatar="article.authorAvatar"
+                    :view-count="article.viewCount"
+                    :like-count="article.likeCount"
+                    :favorites="article.favorites"
+                  />
+                  <button
+                    class="unfavorite-btn"
+                    :title="t('profile.unfavorite')"
+                    @click.stop="removeFavorite(article.id)"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M18 6L6 18M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                </div>
               </div>
               <div v-else class="empty-state glass-panel">
                 <p>{{ t('profile.noFavorites') }}</p>
@@ -540,13 +673,17 @@ onUnmounted(() => {
             </div>
 
             <div class="tab-content" v-else-if="activeTab === 'history'" key="history">
-              <div class="history-list" v-if="mockArticles.length">
-                <div v-for="article in mockArticles" :key="article.id" class="history-item glass-panel">
+              <div v-if="isHistoryLoading" class="empty-state glass-panel">
+                <p>{{ t('common.loading', 'Loading...') }}</p>
+              </div>
+              <div v-else-if="historyArticles.length" class="history-list">
+                <div v-for="article in historyArticles" :key="article.id" class="history-item glass-panel">
                   <div class="history-info">
-                    <span class="history-date">{{ t('profile.viewedOn') }} {{ article.date }}</span>
+                    <span class="history-date">{{ t('profile.viewedOn') }} {{ formatDate(article.viewedAt || article.publishAt) }}</span>
                     <h3>{{ article.title }}</h3>
+                    <p class="history-summary">{{ article.summary }}</p>
                   </div>
-                  <button class="view-btn">{{ t('profile.readAgain') }}</button>
+                  <button class="view-btn" @click="goToArticle(article.id)">{{ t('profile.readAgain') }}</button>
                 </div>
               </div>
               <div v-else class="empty-state glass-panel">
@@ -738,7 +875,13 @@ onUnmounted(() => {
                             <span class="error-msg" v-if="passwordErrors.confirm">{{ passwordErrors.confirm }}</span>
                           </div>
 
-                          <button class="btn-primary full-width" @click="updatePassword">{{ t('profile.updatePassword') }}</button>
+                          <button
+                            class="btn-primary full-width"
+                            @click="updatePassword"
+                            :disabled="isPasswordUpdating"
+                          >
+                            {{ isPasswordUpdating ? t('common.saving', 'Saving...') : t('profile.updatePassword') }}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -800,7 +943,7 @@ onUnmounted(() => {
                       </div>
                       <label class="toggle-row">
                         <span>{{ t('profile.reducedMotion') }}</span>
-                        <input type="checkbox" />
+                        <input type="checkbox" v-model="reducedMotion" />
                       </label>
                     </div>
 
@@ -809,11 +952,11 @@ onUnmounted(() => {
                       <h3>{{ t('profile.notifications') }}</h3>
                       <label class="toggle-row">
                         <span>{{ t('profile.emailDigest') }}</span>
-                        <input type="checkbox" checked />
+                        <input type="checkbox" v-model="notificationPrefs.emailDigest" />
                       </label>
                       <label class="toggle-row">
                         <span>{{ t('profile.newComments') }}</span>
-                        <input type="checkbox" checked />
+                        <input type="checkbox" v-model="notificationPrefs.newComments" />
                       </label>
                     </div>
                   </Transition>
@@ -1203,6 +1346,44 @@ onUnmounted(() => {
   gap: 1.5rem;
 }
 
+.favorite-card-wrap {
+  position: relative;
+
+  .unfavorite-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 5;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid $color-border;
+    border-radius: 50%;
+    background: $color-card-bg;
+    color: $color-text-secondary;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s, color 0.2s, border-color 0.2s;
+
+    svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    &:hover {
+      color: #ef4444;
+      border-color: #ef4444;
+    }
+  }
+
+  &:hover .unfavorite-btn,
+  .unfavorite-btn:focus-visible {
+    opacity: 1;
+  }
+}
+
 .empty-state {
   padding: 3rem;
   text-align: center;
@@ -1238,6 +1419,16 @@ onUnmounted(() => {
       .history-date {
         font-size: 0.8rem;
         color: $color-text-secondary;
+      }
+      .history-summary {
+        margin: 4px 0 0;
+        font-size: 0.85rem;
+        color: $color-text-secondary;
+        display: -webkit-box;
+        line-clamp: 2;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
     }
     

@@ -12,10 +12,10 @@ export function useCreatorList(status: 'published' | 'draft', pageSize = 10) {
 
   const { refreshDraftCount, decrementDraftCount } = useCreatorStore();
 
-  const load = async (page: number) => {
+  const load = async (pageNum: number) => {
     isLoading.value = true;
     try {
-      const res = await getMyArticles({ status, page, size: pageSize });
+      const res = await getMyArticles({ status, pageNum,pageSize: pageSize });
       if (res.isSuccess && res.data) {
         articles.value = res.data.data;
         total.value = res.data.total;

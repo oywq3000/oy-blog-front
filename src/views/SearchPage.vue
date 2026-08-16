@@ -79,12 +79,6 @@ const hotSearches = ref(['Spring Boot 3', 'Kubernetes', 'Microservices', 'AI Too
 
 
 
-const paginatedResults = computed(() => {
-  const start = (currentPage.value - 1) * itemsPerPage;
-  const end = start + itemsPerPage;
-  return enrichedResults.value.slice(start, end);
-});
-
 // Methods
 const performSearch = async () => {
   //if (!searchQuery.value) return;
@@ -215,6 +209,8 @@ const changePage = async  (page: number) => {
         const response = await searchArticles(buildSearchParams(currentPage.value));
       if (response.isSuccess) {
         searchResults.value = response.data.data;
+        totalResults.value = response.data.total;
+        totalPages.value = response.data.totalPages;
         await enrichArticles(response.data.data);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
@@ -312,25 +308,6 @@ onMounted(() => {
                   {{ t('common.search') }}
                 </button>
              </div>
-             
-             <!-- Inline History (Below Search Box) -->
-             <div class="inline-history" v-if="!searchQuery && searchHistory.length > 0">
-                <span class="history-label">{{ t('common.history') }}:</span>
-                <div class="history-chips">
-                  <button
-                    v-for="item in searchHistory.slice(0, 6)"
-                    :key="item"
-                    class="history-chip"
-                    @click="selectTag(item)"
-                  >
-                    {{ item }}
-                  </button>
-                  <button @click="clearHistory" class="clear-history-text" :title="t('common.clear')">
-                    {{ t('common.clear') }}
-                  </button>
-                </div>
-             </div>
-
              <!-- Results Toolbar: Sort & Date Filters (inside sticky header, pinned with the search box) -->
              <div class="results-toolbar" v-if="searchResults.length > 0 || isLoading || dateFrom || dateTo || activeFilter !== 'all'">
                <div class="toolbar-left">
@@ -348,6 +325,23 @@ onMounted(() => {
                          class="toolbar-reset" @click="resetFilters">{{ t('search.reset') }}</button>
                </div>
              </div>
+              <!-- Inline History (Below Search Box) -->
+             <div class="inline-history" v-if="!searchQuery && searchHistory.length > 0">
+                <span class="history-label">{{ t('common.history') }}:</span>
+                <div class="history-chips">
+                  <button
+                    v-for="item in searchHistory.slice(0, 6)"
+                    :key="item"
+                    class="history-chip"
+                    @click="selectTag(item)"
+                  >
+                    {{ item }}
+                  </button>
+                  <button @click="clearHistory" class="clear-history-text" :title="t('common.clear')">
+                    {{ t('common.clear') }}
+                  </button>
+                </div>
+             </div>
           </div>
 
           <!-- Content Area -->
@@ -360,7 +354,7 @@ onMounted(() => {
              </div>
 
              <!-- Results State -->
-             <div v-else-if="paginatedResults.length > 0" class="results-container">
+             <div v-else-if="enrichedResults.length > 0" class="results-container">
                 <div class="results-meta" v-if="searchQuery || activeFilter !== 'all' || dateFrom || dateTo">
                    <span class="count" v-if="activeFilter === 'tag'">{{ t('search.resultsForTag', { count: totalResults, keyword: searchQuery }) }}</span>
                    <span class="count" v-else-if="activeFilter === 'author'">{{ t('search.resultsForAuthor', { count: totalResults, keyword: searchQuery }) }}</span>
@@ -369,7 +363,7 @@ onMounted(() => {
                 </div>
                 <div class="results-list">
                   <ArticleCard
-                    v-for="result in paginatedResults"
+                    v-for="result in enrichedResults"
                     :key="result.id"
                     v-bind="result"
                     :highlight-snippet="result.highlightSnippet"
@@ -648,8 +642,8 @@ onMounted(() => {
   border: 1px solid var(--color-border);
   border-radius: 12px;
   padding: 12px 16px;
-  margin-top: 12px;
-  margin-bottom: $spacing-lg;
+  margin-top: 6px;
+  margin-bottom: 8px;
 }
 
 .toolbar-left,
@@ -826,7 +820,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 12px;
+  margin-top: 6px;
   padding-left: 12px;
   animation: slideDown 0.3s ease;
 

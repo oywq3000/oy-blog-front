@@ -259,8 +259,8 @@ export const getMyStats = () => {
 // Params for fetching current user's own articles
 export interface MyArticlesParams {
   status: 'published' | 'draft';
-  page?: number;
-  size?: number;
+  pageNum?: number;
+  pageSize?: number;
 }
 
 // Get Current User's Articles (published or drafts, paged)

@@ -678,13 +678,17 @@ onUnmounted(() => {
                 <p>{{ t('common.loading', 'Loading...') }}</p>
               </div>
               <div v-else-if="historyArticles.length" class="history-list">
-                <div v-for="article in historyArticles" :key="article.id" class="history-item glass-panel">
+                <div
+                  v-for="article in historyArticles"
+                  :key="article.id"
+                  class="history-item glass-panel"
+                  @click="goToArticle(article.id)"
+                >
                   <div class="history-info">
                     <span class="history-date">{{ t('profile.viewedOn') }} {{ formatDate(article.viewedAt || article.publishAt) }}</span>
                     <h3>{{ article.title }}</h3>
                     <p class="history-summary">{{ article.summary }}</p>
                   </div>
-                  <button class="view-btn" @click="goToArticle(article.id)">{{ t('profile.readAgain') }}</button>
                 </div>
               </div>
               <div v-else class="empty-state glass-panel">
@@ -1403,8 +1407,8 @@ onUnmounted(() => {
   .history-item {
     padding: 1rem 1.5rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    cursor: pointer;
     transition: transform 0.2s;
 
     &:hover {
@@ -1430,22 +1434,6 @@ onUnmounted(() => {
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-      }
-    }
-    
-    .view-btn {
-      padding: 6px 12px;
-      border: 1px solid $color-border;
-      background: transparent;
-      color: $color-text-secondary;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      
-      &:hover {
-        border-color: $color-accent-primary;
-        color: $color-accent-primary;
       }
     }
   }

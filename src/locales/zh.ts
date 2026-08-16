@@ -94,7 +94,6 @@ export default {
     noFavorites: '暂无收藏',
     noHistory: '暂无历史',
     viewedOn: '浏览于',
-    readAgain: '再次阅读',
     accountSecurity: '账户安全',
     emailAddress: '电子邮箱',
     verified: '已验证',

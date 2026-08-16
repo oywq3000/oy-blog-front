@@ -163,14 +163,13 @@ describe('UserProfile 历史 tab', () => {
     expect(getReadingHistory).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('History One')
     expect(wrapper.find('.history-item').exists()).toBe(true)
-    expect(wrapper.find('.view-btn').exists()).toBe(true) // 再次阅读按钮
   })
 
-  it('再次阅读跳转到文章详情', async () => {
+  it('点击历史条目跳转到文章详情', async () => {
     const wrapper = await mountProfile()
     await switchMainTab(wrapper, 1)
 
-    await wrapper.find('.view-btn').trigger('click')
+    await wrapper.find('.history-item').trigger('click')
     await flushPromises()
 
     const route = (wrapper.vm as any).$router.currentRoute.value

@@ -94,7 +94,6 @@ export default {
     noFavorites: 'No favorites yet.',
     noHistory: 'No history yet.',
     viewedOn: 'Viewed on',
-    readAgain: 'Read Again',
     accountSecurity: 'Account Security',
     emailAddress: 'Email Address',
     verified: 'Verified',

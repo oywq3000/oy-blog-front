@@ -8,7 +8,7 @@ import { useUserStore } from '../store/user';
 import { requestEmailVerification, updateUserInfo, updatePassword as updatePasswordApi, type UpdateProfileDto } from '../api/auth';
 import { uploadAvatar } from '../api/upload';
 import { getFavoriteArticles, getReadingHistory, unfavoriteArticle, getMyStats, getMyHeatmap, type ArticleInfo } from '../api/article';
-import { buildHeatmapData, type HeatmapData } from '../utils/heatmap';
+import { buildHeatmapData, buildMonthLabels, cellBackground, type HeatmapData } from '../utils/heatmap';
 import { useTheme } from '../composables/useTheme';
 import { useToast } from '../composables/useToast';
 
@@ -200,6 +200,15 @@ const {
 // --- Heatmap (activity) ---
 const heatmapData = ref<HeatmapData>(buildHeatmapData([])); // 初始全零网格，布局稳定
 const isHeatmapLoading = ref(false);
+
+// 月份标签按网格实际日期定位（列索引 → 标签），替代静态 Jan…Dec 避免错位
+const monthLabelByCol = computed(() => {
+  const map = new Map<number, string>();
+  for (const { label, colIndex } of buildMonthLabels(heatmapData.value)) {
+    map.set(colIndex, label);
+  }
+  return map;
+});
 
 const loadHeatmap = async () => {
   if (!currentUser.value) return;
@@ -568,8 +577,9 @@ onUnmounted(() => {
           <h3>{{ t('profile.activity', 'Activity') }}</h3>
           <div class="heatmap-container">
             <div class="heatmap-months">
-              <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-              <span>Jul</span><span>Aug</span><span>Sep</span><span>Oct</span><span>Nov</span><span>Dec</span>
+              <div v-for="(_, i) in heatmapData" :key="i" class="heatmap-month-slot">
+                <span v-if="monthLabelByCol.has(i)" class="heatmap-month">{{ monthLabelByCol.get(i) }}</span>
+              </div>
             </div>
             <div class="heatmap-body">
               <div class="heatmap-days">
@@ -582,8 +592,8 @@ onUnmounted(() => {
                   <div 
                     v-for="(day, j) in week" 
                     :key="j" 
-                    class="heatmap-cell" 
-                    :style="{ backgroundColor: `rgba(var(--color-accent-primary-rgb), ${day.intensity})` }"
+                    class="heatmap-cell"
+                    :style="{ backgroundColor: cellBackground(day.intensity) }"
                     :title="t('profile.heatmapTooltip', { count: day.count, date: day.date })"
                   ></div>
                 </div>
@@ -592,10 +602,10 @@ onUnmounted(() => {
             <div class="heatmap-legend">
               <span>Less</span>
               <div class="legend-scale">
-                <div class="cell" style="background-color: rgba(var(--color-accent-primary-rgb), 0.1)"></div>
-                <div class="cell" style="background-color: rgba(var(--color-accent-primary-rgb), 0.4)"></div>
-                <div class="cell" style="background-color: rgba(var(--color-accent-primary-rgb), 0.7)"></div>
-                <div class="cell" style="background-color: rgba(var(--color-accent-primary-rgb), 1)"></div>
+                <div class="cell" :style="{ backgroundColor: cellBackground(0.1) }"></div>
+                <div class="cell" :style="{ backgroundColor: cellBackground(0.4) }"></div>
+                <div class="cell" :style="{ backgroundColor: cellBackground(0.7) }"></div>
+                <div class="cell" :style="{ backgroundColor: cellBackground(1) }"></div>
               </div>
               <span>More</span>
             </div>
@@ -1217,11 +1227,24 @@ onUnmounted(() => {
 
   .heatmap-months {
     display: flex;
-    justify-content: space-between;
+    gap: 4px; /* 与 .heatmap-grid 列距一致，保证标签与列对齐 */
     margin-bottom: 8px;
     padding-left: 30px; /* Space for day labels */
+    height: 1.1em; /* 占位高度，标签绝对定位不撑开布局 */
     font-size: 0.75rem;
     color: $color-text-secondary;
+
+    .heatmap-month-slot {
+      position: relative;
+      width: 10px; /* 与 .heatmap-cell 等宽 */
+      flex-shrink: 0;
+
+      .heatmap-month {
+        position: absolute;
+        left: 0;
+        white-space: nowrap;
+      }
+    }
   }
 
   .heatmap-body {

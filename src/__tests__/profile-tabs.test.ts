@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import './profile-tabs-localstorage-setup'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createI18n } from 'vue-i18n'
@@ -325,6 +325,66 @@ describe('UserProfile 活跃度热力图', () => {
     const wrapper = await mountProfile()
 
     const cells = wrapper.findAll('.heatmap-cell')
+    expect(cells[0].attributes('title')).toContain('0 contributions')
+  })
+})
+
+describe('UserProfile 活跃度热力图月份标签与数据对齐', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.clearAllMocks()
+    // 仅伪造 Date（保留真实定时器，避免 flushPromises 挂起）
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 7, 17, 12))
+    ;(getFavoriteArticles as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: [] })
+    ;(getReadingHistory as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: [] })
+    ;(getMyStats as any).mockResolvedValue({
+      isSuccess: true, errCode: 200, errMsg: '',
+      data: { articleCount: 0, likeCount: 0, favoriteCount: 0 },
+    })
+    ;(unfavoriteArticle as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
+    ;(updatePassword as any).mockResolvedValue({ isSuccess: true, errCode: 200, errMsg: '', data: null })
+    // 用户线上真实返回：7-23 与 8-05 … 8-15
+    ;(getMyHeatmap as any).mockResolvedValue({
+      isSuccess: true, errCode: 200, errMsg: '',
+      data: [
+        { date: '2026-07-23', count: 2 },
+        { date: '2026-08-05', count: 6 },
+        { date: '2026-08-06', count: 3 },
+        { date: '2026-08-08', count: 6 },
+        { date: '2026-08-09', count: 11 },
+        { date: '2026-08-10', count: 2 },
+        { date: '2026-08-11', count: 1 },
+        { date: '2026-08-12', count: 1 },
+        { date: '2026-08-15', count: 12 },
+      ],
+    })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('月份标签按实际日期生成并定位到对应列', async () => {
+    const wrapper = await mountProfile()
+
+    const slots = wrapper.findAll('.heatmap-month-slot')
+    expect(slots).toHaveLength(52)
+
+    expect(slots[0].find('.heatmap-month').text()).toBe('Aug') // 网格起点 2025-08
+    expect(slots[48].find('.heatmap-month').exists()).toBe(false)
+    expect(slots[49].find('.heatmap-month').text()).toBe('Aug') // 2026-08 从第 49 列开始
+  })
+
+  it('后端数据回填到右侧最近列而不是 10 月区域', async () => {
+    const wrapper = await mountProfile()
+
+    const cells = wrapper.findAll('.heatmap-cell')
+    // 2026-08-15 → 最后一列第 5 行；2026-07-23 → 第 48 列第 3 行
+    expect(cells[51 * 7 + 5].attributes('title')).toBe('12 contributions on 2026-08-15')
+    expect(cells[48 * 7 + 3].attributes('title')).toBe('2 contributions on 2026-07-23')
+
+    // 其余格子为 0（无活动）
     expect(cells[0].attributes('title')).toContain('0 contributions')
   })
 })

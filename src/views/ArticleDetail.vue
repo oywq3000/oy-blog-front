@@ -301,16 +301,16 @@ const loadArticle = async (articleId: string) => {
       };
 
       if (articleData.id) {
-        // Record view (dedup: same article once per session tab)
-        const VIEWED_KEY = `viewed_${articleData.id}`;
-        if (!sessionStorage.getItem(VIEWED_KEY)) {
-          recordArticleView(articleData.id).then(res => {
+        // Record view：前端不做去重，每次进入都发请求。
+        // 计数防刷由后端 Redis 窗口（IP 5min / 用户 30min）保证；
+        // 重复浏览能刷新后端浏览历史的 viewAt（历史去重靠一人一文章一行）。
+        recordArticleView(articleData.id)
+          .then(res => {
             if (res.isSuccess && articleInfo.value) {
               articleInfo.value.viewCount = res.data;
             }
-          });
-          sessionStorage.setItem(VIEWED_KEY, '1');
-        }
+          })
+          .catch(() => {});
 
         // Load chapters
         loadChapters(articleData.id);

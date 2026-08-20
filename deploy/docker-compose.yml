@@ -1,0 +1,23 @@
+# /opt/oyblog-front/docker-compose.yml —— 独立前端 nginx，不动后端已有容器
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: oyblog-front
+    restart: unless-stopped
+    init: true                    # tini 作 PID1 回收 worker 僵尸；docker 20.10+
+    ports:
+      # 只绑定宿主机 loopback，由 Cloudflare Tunnel（cloudflared systemd）接入；
+      # 公网无需放行任何端口。8080 已被后端 gateway 占用，故前端用 18080。
+      - "127.0.0.1:18080:80"
+    volumes:
+      # dist 只读挂载；更新 = 部署脚本就地解压覆盖，无需重建镜像/重启容器
+      - ./dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    extra_hosts:
+      # 容器内解析为宿主机 docker 网桥网关（如 172.17.0.1），访问宿主机上的 gateway 8080
+      - "host.docker.internal:host-gateway"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"           # access/error 走 stdout/stderr，由日志驱动轮转
+        max-file: "3"

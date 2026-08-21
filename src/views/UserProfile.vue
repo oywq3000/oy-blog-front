@@ -8,7 +8,7 @@ import { useUserStore } from '../store/user';
 import { requestEmailVerification, updateUserInfo, updatePassword as updatePasswordApi, type UpdateProfileDto } from '../api/auth';
 import { uploadAvatar } from '../api/upload';
 import { getFavoriteArticles, getReadingHistory, unfavoriteArticle, getMyStats, getMyHeatmap, type ArticleInfo } from '../api/article';
-import { buildHeatmapData, buildMonthLabels, cellBackground, type HeatmapData } from '../utils/heatmap';
+import { buildHeatmapData, buildMonthLabels, buildWeekdayLabels, cellBackground, type HeatmapData } from '../utils/heatmap';
 import { useTheme } from '../composables/useTheme';
 import { useToast } from '../composables/useToast';
 
@@ -209,6 +209,9 @@ const monthLabelByCol = computed(() => {
   }
   return map;
 });
+
+// 星期轴标签按网格第一格真实日期定位（7 行槽位，Mon/Wed/Fri 三行有值）
+const weekdayAxisLabels = computed(() => buildWeekdayLabels(heatmapData.value));
 
 const loadHeatmap = async () => {
   if (!currentUser.value) return;
@@ -582,10 +585,11 @@ onUnmounted(() => {
               </div>
             </div>
             <div class="heatmap-body">
+              <!-- 星期轴：7 行槽位与格子行对齐，标签按网格第一格真实星期定位（不再是写死 space-between） -->
               <div class="heatmap-days">
-                <span>Mon</span>
-                <span>Wed</span>
-                <span>Fri</span>
+                <div v-for="(label, i) in weekdayAxisLabels" :key="i" class="heatmap-day-slot">
+                  <span v-if="label" class="heatmap-day-label">{{ label }}</span>
+                </div>
               </div>
               <div class="heatmap-grid" :key="theme">
                 <div v-for="(week, i) in heatmapData" :key="i" class="heatmap-col">
@@ -1229,7 +1233,7 @@ onUnmounted(() => {
     display: flex;
     gap: 4px; /* 与 .heatmap-grid 列距一致，保证标签与列对齐 */
     margin-bottom: 8px;
-    padding-left: 30px; /* Space for day labels */
+    padding-left: 32px; /* 星期轴列宽 24px + .heatmap-body 间距 8px，保证与网格列对齐 */
     height: 1.1em; /* 占位高度，标签绝对定位不撑开布局 */
     font-size: 0.75rem;
     color: $color-text-secondary;
@@ -1255,12 +1259,27 @@ onUnmounted(() => {
   .heatmap-days {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding-top: 2px;
-    padding-bottom: 2px;
+    gap: 4px; /* 与 .heatmap-col 行距一致，槽位与格子行对齐 */
     font-size: 0.7rem;
     color: $color-text-secondary;
     height: 94px; /* Align with grid height (7 cells * 10px + 6 gaps * 4px) */
+    flex-shrink: 0;
+
+    .heatmap-day-slot {
+      position: relative;
+      width: 24px;
+      height: 10px; /* 与 .heatmap-cell 等高 */
+      flex-shrink: 0;
+
+      .heatmap-day-label {
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        line-height: 1;
+        white-space: nowrap;
+      }
+    }
   }
 
   .heatmap-grid {

@@ -1,30 +1,28 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import TechIcon from './icons/TechIcon.vue';
 import HotTagIcon from './icons/HotTagIcon.vue';
 import { useUserStore } from '../store/user';
+import { getPopularTags, type TagStat } from '../api/article';
 
 const { t } = useI18n();
 const { isLoggedIn, user } = useUserStore();
 
-interface Tag {
-  name: string;
-  count: number;
-  category: 'backend' | 'frontend' | 'devops' | 'cloud' | 'database' | 'architecture';
-}
+// 热门（常用）标签：后端 /tags/popular 返回 is_common=1 的标签及文章数，按文章数降序
+const tags = ref<TagStat[]>([]);
 
-const tags: Tag[] = ([
-  { name: 'Java', count: 128, category: 'backend' },
-  { name: 'Spring Boot', count: 85, category: 'backend' },
-  { name: 'Vue.js', count: 64, category: 'frontend' },
-  { name: 'TypeScript', count: 42, category: 'frontend' },
-  { name: 'Docker', count: 36, category: 'devops' },
-  { name: 'Kubernetes', count: 24, category: 'devops' },
-  { name: 'Microservices', count: 30, category: 'architecture' },
-  { name: 'AWS', count: 18, category: 'cloud' },
-  { name: 'Redis', count: 28, category: 'database' },
-  { name: 'MySQL', count: 32, category: 'database' }
-] as const).slice(0, 5) as unknown as Tag[];
+onMounted(async () => {
+  try {
+    const res = await getPopularTags();
+    if (res.isSuccess) {
+      tags.value = res.data.slice(0, 10); // 侧栏最多展示 10 个
+    }
+  } catch (e) {
+    // 标签是锦上添花：失败时静默降级为空列表，不影响首页主流程
+    console.error('Failed to load popular tags', e);
+  }
+});
 </script>
 
 <template>
@@ -58,33 +56,22 @@ const tags: Tag[] = ([
     </h3>
     <div class="card-content">
       <div class="tags-list">
-        <a v-for="tag in tags" :key="tag.name" href="#" class="tag-item">
+        <!-- 点击标签 → 搜索页按该标签精确过滤（filter=tag） -->
+        <router-link
+          v-for="tag in tags"
+          :key="tag.id"
+          :to="{ name: 'search', query: { q: tag.name, filter: 'tag' } }"
+          class="tag-item"
+        >
           <div class="tag-info">
             <TechIcon :name="tag.name" :size="16" class="tag-icon" />
             <span class="tag-name">{{ tag.name }}</span>
           </div>
-          <span class="tag-count">{{ tag.count }}</span>
-        </a>
+          <span class="tag-count">{{ tag.articleCount }}</span>
+        </router-link>
       </div>
     </div>
   </div>
-  <!-- <div class="sidebar__widget tags-card glass-panel">
-    <h3 class="sidebar__title">
-      <HotTagIcon class="sidebar-icon" />
-      {{ t('sidebar.hotTags') }}
-    </h3>
-    <div class="card-content">
-      <div class="tags-list">
-        <a v-for="tag in tags" :key="tag.name" href="#" class="tag-item">
-          <div class="tag-info">
-            <TechIcon :name="tag.name" :size="16" class="tag-icon" />
-            <span class="tag-name">{{ tag.name }}</span>
-          </div>
-          <span class="tag-count">{{ tag.count }}</span>
-        </a>
-      </div>
-    </div>
-  </div> -->
 </aside>
 </template>
 

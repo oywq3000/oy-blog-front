@@ -214,9 +214,23 @@ export const deleteArticle = (id: string) => {
   return request.delete<any, ResultObject>(baseUrl+`/article/${id}`);
 };
 
-// Query Popular Tags
+// 常用标签统计（GET /article/read/tags/popular）
+export interface TagStat {
+  id: string;
+  name: string;
+  articleCount: number;
+}
+
+export interface ResultListTagStat {
+  errCode: number;
+  errMsg: string;
+  isSuccess: boolean;
+  data: TagStat[];
+}
+
+// Query Popular (Common) Tags
 export const getPopularTags = () => {
-  return request.get<any, { data: string[] }>(baseUrl+'/article/read/tags/popular');
+  return request.get<any, ResultListTagStat>(baseUrl+'/article/read/tags/popular');
 };
 
 // Query Reading History
@@ -293,7 +307,6 @@ export interface SearchParams {
   pageNum?: number;
   pageSize?: number;
   author?: string;
-  tag?: string;
   status?: string;
   sortBy?: string;     // 'relevance' | 'createdAt' | 'likeCount' | 'viewCount'
   sortOrder?: string;  // 'asc' | 'desc'

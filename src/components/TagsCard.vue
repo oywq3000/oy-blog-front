@@ -1,29 +1,25 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import HotTagIcon from './icons/HotTagIcon.vue';
 import TechIcon from './icons/TechIcon.vue';
+import { getPopularTags, type TagStat } from '../api/article';
 
 const { t } = useI18n();
 
-interface Tag {
-  name: string;
-  count: number;
-  category: 'backend' | 'frontend' | 'devops' | 'cloud' | 'database' | 'architecture';
-}
+// 常用标签（后端 /tags/popular：is_common=1，按文章数降序）
+const tags = ref<TagStat[]>([]);
 
-// Mock data - normally fetched from API
-const tags: Tag[] = ([
-  { name: 'Java', count: 128, category: 'backend' },
-  { name: 'Spring Boot', count: 85, category: 'backend' },
-  { name: 'Vue.js', count: 64, category: 'frontend' },
-  { name: 'TypeScript', count: 42, category: 'frontend' },
-  { name: 'Docker', count: 36, category: 'devops' },
-  { name: 'Kubernetes', count: 24, category: 'devops' },
-  { name: 'Microservices', count: 30, category: 'architecture' },
-  { name: 'AWS', count: 18, category: 'cloud' },
-  { name: 'Redis', count: 28, category: 'database' },
-  { name: 'MySQL', count: 32, category: 'database' }
-] as const).slice(0, 5) as unknown as Tag[]; // Limit to 5 tags as requested
+onMounted(async () => {
+  try {
+    const res = await getPopularTags();
+    if (res.isSuccess) {
+      tags.value = res.data.slice(0, 10); // 侧栏最多展示 10 个
+    }
+  } catch (e) {
+    console.error('Failed to load popular tags', e);
+  }
+});
 </script>
 
 <template>
@@ -34,17 +30,24 @@ const tags: Tag[] = ([
         <span>{{ t('sidebar.hotTags') }}</span>
       </h3>
     </div>
-    
+
     <div class="card-content">
       <div class="tags-list">
-        <a v-for="tag in tags" :key="tag.name" href="#" class="tag-item">
+        <!-- 点击标签 → 搜索页按该标签精确过滤（filter=tag） -->
+        <router-link
+          v-for="tag in tags"
+          :key="tag.id"
+          :to="{ name: 'search', query: { q: tag.name, filter: 'tag' } }"
+          class="tag-item"
+        >
           <div class="tag-info">
             <TechIcon :name="tag.name" :size="16" class="tag-icon" />
             <span class="tag-name">{{ tag.name }}</span>
           </div>
-          <span class="tag-count">{{ tag.count }}</span>
-        </a>
+          <span class="tag-count">{{ tag.articleCount }}</span>
+        </router-link>
       </div>
+      <!-- 空态：无常用标签时不渲染列表（不显示 loading 态以保持侧栏简洁） -->
     </div>
   </div>
 </template>

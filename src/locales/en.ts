@@ -213,6 +213,7 @@ export default {
     coverImage: 'Cover Image',
     tags: 'Tags',
     tagsPlaceholder: 'Add tags (comma separated)',
+    commonTags: 'Common tags (click to add/remove)',
     publishNow: 'Publish Now',
     cancel: 'Cancel',
     uploading: 'Uploading...',

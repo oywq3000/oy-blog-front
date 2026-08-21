@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { MdEditor } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
-import { publishArticle, saveDraft, getArticleContent, getArticleById } from '../api/article';
+import { publishArticle, saveDraft, getArticleContent, getArticleById, getPopularTags, type TagStat } from '../api/article';
 import { uploadCover, uploadContentImage } from '../api/upload';
 // import { useUserStore } from '../store/user';
 import { useTheme } from '../composables/useTheme';
@@ -75,6 +75,20 @@ const publishForm = reactive({
   tags: ''
 });
 
+// 常用标签（后端预置 is_common=1），点选即加入/移出标签；自创标签仍走输入框
+const commonTags = ref<TagStat[]>([]);
+
+const loadCommonTags = async () => {
+  try {
+    const res = await getPopularTags();
+    if (res.isSuccess) {
+      commonTags.value = res.data;
+    }
+  } catch (e) {
+    console.error('Failed to load common tags', e);
+  }
+};
+
 // Strip markdown formatting to get plain text
 const stripMarkdown = (md: string): string => {
   return md
@@ -114,6 +128,19 @@ const wordCount = computed(() => {
 
 // Helper to process tags
 const getTagsArray = () => publishForm.tags.split(/[,，]/).map(t => t.trim()).filter(t => t);
+
+// 常用标签点选切换：基于逗号分隔字符串增删
+const isTagSelected = (name: string) => getTagsArray().includes(name);
+const toggleTag = (name: string) => {
+  const arr = getTagsArray();
+  const i = arr.indexOf(name);
+  if (i > -1) {
+    arr.splice(i, 1);
+  } else {
+    arr.push(name);
+  }
+  publishForm.tags = arr.join(', ');
+};
 
 const handlePublishClick = () => {
   if (!title.value.trim()) {
@@ -225,6 +252,8 @@ const loadArticleForEdit = async (id: string) => {
 const isMobile = ref(false);
 
 onMounted(() => {
+  loadCommonTags();
+
   if (window.innerWidth < 768) {
     isMobile.value = true;
     return;
@@ -436,12 +465,26 @@ const submitArticle = async () => {
               <div class="form-row bottom-row">
                 <div class="form-group">
                   <label>{{ t('editor.tags') }}</label>
-                  <input 
-                    v-model="publishForm.tags" 
-                    type="text" 
-                    :placeholder="t('editor.tagsPlaceholder')" 
+                  <input
+                    v-model="publishForm.tags"
+                    type="text"
+                    :placeholder="t('editor.tagsPlaceholder')"
                     class="custom-input"
                   />
+                  <!-- 常用标签：点选切换；输入框里可自创任意标签 -->
+                  <div class="common-tags" v-if="commonTags.length > 0">
+                    <span class="common-tags-label">{{ t('editor.commonTags') }}</span>
+                    <button
+                      v-for="tg in commonTags"
+                      :key="tg.id"
+                      type="button"
+                      class="common-tag-chip"
+                      :class="{ active: isTagSelected(tg.name) }"
+                      @click="toggleTag(tg.name)"
+                    >
+                      {{ tg.name }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1029,6 +1072,58 @@ const submitArticle = async () => {
   textarea.custom-input {
     resize: vertical;
     min-height: 100px;
+  }
+
+  .common-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.6rem;
+
+    .common-tags-label {
+      width: 100%;
+      font-size: 0.75rem;
+      color: rgba($color-text-primary, 0.45);
+
+      :global(.dark) & {
+        color: rgba(255, 255, 255, 0.45);
+      }
+    }
+
+    .common-tag-chip {
+      padding: 0.3rem 0.8rem;
+      font-size: 0.85rem;
+      border-radius: 999px;
+      border: 1px solid $color-border;
+      background: rgba(0, 0, 0, 0.05);
+      color: $color-text-secondary;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      :global(.dark) & {
+        background: rgba(0, 0, 0, 0.4);
+        border-color: rgba(255, 255, 255, 0.2);
+        color: rgba(255, 255, 255, 0.75);
+      }
+
+      &:hover {
+        border-color: $color-accent-primary;
+        color: $color-accent-primary;
+      }
+
+      &.active {
+        background: rgba($color-accent-primary-rgb, 0.15);
+        border-color: $color-accent-primary;
+        color: $color-accent-primary;
+        font-weight: 600;
+
+        :global(.dark) & {
+          background: rgba($color-accent-primary-rgb, 0.3);
+          color: #fff;
+        }
+      }
+    }
   }
 }
 

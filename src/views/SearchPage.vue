@@ -11,8 +11,10 @@ const route = useRoute();
 const router = useRouter();
 
 const searchQuery = ref('');
-const activeFilter = ref('all');
 const filters = ['all', 'article', 'tag', 'author'];
+const isValidFilter = (f: unknown): f is string => typeof f === 'string' && filters.includes(f);
+// 从标签徽章/侧栏跳转进来时（?q=xx&filter=tag）直接进入标签过滤模式
+const activeFilter = ref(isValidFilter(route.query.filter) ? route.query.filter : 'all');
 
 // Sort & date filter state
 const sortBy = ref('relevance');
@@ -221,6 +223,13 @@ const changePage = async  (page: number) => {
 };
 
 // Watchers and Lifecycle
+// filter 仅同步状态：q 变化已触发搜索，避免同一导航重复请求
+watch(() => route.query.filter, (newF) => {
+  if (isValidFilter(newF)) {
+    activeFilter.value = newF;
+  }
+});
+
 watch(() => route.query.q, (newQ) => {
   if (newQ && typeof newQ === 'string') {
     searchQuery.value = newQ;

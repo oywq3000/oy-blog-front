@@ -5,7 +5,8 @@ const sizeClass = props.size === 'sm' ? 'tag-badge--sm' : 'tag-badge--md';
 </script>
 
 <template>
-  <router-link :to="{ name: 'search', query: { q: props.label } }" class="tag-badge" :class="sizeClass" aria-label="Tag">
+  <!-- filter=tag：按标签精确搜索（后端 TermQuery 匹配 tags 字段） -->
+  <router-link :to="{ name: 'search', query: { q: props.label, filter: 'tag' } }" class="tag-badge" :class="sizeClass" aria-label="Tag">
     <TechIcon v-if="props.showIcon !== false" :name="props.label" :size="sizeClass === 'tag-badge--sm' ? 14 : 16" />
     <span class="tag-badge__text">{{ props.label }}</span>
   </router-link>

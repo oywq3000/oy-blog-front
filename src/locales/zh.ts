@@ -213,6 +213,7 @@ export default {
     coverImage: '封面图片',
     tags: '标签',
     tagsPlaceholder: '添加标签（逗号分隔）',
+    commonTags: '常用标签（点击添加/移除）',
     publishNow: '立即发布',
     cancel: '取消',
     uploading: '上传中...',

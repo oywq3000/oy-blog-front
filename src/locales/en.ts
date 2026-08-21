@@ -38,7 +38,7 @@ export default {
     email: 'Email Address',
     emailPlaceholder: 'john@example.com',
     password: 'Password',
-    passwordPlaceholder: '••••••••',
+    passwordPlaceholder: 'Enter password',
     confirmPassword: 'Confirm Password',
     username: 'Username',
     usernamePlaceholder: 'Enter your username',

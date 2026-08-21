@@ -38,7 +38,7 @@ export default {
     email: '电子邮件地址',
     emailPlaceholder: 'john@example.com',
     password: '密码',
-    passwordPlaceholder: '••••••••',
+    passwordPlaceholder: '输入密码',
     confirmPassword: '确认密码',
     username: '用户名',
     usernamePlaceholder: '输入您的用户名',

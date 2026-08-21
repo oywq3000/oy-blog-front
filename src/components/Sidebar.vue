@@ -68,7 +68,7 @@ const tags: Tag[] = ([
       </div>
     </div>
   </div>
-  <div class="sidebar__widget tags-card glass-panel">
+  <!-- <div class="sidebar__widget tags-card glass-panel">
     <h3 class="sidebar__title">
       <HotTagIcon class="sidebar-icon" />
       {{ t('sidebar.hotTags') }}
@@ -84,7 +84,7 @@ const tags: Tag[] = ([
         </a>
       </div>
     </div>
-  </div>
+  </div> -->
 </aside>
 </template>
 

@@ -77,7 +77,7 @@ export default {
   home: {
     title: 'oyblog',
     subtitle: '探索技术前沿 • 记录成长历程',
-    tag: '<DEV_ZONE />',
+    tag: '<DEV_ZONE>',
     featured: '精选故事',
     loadingTitle: '加载中...',
     loadingSummary: '正在获取最新文章...',

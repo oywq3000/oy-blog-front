@@ -109,16 +109,37 @@ function formatCount(n: number | undefined): string {
   grid-template-rows: auto auto 1fr auto;
   min-height: 120px;
   padding: $spacing-sm $spacing-lg;
-  margin-bottom: 8px;
-  background: #fff;
-  border-radius: 8px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-lg;
   cursor: pointer;
-  transition: background 0.2s ease;
-  border-radius: 8px;
   gap: 4px 0;
+  position: relative;
+  overflow: hidden;
+  transition: $transition-base;
+
+  // 左侧渐变条：hover 时展开
+  &::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: $gradient-primary;
+    transform: scaleY(0);
+    transform-origin: top;
+    transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
 
   &:hover {
-    background: var(--color-bg-secondary);
+    border-color: rgba(var(--color-accent-primary-rgb), 0.35);
+    box-shadow: var(--color-card-hover-shadow);
+    transform: translateY(-2px);
+
+    &::before {
+      transform: scaleY(1);
+    }
   }
 
   // When cover exists, add a second column
@@ -174,7 +195,7 @@ function formatCount(n: number | undefined): string {
 
 .article-date {
   font-size: 0.8rem;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   font-family: $font-family-code;
   white-space: nowrap;
   flex-shrink: 0;
@@ -250,13 +271,13 @@ function formatCount(n: number | undefined): string {
   align-items: center;
   gap: 4px;
   font-size: 0.8rem;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   white-space: nowrap;
 
   .stat-icon {
     width: 15px;
     height: 15px;
-    opacity: 0.6;
+    opacity: 0.65;
   }
 }
 

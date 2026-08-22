@@ -4,7 +4,6 @@ import { useI18n } from 'vue-i18n';
 import ArticleCard from '../components/ArticleCard.vue';
 import PopularArticleCard from '../components/PopularArticleCard.vue';
 import HeroSection from '../components/HeroSection.vue';
-import FeaturedCard from '../components/FeaturedCard.vue';
 import TagCloud from '../components/TagCloud.vue';
 import { useAppStore } from '../store/app';
 import { getPublishedArticles, getUserStats, type ArticleInfo, type UserArticleStats } from '../api/article';
@@ -94,9 +93,6 @@ const popularArticles = computed(() =>
     .slice(0, POPULAR_LIMIT)
 );
 
-// ---- 精选：置顶优先、日期降序后的第一篇；无文章则为 null（隐藏板块）----
-const featured = computed(() => articles.value[0] ?? null);
-
 const observeElements = () => {
   const observer = new IntersectionObserver((entries) => {
     entries.forEach((entry) => {
@@ -181,7 +177,7 @@ watch(showContent, (val) => {
 
     <div class="container home-body">
       <!-- 置顶精选大卡 -->
-      <section v-if="showContent && featured" class="featured-section fade-in-up">
+      <!-- <section v-if="showContent && featured" class="featured-section fade-in-up">
         <h2 class="section-title fade-in-up">
           <span class="text-gradient">{{ t('home.featured') }}</span>
         </h2>
@@ -189,7 +185,7 @@ watch(showContent, (val) => {
       </section>
       <section v-else-if="!showContent" class="featured-section" aria-hidden="true">
         <div class="featured-skeleton"></div>
-      </section>
+      </section> -->
 
       <!-- 热门标签云（自取数） -->
       <TagCloud />
@@ -202,7 +198,6 @@ watch(showContent, (val) => {
             <h2 class="pane-title">
               <span class="text-gradient">{{ t('home.latestArticles') }}</span>
             </h2>
-
             <!-- 年份筛选 -->
             <div v-if="showContent && years.length > 1" class="year-filter" role="group" :aria-label="t('home.years')">
               <button
@@ -238,7 +233,6 @@ watch(showContent, (val) => {
             </div>
           </div>
         </section>
-
         <!-- 右窗格：最热门 -->
         <section class="article-pane" aria-label="最热门文章">
           <header class="pane-header">
@@ -246,7 +240,6 @@ watch(showContent, (val) => {
               <span class="text-gradient">{{ t('home.popularArticles') }}</span>
             </h2>
           </header>
-
           <div v-if="showContent && popularArticles.length" class="popular-list">
             <PopularArticleCard
               v-for="(article, i) in popularArticles"
@@ -346,14 +339,18 @@ watch(showContent, (val) => {
 .columns-wrap {
   display: grid;
   grid-template-columns: 1fr 400px;
+  // 关键：让行填满容器高度，否则子项落在 auto 行、高度由内容决定，容器变高时窗格不跟随
+  grid-template-rows: minmax(0, 1fr);
   gap: $spacing-lg;
-  height: calc(100dvh - 104px);
+  // 高度 = 视口 − 顶部 sticky 偏移 72px（导航栏 + 呼吸）
+  height: calc(100dvh - 72px);
   position: sticky;
   top: 72px;
   scroll-margin-top: 72px;
 
   @media (max-width: $breakpoint-desktop) {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
     height: auto;
     position: static;
   }
@@ -418,6 +415,7 @@ watch(showContent, (val) => {
 .articles-list {
   display: flex;
   flex-direction: column;
+  gap: $spacing-sm;
 }
 
 .popular-list {

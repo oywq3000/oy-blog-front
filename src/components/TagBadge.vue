@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import TechIcon from './icons/TechIcon.vue';
-const props = defineProps<{ label: string; size?: 'sm' | 'md'; showIcon?: boolean }>();
+const props = defineProps<{ label: string; size?: 'sm' | 'md'; showIcon?: boolean; highlighted?: boolean }>();
 const sizeClass = props.size === 'sm' ? 'tag-badge--sm' : 'tag-badge--md';
 </script>
 
 <template>
   <!-- filter=tag：按标签精确搜索（后端 TermQuery 匹配 tags 字段） -->
-  <router-link :to="{ name: 'search', query: { q: props.label, filter: 'tag' } }" class="tag-badge" :class="sizeClass" aria-label="Tag">
+  <router-link
+    :to="{ name: 'search', query: { q: props.label, filter: 'tag' } }"
+    class="tag-badge"
+    :class="[sizeClass, { 'tag-badge--highlighted': props.highlighted }]"
+    aria-label="Tag"
+  >
     <TechIcon v-if="props.showIcon !== false" :name="props.label" :size="sizeClass === 'tag-badge--sm' ? 14 : 16" />
     <span class="tag-badge__text">{{ props.label }}</span>
   </router-link>
@@ -39,6 +44,14 @@ const sizeClass = props.size === 'sm' ? 'tag-badge--sm' : 'tag-badge--md';
 
 .tag-badge--sm {
   padding: 4px 10px;
+}
+
+// 搜索命中高亮（搜索卡片专用）
+.tag-badge--highlighted {
+  background: rgba($color-accent-primary, 0.15);
+  border-color: $color-accent-primary;
+  color: $color-accent-primary;
+  font-weight: 700;
 }
 
 .tag-badge__text {

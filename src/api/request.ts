@@ -1,6 +1,7 @@
 import axios from 'axios';
 import i18n from '../i18n'; // Import the i18n instance
-import { useToast } from '../composables/useToast';
+import { extractErrorMessage } from '../utils/errorMessage';
+import { notifyRequestError } from '../utils/errorHandler';
 
 const service = axios.create({
   baseURL: '', // Proxy will handle /api
@@ -46,6 +47,7 @@ const processQueue = (error: any, token: string | null) => {
 };
 
 const REFRESH_URL = '/api/user-service/auth/refresh';
+const LOGIN_URL = '/api/user-service/auth/login';
 
 // 清除本地凭证并通知应用进入未授权状态（打开登录弹窗）
 const clearAuthAndNotify = () => {
@@ -55,50 +57,59 @@ const clearAuthAndNotify = () => {
   window.dispatchEvent(new CustomEvent('auth:unauthorized'));
 };
 
+// 构造统一结构的 API 错误：message 由 extractErrorMessage 提取，
+// 并保留原始 response/code，供上层按状态码处理（如 store/user.ts 判断 401）
+const createApiError = (message: string, original?: any) => {
+  const error = new Error(message);
+  (error as any).response = original?.response;
+  (error as any).code = original?.code;
+  return error;
+};
+
 // Response interceptor
+// 统一报错框架：请求错误一律由拦截器以顶部气泡提示（doc/ERROR_HANDLING_FRAMEWORK.md）
 service.interceptors.response.use(
   (response) => {
     const res = response.data;
 
-    // Check for logical errors (e.g. isSuccess === false)
+    // 业务错误（HTTP 200 但 isSuccess === false）：统一气泡提示后 reject，
+    // 调用方不再自行展示错误
     if (res && typeof res.isSuccess === 'boolean' && !res.isSuccess) {
-        // Construct an error with the backend message
-        const errMsg = res.errMsg || 'Unknown Error';
-        const error = new Error(errMsg);
-        // Attach the original response/code if needed
-        (error as any).code = res.errCode;
-        return Promise.reject(error);
+      const error = createApiError(res.errMsg || i18n.global.t('errors.unknown'), { response, code: res.errCode });
+      notifyRequestError(error);
+      return Promise.reject(error);
     }
 
     return res;
   },
   async (error) => {
     const originalRequest = error.config;
-
-    let errMsg = error.message || 'Request Failed';
-    if (error.response && error.response.data) {
-       // Try to extract errMsg from the backend JSON response
-       const data = error.response.data;
-       if (data.errMsg) {
-           errMsg = data.errMsg;
-       } else if (data.message) {
-           errMsg = data.message; // Fallback to standard message field
-       }
-    }
+    const errMsg = extractErrorMessage(error);
 
     // On 401 (Unauthorized): try to refresh token and retry
     if (error.response && error.response.status === 401) {
+      // 登录接口的 401 是"用户名或密码错误"，不是会话过期：直接报错，不触发刷新
+      if (originalRequest.url?.includes(LOGIN_URL)) {
+        const apiError = createApiError(errMsg, error);
+        notifyRequestError(apiError);
+        return Promise.reject(apiError);
+      }
+
       // If the refresh endpoint itself returns 401, don't retry (avoid infinite loop)
       if (originalRequest.url?.includes(REFRESH_URL)) {
         clearAuthAndNotify();
-        return Promise.reject(new Error(errMsg));
+        const apiError = createApiError(errMsg, error);
+        notifyRequestError(apiError);
+        return Promise.reject(apiError);
       }
 
       // A request already retried after a successful refresh must not trigger
       // another refresh — otherwise an endpoint that keeps 401ing loops forever
       if ((originalRequest as any)._retry) {
         clearAuthAndNotify();
-        return Promise.reject(new Error(errMsg));
+        const apiError = createApiError(errMsg, error);
+        notifyRequestError(apiError);
+        return Promise.reject(apiError);
       }
 
       // If already refreshing, queue this request
@@ -116,10 +127,15 @@ service.interceptors.response.use(
 
       const storedRefreshToken = localStorage.getItem('refreshToken');
       if (!storedRefreshToken) {
-        // No refresh token available — clean up and show login
         isRefreshing = false;
+        // 会话过期（本地有凭证）：清理 + 气泡提示 + 打开登录弹窗；
+        // 匿名访问（本地无凭证）：静默清理 + 登录弹窗引导，不弹错误气泡
+        const hadCredentials = !!(localStorage.getItem('token') || localStorage.getItem('userInfo'));
         clearAuthAndNotify();
-        return Promise.reject(new Error(errMsg));
+        if (hadCredentials) {
+          notifyRequestError(createApiError(errMsg, error));
+        }
+        return Promise.reject(createApiError(errMsg, error));
       }
 
       try {
@@ -152,19 +168,16 @@ service.interceptors.response.use(
         isRefreshing = false;
       }
 
-      return Promise.reject(new Error(errMsg));
+      // 刷新失败：气泡提示原始 401 的错误信息（如"Token无效或已过期，请重新登录"）
+      const apiError = createApiError(errMsg, error);
+      notifyRequestError(apiError);
+      return Promise.reject(apiError);
     }
 
-    // Non-401 errors: show toast
-    const customError = new Error(errMsg);
-    (customError as any).response = error.response;
+    // Non-401 errors: 统一气泡提示后 reject
+    const customError = createApiError(errMsg, error);
     console.error('API Error:', customError);
-    try {
-      const { addToast } = useToast();
-      addToast(errMsg, 'error', 5000);
-    } catch {
-      console.warn('Toast system unavailable:', errMsg);
-    }
+    notifyRequestError(customError);
 
     return Promise.reject(customError);
   }

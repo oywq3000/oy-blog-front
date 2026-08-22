@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
-import ArticleCard from '../components/ArticleCard.vue';
+import SearchArticleCard from '../components/SearchArticleCard.vue';
 import IconSearch from '../components/icons/IconSearch.vue';
 import { searchArticles, type ArticleInfo, type SearchParams } from '../api/article';
 
@@ -52,6 +52,8 @@ interface EnrichedArticle {
   authorAvatar?: string;
   highlightSnippet?: string;
   highlightTitle?: string;
+  highlightTags?: string[];
+  highlightAuthorName?: string;
 }
 const enrichedResults = ref<EnrichedArticle[]>([]);
 const totalResults = ref(0);
@@ -73,6 +75,8 @@ function enrichArticles(articles: ArticleInfo[]) {
     authorAvatar: a.authorAvatar,
     highlightSnippet: a.highlightSnippet,
     highlightTitle: a.highlightTitle,
+    highlightTags: a.highlightTags,       // 命中的标签名（强制展示并高亮）
+    highlightAuthorName: a.highlightAuthorName, // 命中作者名的 HTML 片段
   }));
 }
 
@@ -371,12 +375,11 @@ onMounted(() => {
                    <span class="count" v-else>{{ t('search.resultsAll', { count: totalResults }) }}</span>
                 </div>
                 <div class="results-list">
-                  <ArticleCard
+                  <!-- 搜索专用卡片：命中标签/作者名高亮 -->
+                  <SearchArticleCard
                     v-for="result in enrichedResults"
                     :key="result.id"
                     v-bind="result"
-                    :highlight-snippet="result.highlightSnippet"
-                    :highlight-title="result.highlightTitle"
                   />
                 </div>
                 <!-- Pagination -->

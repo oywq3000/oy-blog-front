@@ -1,0 +1,204 @@
+// 登录/注册/重置弹窗表单共享样式（由各弹窗组件 @use）
+@use './variables' as *;
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+
+  label {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    margin-left: 2px;
+  }
+
+  input {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--color-input-bg);
+    border: 1px solid var(--color-input-border);
+    border-radius: 10px;
+    color: var(--color-text-primary);
+    font-size: 13px;
+    transition: all 0.2s ease;
+
+    &::placeholder {
+      color: var(--color-input-placeholder);
+    }
+
+    &:hover {
+      border-color: var(--color-text-secondary);
+    }
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-accent-primary);
+      box-shadow: 0 0 0 3px rgba(var(--color-accent-primary-rgb), 0.1);
+      background: var(--color-bg-primary);
+    }
+
+    &.has-error {
+      border-color: var(--color-accent-tertiary);
+    }
+  }
+}
+
+.code-row {
+  display: flex;
+  gap: 8px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.code-send-btn {
+  flex-shrink: 0;
+  padding: 0 14px;
+  border: 1px solid var(--color-accent-primary);
+  background: transparent;
+  color: var(--color-accent-primary);
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+
+  &:hover:not(:disabled) {
+    background: rgba(var(--color-accent-primary-rgb), 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+}
+
+.forgot-password {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  transition: color 0.2s;
+
+  &:hover {
+    color: var(--color-accent-primary);
+    text-decoration: none;
+  }
+}
+
+.submit-btn {
+  margin-top: 4px;
+  padding: 10px;
+  background: var(--color-accent-primary);
+  color: #fff; // Always white text on primary button
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(var(--color-accent-primary-rgb), 0.2);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(var(--color-accent-primary-rgb), 0.3);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .spinner {
+    width: 18px;
+    height: 18px;
+    margin: 0 auto;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: auth-spin 0.7s linear infinite;
+  }
+}
+
+@keyframes auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+.modal-footer {
+  margin-top: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+
+  p {
+    color: var(--color-text-secondary);
+    font-size: 14px;
+
+    a {
+      color: var(--color-accent-primary);
+      font-weight: 600;
+      &:hover { text-decoration: underline; }
+    }
+  }
+}
+
+.register-prompt {
+  display: flex;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  align-items: center;
+  justify-content: center;
+}
+
+.register-link {
+  color: var(--color-accent-primary);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// 内联错误提示条（本地校验失败时显示；原 AuthModal 中此类无样式定义，此处补齐）
+.error-msg {
+  color: var(--color-accent-tertiary, #ef4444);
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+// 表单提交失败时的抖动动画（配合 :class="{ 'shake': !!error }"）
+.shake {
+  animation: auth-shake 0.4s ease-in-out;
+}
+
+@keyframes auth-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}

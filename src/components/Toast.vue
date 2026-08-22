@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { useToast } from '../composables/useToast';
+import { TOAST_Z_INDEX } from '../utils/zIndex';
 
 const { toasts, removeToast } = useToast();
 </script>
 
 <template>
-  <div class="toast-container">
+  <!-- Teleport 到 body：脱离 .app-content 的 z-index:1 层叠上下文，
+       配合高于模态层（9999）的 z-index，保证气泡永远盖在登录弹窗等模态之上 -->
+  <Teleport to="body">
+  <div class="toast-container" :style="{ zIndex: TOAST_Z_INDEX }">
     <transition-group name="toast">
       <div 
         v-for="toast in toasts" 
@@ -24,6 +28,7 @@ const { toasts, removeToast } = useToast();
       </div>
     </transition-group>
   </div>
+  </Teleport>
 </template>
 
 <style lang="scss" scoped>
@@ -34,7 +39,7 @@ const { toasts, removeToast } = useToast();
   top: 20px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 9999;
+  /* z-index 由模板内联样式设置（TOAST_Z_INDEX，高于模态层），便于测试断言 */
   display: flex;
   flex-direction: column;
   gap: 10px;

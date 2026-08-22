@@ -56,13 +56,10 @@ export default {
     codeSendFailed: 'Failed to send verification code',
     loginSubtitle: 'Start your technical journey',
     registerSubtitle: 'Share knowledge, Connect the world',
-    wechatSubtitle: 'Scan with WeChat to login or register',
     title: 'OY Blog',
     joinTitle: 'Join OY Blog',
-    wechatLoginTitle: 'WeChat Login',
     successTitle: 'Success',
     welcomeTitle: 'Welcome',
-    completeSetup: 'Complete Setup',
     backToLogin: 'Back to login',
     loginFailed: 'Login failed',
     registerFailed: 'Registration failed',
@@ -74,6 +71,8 @@ export default {
     newPassword: 'New Password',
     resetSuccess: 'Password reset successfully. Please sign in with your new password.',
     resetFailed: 'Password reset failed',
+    invalidEmail: 'Please enter a valid email address',
+    invalidCode: 'Verification code must be 6 digits',
   },
   home: {
     title: 'OY Blog',
@@ -143,6 +142,7 @@ export default {
     unfavoriteSuccess: 'Removed from favorites',
     passwordUpdated: 'Password updated successfully',
     passwordUpdateFailed: 'Failed to update password',
+    verificationEmailSent: 'Verification email sent, please check your inbox',
   },
   verify: {
     verifying: 'Verifying your email...',
@@ -151,6 +151,12 @@ export default {
     failed: 'Verification failed. The link may have expired.',
     error: 'An unexpected error occurred.',
     redirecting: 'Redirecting to profile...',
+  },
+  errors: {
+    network: 'Network error, please check your connection and try again',
+    timeout: 'Request timed out, please try again later',
+    http: 'Request failed (HTTP {status})',
+    unknown: 'Something went wrong, please try again later',
   },
   hero: {
     slogan: 'Exploring the Tech Frontier',

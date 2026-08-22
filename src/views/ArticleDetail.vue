@@ -467,7 +467,7 @@ const findReplyById = (commentId: number, replyId: number): UIComment | undefine
 
 const handleVote = async (commentId: number, replyId: number | undefined, type: 'like' | 'dislike') => {
   if (!isLoggedIn.value) {
-    alert(t('articleDetail.loginToVote'));
+    addToast(t('articleDetail.loginToVote'), 'warning');
     return;
   }
   let comment: UIComment | undefined;
@@ -505,7 +505,7 @@ const handleVote = async (commentId: number, replyId: number | undefined, type: 
 const handleReply = async (commentId: number, content: string) => {
   if (!articleInfo.value) return;
   if (!isLoggedIn.value) {
-    alert(t('articleDetail.loginToReply'));
+    addToast(t('articleDetail.loginToReply'), 'warning');
     return;
   }
 
@@ -570,7 +570,7 @@ const handleReply = async (commentId: number, content: string) => {
 const submitComment = async () => {
   if (!newComment.value || !articleInfo.value) return;
   if (!isLoggedIn.value) {
-    alert(t('articleDetail.loginToComment'));
+    addToast(t('articleDetail.loginToComment'), 'warning');
     return;
   }
 
@@ -591,7 +591,7 @@ const submitComment = async () => {
 const toggleLike = async () => {
   if (!articleInfo.value) return;
   if (!isLoggedIn.value) {
-    alert(t('articleDetail.loginToLike'));
+    addToast(t('articleDetail.loginToLike'), 'warning');
     return;
   }
   try {
@@ -612,7 +612,7 @@ const toggleLike = async () => {
 const toggleFavorite = async () => {
   if (!articleInfo.value) return;
   if (!isLoggedIn.value) {
-    alert(t('articleDetail.loginToFavorite'));
+    addToast(t('articleDetail.loginToFavorite'), 'warning');
     return;
   }
   try {

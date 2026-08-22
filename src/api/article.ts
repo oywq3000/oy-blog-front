@@ -36,6 +36,10 @@ export interface ArticleInfo {
   // ES 高亮字段：命中的内容上下文（~200字，含 <em class="highlight"> 标签）
   highlightSnippet?: string;
   highlightTitle?: string;
+  // 搜索命中的标签名（纯文本，用于搜索卡片强制展示并高亮）
+  highlightTags?: string[];
+  // 搜索命中的作者名片段（含 <em class="highlight"> 标签，v-html 渲染）
+  highlightAuthorName?: string;
   // 最近浏览时间（仅浏览历史接口返回）
   viewedAt?: string;
   // 收藏时间（仅我的收藏接口返回）

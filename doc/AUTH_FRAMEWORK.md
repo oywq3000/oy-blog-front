@@ -31,7 +31,8 @@
 ```
 ┌──────────────────────────────────────────────────────────┐
 │                      UI 组件层                            │
-│  AuthModal / NavBar / AuthDropdown / UserProfile         │
+│  LoginModal / RegisterModal / ResetPasswordModal         │
+│  AuthModalShell / NavBar / AuthDropdown / UserProfile    │
 │  EmailVerification / CookieNotice                        │
 ├──────────────────────────────────────────────────────────┤
 │                      路由层                               │
@@ -482,10 +483,9 @@ NavBar
 ├── Logo / TextLogo
 ├── 搜索框
 ├── 语言切换按钮
-├── 登录按钮 (未登录时) ──→ AuthModal
-│                            ├── 密码登录
-│                            ├── 微信登录 (mock)
-│                            └── 注册
+├── 登录按钮 (未登录时) ──→ LoginModal（useAuthModalState 协调）
+│                            ├── 忘记密码 ──→ ResetPasswordModal
+│                            └── 注册入口 ──→ RegisterModal
 └── 用户头像胶囊 (已登录时)
     ├── 用户名 + 头像
     └── 下拉菜单
@@ -493,16 +493,17 @@ NavBar
         └── 退出登录
 ```
 
-### 8.2 AuthModal
+### 8.2 三个独立登录弹窗（2026-08 由 AuthModal 拆分而来）
 
-文件: [src/components/AuthModal.vue](../src/components/AuthModal.vue)
+共享外壳 [src/components/AuthModalShell.vue](../src/components/AuthModalShell.vue)（Teleport 到 body、遮罩、关闭/返回按钮、header、成功视图、进出场过渡），三个表单各自独立成组件，由 [src/composables/useAuthModalState.ts](../src/composables/useAuthModalState.ts) 协调互切（单 ref 原子状态，三模态常驻渲染、至多一个 open）：
 
-**功能**:
+| 组件 | 职责 | 高度 |
+| --- | --- | --- |
+| [LoginModal.vue](../src/components/LoginModal.vue) | 密码登录（用户名/密码 + 忘记密码链接 + 注册入口） | 480px |
+| [RegisterModal.vue](../src/components/RegisterModal.vue) | 注册（用户名/邮箱/验证码/密码/确认密码，5 字段） | 650px |
+| [ResetPasswordModal.vue](../src/components/ResetPasswordModal.vue) | 重置密码（邮箱/验证码/新密码/确认密码，4 字段） | 620px |
 
-- 双模式切换：登录 / 注册
-- 登录方式：密码登录 + 微信登录 (mock 模拟)
-- 表单验证：前端校验必填字段、密码一致性
-- 成功状态动画：绿色对勾 → 自动关闭
+弹窗高度统一加 `max-height: calc(100vh - 48px)` 兜底（短屏内容区内部滚动），移动端 `height: auto; max-height: 90vh`。
 
 **登录流程**:
 
@@ -512,8 +513,7 @@ NavBar
   → 获取 SaTokenInfo.accessToken
   → localStorage.setItem('token', accessToken)
   → 显示成功动画 (1.5s)
-  → emit('success') + emit('close')
-  → 调用 fetchUserInfo() 获取完整用户信息
+  → emit('close') + window.location.reload()（全站以登录态重新渲染）
 ```
 
 **注册流程**:
@@ -522,18 +522,19 @@ NavBar
 用户提交表单
   → 调用 register(dto)
   → 成功 → 显示 "账号已创建" 动画 (1.5s)
-  → 自动切换到登录模式
+  → emit('switch-login')（NavBar 切换到 LoginModal；若已关闭则不触发，ghost-open 守卫）
 ```
 
-**微信登录流程 (mock)**:
+**重置密码流程**:
 
 ```
-点击微信登录
-  → 显示 QR 码占位图
-  → 3 秒模拟扫码
-  → 进入"设置密码"步骤
-  → 提交 → 模拟 API → 成功
+用户提交表单（登录弹窗"忘记密码"进入）
+  → 调用 resetPassword(dto)
+  → 成功 → 气泡提示 + 成功动画 (1.5s)
+  → emit('switch-login')
 ```
+
+（原微信登录 mock 为死代码，拆分时已移除。）
 
 ### 8.3 NavBar
 
@@ -602,7 +603,7 @@ const handleLogout = async () => {
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                  │
 │  ① 用户登录                                                      │
-│     AuthModal.handleSubmit()                                     │
+│     LoginModal.handleSubmit()                                    │
 │     → POST /auth/login { username, password, ipAddress }        │
 │     ← SaTokenInfo { accessToken, expiresIn, ... }                │
 │     → localStorage.setItem('token', accessToken)                │
@@ -771,7 +772,10 @@ API 错误
 | [src/router/index.ts](../src/router/index.ts)                         | 路由配置 + 加载守卫 | 路由层  |
 | [src/main.ts](../src/main.ts)                                         | 应用入口            | 启动层  |
 | [src/App.vue](../src/App.vue)                                         | 根组件 + 会话恢复   | 启动层  |
-| [src/components/AuthModal.vue](../src/components/AuthModal.vue)       | 登录/注册弹窗       | UI 层   |
+| [src/components/AuthModalShell.vue](../src/components/AuthModalShell.vue) | 弹窗共享外壳       | UI 层   |
+| [src/components/LoginModal.vue](../src/components/LoginModal.vue)       | 登录弹窗           | UI 层   |
+| [src/components/RegisterModal.vue](../src/components/RegisterModal.vue) | 注册弹窗           | UI 层   |
+| [src/components/ResetPasswordModal.vue](../src/components/ResetPasswordModal.vue) | 重置密码弹窗 | UI 层   |
 | [src/components/AuthDropdown.vue](../src/components/AuthDropdown.vue) | 未登录用户入口      | UI 层   |
 | [src/components/NavBar.vue](../src/components/NavBar.vue)             | 导航栏 (状态感知)   | UI 层   |
 | [src/views/UserProfile.vue](../src/views/UserProfile.vue)             | 个人中心            | UI 层   |

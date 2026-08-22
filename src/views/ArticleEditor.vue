@@ -36,12 +36,9 @@ const processFile = async (file: File) => {
        const res = await uploadCover(file);
        if (res.isSuccess) {
          publishForm.coverUrl = res.data;
-       } else {
-         alert(res.errMsg || 'Cover upload failed');
        }
-     } catch (error) {
-       console.error('Cover upload error:', error);
-       alert('Cover upload failed');
+     } catch {
+       // 请求错误已由拦截器统一顶部气泡提示
      }
   }
 };
@@ -144,11 +141,11 @@ const toggleTag = (name: string) => {
 
 const handlePublishClick = () => {
   if (!title.value.trim()) {
-    alert('Please enter a title');
+    addToast(t('editor.requiredTitle'), 'warning');
     return;
   }
   if (!content.value.trim()) {
-    alert('Please enter some content');
+    addToast(t('editor.requiredContent'), 'warning');
     return;
   }
   showPublishModal.value = true;
@@ -162,7 +159,7 @@ const handleSaveDraft = async () => {
   if (isSavingDraft.value || isSubmitting.value) return;
 
   if (!title.value.trim()) {
-    alert('Please enter a title to save draft');
+    addToast(t('editor.requiredTitle'), 'warning');
     return;
   }
 
@@ -188,13 +185,9 @@ const handleSaveDraft = async () => {
       }
       refreshDraftCount();
       addToast(t('editor.draftSaved') || 'Draft saved', 'success');
-    } else {
-      console.error('Failed to save draft:', res.errMsg);
-      addToast(res.errMsg || 'Failed to save draft', 'error');
     }
-  } catch (error) {
-    console.error('Save draft error:', error);
-    addToast('Failed to save draft', 'error');
+  } catch {
+    // 请求错误已由拦截器统一顶部气泡提示
   } finally {
     isSavingDraft.value = false;
   }
@@ -275,29 +268,12 @@ const handleUploadImage = async (files: File[], callback: (urls: string[]) => vo
   try {
     const uploadPromises = files.map(file => uploadContentImage(file));
     const results = await Promise.all(uploadPromises);
-    
-    const urls: string[] = [];
-    let hasError = false;
-
-    results.forEach(res => {
-      if (res.isSuccess) {
-        urls.push(res.data);
-      } else {
-        hasError = true;
-        console.error('Image upload failed:', res.errMsg);
-      }
-    });
-
-    if (hasError) {
-      alert('Some images failed to upload. Please check console for details.');
-    }
-
+    const urls = results.filter(res => res.isSuccess).map(res => res.data);
     if (urls.length > 0) {
       callback(urls);
     }
-  } catch (error) {
-    console.error('Content image upload error:', error);
-    alert('An error occurred while uploading images');
+  } catch {
+    // 请求错误已由拦截器统一顶部气泡提示
   }
 };
 
@@ -321,12 +297,9 @@ const submitArticle = async () => {
       addToast(t('editor.publishSuccess') || 'Published successfully', 'success');
       refreshDraftCount();
       router.push('/creator/published');
-    } else {
-      alert('Failed to publish: ' + res.errMsg);
     }
-  } catch (error) {
-    console.error('Publish error:', error);
-    alert('An error occurred while publishing.');
+  } catch {
+    // 请求错误已由拦截器统一顶部气泡提示
   } finally {
     isSubmitting.value = false;
     showPublishModal.value = false;

@@ -2,7 +2,9 @@
 import { ref, computed, nextTick, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
-import AuthModal from './AuthModal.vue';
+import LoginModal from './LoginModal.vue';
+import RegisterModal from './RegisterModal.vue';
+import ResetPasswordModal from './ResetPasswordModal.vue';
 import TextLogo from './TextLogo.vue';
 import IconButton from './IconButton.vue';
 import IconUser from './icons/IconUser.vue';
@@ -12,6 +14,7 @@ import IconLangZh from './icons/IconLangZh.vue';
 // IconSun and IconMoon removed as manual toggle is removed
 import { useUserStore } from '../store/user';
 import { useTheme } from '../composables/useTheme';
+import { useAuthModalState } from '../composables/useAuthModalState';
 import AvatarGenerator from './AvatarGenerator.vue';
 
 const { t, locale } = useI18n();
@@ -36,9 +39,9 @@ const menuItems = computed(() => {
 });
 
 const isMenuOpen = ref(false);
-const isAuthModalOpen = ref(false);
 const isUserDropdownOpen = ref(false);
-const authMode = ref<'login' | 'register'>('login');
+// 登录/注册/重置弹窗协调（三模态常驻渲染，至多一个 open）
+const { current: authModal, openLogin: openAuthModal, switchTo: switchAuthModal, close: closeAuthModal } = useAuthModalState();
 const userDropdownRef = ref<HTMLElement | null>(null);
 
 // Search functionality
@@ -76,11 +79,6 @@ const toggleMenu = () => {
 
 const toggleLanguage = () => {
   locale.value = locale.value === 'en' ? 'zh' : 'en';
-};
-
-const openAuthModal = () => {
-  authMode.value = 'login';
-  isAuthModalOpen.value = true;
 };
 
 const toggleSearch = async () => {
@@ -136,8 +134,7 @@ const handleSearchInput = () => {
 
 // Listen for 401 unauthorized event from the HTTP interceptor
 const handleUnauthorized = () => {
-  isAuthModalOpen.value = true;
-  authMode.value = 'login';
+  openAuthModal();
 };
 
 // Clean up timer
@@ -349,7 +346,10 @@ const handleKeydown = (e: KeyboardEvent) => {
       </ul>
     </div>
 
-    <AuthModal :is-open="isAuthModalOpen" :initial-mode="authMode" @close="isAuthModalOpen = false" />
+    <LoginModal :is-open="authModal === 'login'" @close="closeAuthModal()"
+                @switch-register="switchAuthModal('register')" @switch-reset="switchAuthModal('reset')" />
+    <RegisterModal :is-open="authModal === 'register'" @close="closeAuthModal()" @switch-login="switchAuthModal('login')" />
+    <ResetPasswordModal :is-open="authModal === 'reset'" @close="closeAuthModal()" @switch-login="switchAuthModal('login')" />
   </nav>
 </template>
 

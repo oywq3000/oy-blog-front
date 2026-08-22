@@ -4,7 +4,14 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import AvatarGenerator from './AvatarGenerator.vue';
 import TagBadge from './TagBadge.vue';
+import { pickDisplayTags } from '../utils/tagDisplay';
 
+/**
+ * 搜索专用文章卡片：与 ArticleCard 相似，但针对搜索结果扩展：
+ * 1. 标签最多展示 3 个；搜索命中的标签（highlightTags）强制展示并高亮
+ * 2. 搜索命中的作者名（highlightAuthorName，含 <em> 的 HTML 片段）高亮渲染
+ * 3. 标题/摘要支持 ES 高亮片段（highlightTitle / highlightSnippet）
+ */
 const props = defineProps<{
   id: number | string;
   title: string;
@@ -22,6 +29,10 @@ const props = defineProps<{
   highlightSnippet?: string;
   /** ES 高亮标题片段（含 <em class="highlight"> 标签） */
   highlightTitle?: string;
+  /** 命中的标签名（纯文本）；最多 3 个展示名额中必有它并高亮 */
+  highlightTags?: string[];
+  /** 命中的作者名片段（含 <em class="highlight"> 标签，v-html 渲染） */
+  highlightAuthorName?: string;
 }>();
 
 const router = useRouter();
@@ -32,6 +43,9 @@ function goToArticle() {
 }
 
 const showCover = computed(() => !!props.image);
+
+// 展示的标签：命中标签强制入列（顶替末位）
+const displayTags = computed(() => pickDisplayTags(props.tags || [], props.highlightTags || []));
 
 function formatCount(n: number | undefined): string {
   if (n == null) return '0';
@@ -49,7 +63,9 @@ function formatCount(n: number | undefined): string {
       <div v-if="authorName" class="article-author">
         <AvatarGenerator v-if="!authorAvatar" :username="authorName" :size="22" />
         <img v-else :src="authorAvatar" :alt="authorName" class="author-avatar" />
-        <span class="author-name">{{ authorName }}</span>
+        <!-- 作者名命中时用 ES 高亮片段渲染 -->
+        <span v-if="highlightAuthorName" class="author-name" v-html="highlightAuthorName"></span>
+        <span v-else class="author-name">{{ authorName }}</span>
       </div>
     </div>
     <!-- Row 2: Title -->
@@ -88,9 +104,15 @@ function formatCount(n: number | undefined): string {
           <span>{{ readingTimeMinutes }} min read</span>
         </span>
       </div>
-      <!-- Tags: 最多 3 个，与统计并列；stop 阻止触发卡片跳转 -->
-      <div v-if="tags && tags.length" class="article-tags" @click.stop>
-        <TagBadge v-for="tag in tags.slice(0, 3)" :key="tag" :label="tag" size="sm" />
+      <!-- Tags: 最多 3 个，命中标签高亮；stop 阻止触发卡片跳转 -->
+      <div v-if="displayTags.length" class="article-tags" @click.stop>
+        <TagBadge
+          v-for="tag in displayTags"
+          :key="tag"
+          :label="tag"
+          size="sm"
+          :highlighted="highlightTags?.includes(tag)"
+        />
       </div>
     </div>
     <!-- Cover: spans rows 2-4 (title → stats) -->
@@ -103,6 +125,7 @@ function formatCount(n: number | undefined): string {
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
 
+// 样式与 ArticleCard 保持一致（结构相同），后续搜索卡片可独立扩展
 .article-row {
   display: grid;
   grid-template-columns: 1fr;
@@ -114,14 +137,12 @@ function formatCount(n: number | undefined): string {
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s ease;
-  border-radius: 8px;
   gap: 4px 0;
 
   &:hover {
     background: var(--color-bg-secondary);
   }
 
-  // When cover exists, add a second column
   &.has-cover {
     grid-template-columns: 1fr 200px;
     gap: 4px $spacing-xl;
@@ -141,7 +162,6 @@ function formatCount(n: number | undefined): string {
   }
 }
 
-// ---- Row 1: Author + Date ----
 .article-author-row {
   grid-column: 1;
   grid-row: 1;
@@ -172,15 +192,6 @@ function formatCount(n: number | undefined): string {
   }
 }
 
-.article-date {
-  font-size: 0.8rem;
-  color: var(--color-text-tertiary);
-  font-family: $font-family-code;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-// ---- Row 2: Title ----
 .article-title {
   grid-column: 1;
   grid-row: 2;
@@ -202,7 +213,6 @@ function formatCount(n: number | undefined): string {
   }
 }
 
-// ---- Row 3: Summary ----
 .article-summary {
   grid-column: 1;
   grid-row: 3;
@@ -218,7 +228,6 @@ function formatCount(n: number | undefined): string {
   overflow: hidden;
 }
 
-// ---- Row 4: Stats ----
 .article-meta {
   grid-column: 1;
   grid-row: 4;
@@ -260,7 +269,6 @@ function formatCount(n: number | undefined): string {
   }
 }
 
-// ---- Cover: spans rows 2–4 ----
 .article-cover {
   grid-column: 2;
   grid-row: 2 / 5;
@@ -289,7 +297,8 @@ function formatCount(n: number | undefined): string {
 }
 </style>
 
-<!-- Non-scoped highlight styles (required for v-html rendered content) -->
+<!-- Non-scoped highlight styles (required for v-html rendered content)
+     与 ArticleCard 中同名规则保持一致 -->
 <style lang="scss">
 em.highlight {
   font-style: normal;
@@ -300,7 +309,6 @@ em.highlight {
   border-radius: 2px;
 }
 
-// Dark mode highlight
 :root[class~="dark"] em.highlight,
 :root[data-theme="dark"] em.highlight {
   background: linear-gradient(180deg, transparent 60%, rgba(129, 140, 248, 0.35) 60%);

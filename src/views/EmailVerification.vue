@@ -34,14 +34,11 @@ onMounted(async () => {
       setTimeout(() => {
         router.push('/profile');
       }, 3000);
-    } else {
-      status.value = 'error';
-      message.value = res.errMsg || t('verify.failed');
     }
-  } catch (error) {
-    console.error(error);
+  } catch {
+    // 具体错误信息已由拦截器统一顶部气泡提示，页面仅切换失败状态
     status.value = 'error';
-    message.value = t('verify.error');
+    message.value = t('verify.failed');
   }
 });
 </script>

@@ -45,13 +45,10 @@ const handleUpdateProfile = async () => {
     const res = await updateUserInfo(profileForm.value);
     if (res.isSuccess) {
       await fetchUserInfo();
-      alert(t('profile.updateSuccess') || 'Profile updated successfully');
-    } else {
-      alert(res.errMsg || 'Failed to update profile');
+      addToast(t('profile.updateSuccess'), 'success');
     }
-  } catch (error) {
-    console.error(error);
-    alert('An error occurred');
+  } catch {
+    // 请求错误已由拦截器统一顶部气泡提示
   } finally {
     isProfileUpdating.value = false;
   }
@@ -64,12 +61,9 @@ const handleAvatarFileChange = async (event: Event) => {
       const res = await uploadAvatar(input.files[0]);
       if (res.isSuccess) {
         profileForm.value.avatarUrl = res.data;
-      } else {
-        alert(res.errMsg || 'Avatar upload failed');
       }
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-      alert('Avatar upload failed');
+    } catch {
+      // 请求错误已由拦截器统一顶部气泡提示
     } finally {
       // Clear input so same file can be selected again
       input.value = '';
@@ -388,15 +382,12 @@ const sendVerificationEmail = async () => {
     const res = await requestEmailVerification();
     if (res.isSuccess) {
       emailStatus.value = 'sent';
+      addToast(t('profile.verificationEmailSent'), 'success');
       startTimer();
-    } else {
-      emailStatus.value = 'unverified';
-      alert(res.errMsg || 'Failed to send verification email');
     }
-  } catch (error) {
-    console.error(error);
+  } catch {
     emailStatus.value = 'unverified';
-    alert('An error occurred');
+    // 请求错误已由拦截器统一顶部气泡提示
   }
 };
 
@@ -462,9 +453,8 @@ const updatePassword = async () => {
     addToast(t('profile.passwordUpdated'), 'success');
     passwordForm.value = { current: '', new: '', confirm: '' };
     showPassword.value = { current: false, new: false, confirm: false };
-  } catch (error: any) {
-    console.error('Update password failed:', error);
-    alert(error?.message || t('profile.passwordUpdateFailed'));
+  } catch {
+    // 请求错误已由拦截器统一顶部气泡提示
   } finally {
     isPasswordUpdating.value = false;
   }

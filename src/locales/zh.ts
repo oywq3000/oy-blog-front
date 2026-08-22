@@ -56,13 +56,10 @@ export default {
     codeSendFailed: '验证码发送失败',
     loginSubtitle: '开启你的技术之旅',
     registerSubtitle: '分享知识，连接世界',
-    wechatSubtitle: '使用微信扫码登录或注册',
     title: 'OY Blog',
     joinTitle: '加入 OY Blog',
-    wechatLoginTitle: '微信登录',
     successTitle: '成功',
     welcomeTitle: '欢迎',
-    completeSetup: '完成设置',
     backToLogin: '返回登录',
     loginFailed: '登录失败',
     registerFailed: '注册失败',
@@ -74,6 +71,8 @@ export default {
     newPassword: '新密码',
     resetSuccess: '密码重置成功，请使用新密码登录',
     resetFailed: '密码重置失败',
+    invalidEmail: '请输入有效的邮箱地址',
+    invalidCode: '验证码应为 6 位数字',
   },
   home: {
     title: 'oyblog',
@@ -143,6 +142,7 @@ export default {
     unfavoriteSuccess: '已取消收藏',
     passwordUpdated: '密码修改成功',
     passwordUpdateFailed: '密码修改失败',
+    verificationEmailSent: '验证邮件已发送，请查收邮箱',
   },
   verify: {
     verifying: '正在验证您的邮箱...',
@@ -151,6 +151,12 @@ export default {
     failed: '验证失败。链接可能已过期。',
     error: '发生了意外错误。',
     redirecting: '正在跳转至个人中心...',
+  },
+  errors: {
+    network: '网络连接失败，请检查网络后重试',
+    timeout: '请求超时，请稍后重试',
+    http: '请求失败（HTTP {status}）',
+    unknown: '发生未知错误，请稍后重试',
   },
   hero: {
     slogan: '探索技术前沿',

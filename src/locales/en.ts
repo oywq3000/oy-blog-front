@@ -81,6 +81,18 @@ export default {
     featured: 'Featured Story',
     loadingTitle: 'Loading...',
     loadingSummary: 'Fetching latest articles...',
+    latestArticles: 'Latest Articles',
+    popularArticles: 'Most Popular',
+    years: 'Years',
+    allYears: 'All',
+    readFull: 'Read Full Article',
+    noArticles: 'No articles yet',
+    stats: {
+      articles: 'Articles',
+      views: 'Views',
+      likes: 'Likes',
+      tags: 'Tags',
+    },
   },
   profile: {
     articles: 'Articles',

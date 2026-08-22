@@ -81,6 +81,18 @@ export default {
     featured: '精选故事',
     loadingTitle: '加载中...',
     loadingSummary: '正在获取最新文章...',
+    latestArticles: '最新文章',
+    popularArticles: '最热门文章',
+    years: '年份',
+    allYears: '全部',
+    readFull: '阅读全文',
+    noArticles: '暂无文章',
+    stats: {
+      articles: '文章',
+      views: '浏览',
+      likes: '点赞',
+      tags: '标签',
+    },
   },
   profile: {
     articles: '文章',

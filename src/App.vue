@@ -35,12 +35,11 @@ onMounted(async () => {
   // Fetch user info (background)
   await fetchUserInfo();
 
-  // Stop loader ONLY if we are NOT on Home page
-  // Home page handles its own loading stop signal when title is ready
+  // Home 页自行调用 stopLoading()（数据渲染完毕后，见 HomeView onMounted）；
+  // 这里保留 5s 兜底，防止取数挂起导致加载层不消失
   if (route.name !== 'home') {
     stopLoading(800);
   } else {
-    // Fallback in case Home page title takes too long or fails
     setTimeout(() => {
       if (isLoading.value) stopLoading();
     }, 5000);
@@ -87,51 +86,6 @@ watch(locale, (newLocale) => {
 .app-content {
   position: relative;
   z-index: 1; /* Ensure content sits above the background */
-}
-
-.content-layout {
-  display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: $spacing-xxl;
-  margin-top: $spacing-xxl;
-  position: relative;
-
-  @media (max-width: $breakpoint-desktop) {
-    grid-template-columns: 1fr;
-    gap: $spacing-xl;
-  }
-}
-
-.section-title {
-  font-size: 2.5rem;
-  margin-bottom: $spacing-lg;
-  font-weight: 800;
-  letter-spacing: -1px;
-
-  span {
-    font-weight: 300;
-  }
-}
-
-.featured-section {
-  margin-bottom: $spacing-xxl;
-}
-
-.articles-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: $spacing-lg;
-}
-
-.sidebar-section {
-  position: sticky;
-  top: 100px;
-  height: fit-content;
-
-  @media (max-width: $breakpoint-desktop) {
-    position: static;
-    order: 1;
-  }
 }
 
 :deep(.md-editor-preview) {

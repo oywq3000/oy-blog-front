@@ -19,8 +19,6 @@ export interface ArticleInfo {
   coverUrl: string;
   language: string;
   allowComment: number;
-  // 分类编码（后端暂未返回，列表页兼容展示，默认显示 '-'）
-  categoryCode?: string;
   publishAt: string;
   createdAt: string;
   updatedAt: string;
@@ -199,7 +197,6 @@ export interface ArticleSaveDto {
   contentMd: string;   // Markdown content
   contentHtml: string; // HTML content
   coverUrl?: string;
-  categoryCode?: string;
   tags?: string[];
   allowComment?: number; // 1 for yes, 0 for no
 }

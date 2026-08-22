@@ -27,7 +27,6 @@ function formatDate(dateStr: string): string {
       <thead>
         <tr>
           <th class="col-title">{{ $t('creator.title') }}</th>
-          <th v-if="status === 'published'" class="col-category">{{ $t('creator.category') }}</th>
           <th class="col-time">{{ status === 'published' ? $t('creator.time') : $t('creator.lastModified') }}</th>
           <th v-if="status === 'published'" class="col-views">{{ $t('creator.views') }}</th>
           <th v-if="status === 'published'" class="col-comments">{{ $t('creator.comments') }}</th>
@@ -36,12 +35,12 @@ function formatDate(dateStr: string): string {
       </thead>
       <tbody>
         <tr v-if="isLoading">
-          <td :colspan="status === 'published' ? 6 : 3" class="empty-cell">
+          <td :colspan="status === 'published' ? 5 : 3" class="empty-cell">
             {{ $t('common.loading') || 'Loading...' }}
           </td>
         </tr>
         <tr v-else-if="articles.length === 0">
-          <td :colspan="status === 'published' ? 6 : 3" class="empty-cell">
+          <td :colspan="status === 'published' ? 5 : 3" class="empty-cell">
             {{ status === 'published' ? $t('creator.emptyPublished') : $t('creator.emptyDrafts') }}
           </td>
         </tr>
@@ -63,11 +62,6 @@ function formatDate(dateStr: string): string {
             >
               {{ article.title || $t('editor.untitled') || 'Untitled' }}
             </router-link>
-          </td>
-
-          <!-- Category (published only) -->
-          <td v-if="status === 'published'" class="col-category">
-            {{ article.categoryCode || '-' }}
           </td>
 
           <!-- Time -->
@@ -148,10 +142,6 @@ function formatDate(dateStr: string): string {
 
 .col-title {
   min-width: 180px;
-}
-
-.col-category {
-  width: 100px;
 }
 
 .col-time {

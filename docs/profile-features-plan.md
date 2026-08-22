@@ -150,7 +150,7 @@
 - 清理未用导入/变量：App.vue、AnimatedTextLogo.vue、Footer.vue、NavBar.vue、TextLogo.vue（死 props）、CreatorCenter.vue、CreatorPublished.vue、AboutView.vue、InteractiveBackground.vue（死函数 getThemeColors/getCssVar）、agent/ChatHistoryItem.vue（死 computed）、useAgentChat.ts（watch/shallowRef/useToast）、AgentView.vue（未用参数）、ArticleDetail.vue（死 ref/computed：authorInfo/authorName/readingTime/breadcrumbItems + 相关导入）、HomeView.vue（死函数 fetchAuthorProfiles + 导入）、ArticleCard.vue（死 computed formattedDate）、AuthModal.vue（死函数 switchToWeChat/switchToPassword，模板按钮本就注释停用）
 - 测试文件：agent-chat/reply-pagination 未用导入；agent-layout-contract 加 `/// <reference types="node" />` 解决 node:fs/node:url 类型
 - vite.config.ts：`defineConfig` 改从 `vitest/config` 导入（修复 `test` 属性类型）；`manualChunks` 对象形式改函数形式（Rollup 4 类型已移除对象形式，行为对齐原配置）
-- CreatorArticleTable.vue 的 `categoryCode` 在 `ArticleInfo` 增加可选字段（后端暂未返回，显示 '-'，行为不变）
+- CreatorArticleTable.vue 的 `categoryCode` 在 `ArticleInfo` 增加可选字段（后端暂未返回，显示 '-'，行为不变）——**2026-08-22 分类系统已彻底移除**，该字段连同表格"分类"列一并删除
 - useAgentChat.ts 的 `findLastIndex`（需 es2023 lib）改为倒序循环，避免改动 tsconfig lib
 
 ### 验证结果

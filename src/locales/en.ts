@@ -239,7 +239,6 @@ export default {
     contentManagement: 'Content Management',
     published: 'Published',
     drafts: 'Drafts',
-    category: 'Category',
     time: 'Published',
     views: 'Views',
     comments: 'Comments',

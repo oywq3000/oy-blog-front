@@ -239,7 +239,6 @@ export default {
     contentManagement: '内容管理',
     published: '已发布',
     drafts: '草稿',
-    category: '分类',
     time: '发布时间',
     views: '阅读',
     comments: '评论',

@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import TechIcon from './icons/TechIcon.vue';
-const props = defineProps<{ label: string; size?: 'sm' | 'md'; showIcon?: boolean; highlighted?: boolean }>();
+
+const props = withDefaults(
+  defineProps<{
+    label: string;
+    size?: 'sm' | 'md';
+    showIcon?: boolean;
+    highlighted?: boolean;
+    /** badge: 胶囊样式（详情页）；text: 纯文本样式（卡片底部，与统计并列的灰色小字） */
+    variant?: 'badge' | 'text';
+  }>(),
+  { size: 'md', variant: 'badge', showIcon: true }
+);
 const sizeClass = props.size === 'sm' ? 'tag-badge--sm' : 'tag-badge--md';
 </script>
 
@@ -9,10 +20,14 @@ const sizeClass = props.size === 'sm' ? 'tag-badge--sm' : 'tag-badge--md';
   <router-link
     :to="{ name: 'search', query: { q: props.label, filter: 'tag' } }"
     class="tag-badge"
-    :class="[sizeClass, { 'tag-badge--highlighted': props.highlighted }]"
+    :class="[sizeClass, { 'tag-badge--text': props.variant === 'text', 'tag-badge--highlighted': props.highlighted }]"
     aria-label="Tag"
   >
-    <TechIcon v-if="props.showIcon !== false" :name="props.label" :size="sizeClass === 'tag-badge--sm' ? 14 : 16" />
+    <TechIcon
+      v-if="props.showIcon !== false && props.variant !== 'text'"
+      :name="props.label"
+      :size="sizeClass === 'tag-badge--sm' ? 14 : 16"
+    />
     <span class="tag-badge__text">{{ props.label }}</span>
   </router-link>
 </template>
@@ -57,5 +72,37 @@ const sizeClass = props.size === 'sm' ? 'tag-badge--sm' : 'tag-badge--md';
 .tag-badge__text {
   font-size: 0.85rem;
   font-weight: 600;
+}
+
+// 纯文本样式：卡片底部与统计（浏览数/点赞）并列，同款灰色小字，非粗体
+.tag-badge--text {
+  padding: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: var(--color-text-tertiary);
+  will-change: auto;
+
+  &:hover {
+    transform: none;
+    background: none;
+    border-color: transparent;
+    box-shadow: none;
+    color: var(--color-accent-primary);
+  }
+
+  .tag-badge__text {
+    font-size: 0.8rem;
+    font-weight: 400;
+  }
+
+  // 搜索命中标签：保留高亮语义（无胶囊背景，仅强调色）
+  &.tag-badge--highlighted {
+    color: var(--color-accent-primary);
+
+    .tag-badge__text {
+      font-weight: 700;
+    }
+  }
 }
 </style>

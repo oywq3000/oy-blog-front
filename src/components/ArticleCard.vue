@@ -88,9 +88,9 @@ function formatCount(n: number | undefined): string {
           <span>{{ readingTimeMinutes }} min read</span>
         </span>
       </div>
-      <!-- Tags: 最多 3 个，与统计并列；stop 阻止触发卡片跳转 -->
+      <!-- Tags: 最多 3 个，文本样式紧跟统计左对齐；stop 阻止触发卡片跳转 -->
       <div v-if="tags && tags.length" class="article-tags" @click.stop>
-        <TagBadge v-for="tag in tags.slice(0, 3)" :key="tag" :label="tag" size="sm" />
+        <TagBadge v-for="tag in tags.slice(0, 3)" :key="tag" :label="tag" size="sm" variant="text" />
       </div>
     </div>
     <!-- Cover: spans rows 2-4 (title → stats) -->
@@ -223,10 +223,10 @@ function formatCount(n: number | undefined): string {
   grid-column: 1;
   grid-row: 4;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: $spacing-md;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .article-stats {
@@ -236,12 +236,12 @@ function formatCount(n: number | undefined): string {
   flex-wrap: wrap;
 }
 
+// 标签紧跟统计左对齐（不推右）；窄屏自动换行
 .article-tags {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   flex-wrap: wrap;
-  justify-content: flex-end;
   min-width: 0;
 }
 

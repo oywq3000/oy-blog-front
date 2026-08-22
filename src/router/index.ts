@@ -152,6 +152,9 @@ router.afterEach((to, from) => {
   // Query-only navigation (same path) never started the loader, nothing to stop
   if (to.path === from.path) return;
   if (isCreatorTab(from.path) && isCreatorTab(to.path)) return;
+  // Home 页掌控自己的 loader：HomeView 数据渲染完毕后才调用 stopLoading
+  // （App.vue 保留 5s 兜底，防止取数挂起导致加载层不消失）
+  if (to.name === 'home') return;
 
   const { stopLoading } = useAppStore();
   const MIN_LOADING_TIME = 600;

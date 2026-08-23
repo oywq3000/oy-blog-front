@@ -85,6 +85,10 @@ export default {
     popularArticles: '最热门文章',
     readFull: '阅读全文',
     noArticles: '暂无文章',
+    loadMore: '加载更多',
+    loadingMore: '加载中…',
+    loadMoreFailed: '加载失败，点击重试',
+    loadedAll: '已加载全部',
     stats: {
       articles: '文章',
       views: '浏览',

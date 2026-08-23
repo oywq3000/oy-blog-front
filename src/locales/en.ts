@@ -85,6 +85,10 @@ export default {
     popularArticles: 'Most Popular',
     readFull: 'Read Full Article',
     noArticles: 'No articles yet',
+    loadMore: 'Load More',
+    loadingMore: 'Loading…',
+    loadMoreFailed: 'Failed to load, click to retry',
+    loadedAll: 'All loaded',
     stats: {
       articles: 'Articles',
       views: 'Views',

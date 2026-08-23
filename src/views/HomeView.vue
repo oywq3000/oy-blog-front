@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch, nextTick } from 'vue';
+import { onMounted, onUnmounted, ref, computed, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import ArticleCard from '../components/ArticleCard.vue';
 import PopularArticleCard from '../components/PopularArticleCard.vue';
@@ -20,7 +20,7 @@ const isFetching = ref(true);
 
 const showContent = computed(() => !isFetching.value);
 
-// ---- 最新文章：服务端分页（pageNum/pageSize），直接渲染返回页，不做本地切片 ----
+// ---- 最新文章：混合无限滚动（IO 自动加载 + 按钮兜底），追加模式 ----
 interface ArticleItem {
   id: string;
   title: string;
@@ -65,6 +65,65 @@ const fetchLatest = async (pageNum: number) => {
   }
 };
 
+const loadingMore = ref(false); // 加载互斥锁（同时兼 UI 状态）
+const loadError = ref(false);   // 仅"加载更多"失败置位；首屏失败不触及
+const hasMore = computed(() => latestPage.value < latestTotalPages.value);
+const sentinelEl = ref<HTMLElement | null>(null);
+let sentinelObserver: IntersectionObserver | null = null;
+
+// 触底加载下一页：双守卫防竞态（loading 互斥 + 页码守卫）
+const loadNextPage = async () => {
+  if (loadingMore.value || !hasMore.value) return;
+
+  const next = latestPage.value + 1;
+  loadingMore.value = true;
+  loadError.value = false;
+  try {
+    const res = await getPublishedArticles(next, LATEST_PAGE_SIZE);
+    if (res.isSuccess && res.data) {
+      // 追加，非整页替换
+      latestArticles.value = [...latestArticles.value, ...res.data.data.map(mapArticle)];
+      latestPage.value = res.data.currentPage ?? next;
+      latestTotalPages.value = res.data.totalPages ?? 1;
+      await nextTick();
+      observeElements(); // 观察新追加的 fade-in-up 卡片
+    } else {
+      loadError.value = true;
+    }
+  } catch {
+    loadError.value = true;
+  } finally {
+    loadingMore.value = false;
+  }
+};
+
+// ---- 无限滚动哨兵：默认 root=视口，桌面（窗格内滚）与移动（页面滚）统一覆盖 ----
+const onSentinelIntersect = (entries: IntersectionObserverEntry[]) => {
+  if (loadError.value) return; // 失败后只允许手动重试
+  if (entries.some((e) => e.isIntersecting)) loadNextPage();
+};
+
+const connectSentinel = () => {
+  disconnectSentinel();
+  const el = sentinelEl.value;
+  if (!el) return;
+  sentinelObserver = new IntersectionObserver(onSentinelIntersect, {
+    rootMargin: '0px 0px 80px 0px', // 提前 80px 触发，更顺滑
+  });
+  sentinelObserver.observe(el);
+};
+
+const disconnectSentinel = () => {
+  sentinelObserver?.disconnect();
+  sentinelObserver = null;
+};
+
+// 哨兵随 v-if 状态机出现/消失，模板 ref 变化即重连/断开（模板 ref 必须 post flush）
+watch(sentinelEl, (el) => {
+  if (el) connectSentinel();
+  else disconnectSentinel();
+}, { flush: 'post' });
+
 // ---- 最热门：后端热度权重排序，仅取第 1 页前 8 条，不做本地排序 ----
 const HOT_LIMIT = 8;
 const hotArticles = ref<ArticleItem[]>([]);
@@ -87,19 +146,23 @@ const stats = computed<{ articleCount: number; views: number; likes: number; tag
     : { articleCount: 0, views: 0, likes: 0, tags: 0 };
 });
 
+// 惰性单例：加载更多追加的新卡片也要入场动画，且不重复 observe 已 visible 节点
+let fadeObserver: IntersectionObserver | null = null;
 const observeElements = () => {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-      }
-    });
-  }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+  if (!fadeObserver) {
+    fadeObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+  }
 
   setTimeout(() => {
-    const elements = document.querySelectorAll('.fade-in-up');
+    const elements = document.querySelectorAll('.fade-in-up:not(.visible)');
     if (elements.length > 0) {
-      elements.forEach((el) => observer.observe(el));
+      elements.forEach((el) => fadeObserver!.observe(el));
     }
   }, 100);
 };
@@ -128,6 +191,11 @@ watch(showContent, (val) => {
       observeElements();
     });
   }
+});
+
+onUnmounted(() => {
+  disconnectSentinel();
+  fadeObserver?.disconnect();
 });
 </script>
 
@@ -177,11 +245,18 @@ watch(showContent, (val) => {
             </div>
           </div>
 
-          <!-- 服务端分页：直接切换请求页码，前端不做本地切片 -->
-          <div v-if="showContent && latestTotalPages > 1" class="pagination">
-            <button class="page-btn" type="button" :disabled="latestPage <= 1" @click="fetchLatest(latestPage - 1)">&lt;</button>
-            <span class="page-info">{{ latestPage }} / {{ latestTotalPages }}</span>
-            <button class="page-btn" type="button" :disabled="latestPage >= latestTotalPages" @click="fetchLatest(latestPage + 1)">&gt;</button>
+          <!-- 触底：无限滚动哨兵（自动加载）+ 手动按钮兜底（追加模式） -->
+          <div v-if="showContent && latestArticles.length" class="load-more" aria-live="polite">
+            <template v-if="!loadingMore && !loadError && hasMore">
+              <div ref="sentinelEl" class="load-more__sentinel" aria-hidden="true"></div>
+              <button class="load-more-btn" type="button" @click="loadNextPage">{{ t('home.loadMore') }}</button>
+            </template>
+            <div v-else-if="loadingMore" class="load-more__loading" role="status">
+              <span class="load-more-spinner" aria-hidden="true"></span>
+              <span>{{ t('home.loadingMore') }}</span>
+            </div>
+            <button v-else-if="loadError" class="load-more-btn load-more__retry" type="button" @click="loadNextPage">{{ t('home.loadMoreFailed') }}</button>
+            <div v-else class="load-more__end">{{ t('home.loadedAll') }}</div>
           </div>
         </section>
         <!-- 右窗格：最热门 -->
@@ -379,45 +454,58 @@ watch(showContent, (val) => {
   padding: $spacing-sm $spacing-sm;
 }
 
-// ---- 服务端分页控件（与 SearchPage 一致）----
-.pagination {
+// ---- 触底加载区：哨兵 + 加载更多按钮/加载中/重试/已加载全部 ----
+.load-more {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: $spacing-md;
+  justify-content: center;
+  gap: $spacing-sm;
   padding-top: $spacing-lg;
-  border-top: 1px solid var(--color-border);
   margin-top: $spacing-lg;
+  border-top: 1px solid var(--color-border);
+  color: $color-text-secondary;
+  font-size: 0.9rem;
+}
 
-  .page-btn {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--color-border);
-    background: var(--color-bg-secondary);
-    border-radius: 8px;
-    color: var(--color-text-primary);
-    cursor: pointer;
-    transition: $transition-base;
+.load-more__sentinel {
+  // 必须非零尺寸：0 尺寸元素永远不 intersect，无限滚动无法触发
+  height: 1px;
+  width: 100%;
+}
 
-    &:hover:not(:disabled) {
-      border-color: var(--color-accent-primary);
-      color: var(--color-accent-primary);
-    }
+.load-more__loading {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
 
-    &:disabled {
-      opacity: 0.3;
-      cursor: not-allowed;
-    }
+.load-more-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent-primary);
+  border-radius: 50%;
+  animation: load-more-spin 0.7s linear infinite;
+}
+
+.load-more-btn {
+  padding: 0.4rem 1.2rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  border-radius: $radius-md;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: $transition-base;
+
+  &:hover {
+    border-color: var(--color-accent-primary);
+    color: var(--color-accent-primary);
   }
+}
 
-  .page-info {
-    font-family: $font-family-code;
-    font-size: 0.9rem;
-    color: $color-text-secondary;
-  }
+@keyframes load-more-spin {
+  to { transform: rotate(360deg); }
 }
 
 .empty-state {

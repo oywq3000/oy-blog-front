@@ -8,11 +8,13 @@ services:
     ports:
       # 只绑定宿主机 loopback，由 Cloudflare Tunnel（cloudflared systemd）接入；
       # 公网无需放行任何端口。8080 已被后端 gateway 占用，故前端用 18080。
-      - "127.0.0.1:18080:80"
+      - "0.0.0.0:18080:80"
     volumes:
       # dist 只读挂载；更新 = 部署脚本就地解压覆盖，无需重建镜像/重启容器
       - ./dist:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - oyblog_oyblog-net
     extra_hosts:
       # 容器内解析为宿主机 docker 网桥网关（如 172.17.0.1），访问宿主机上的 gateway 8080
       - "host.docker.internal:host-gateway"
@@ -21,3 +23,6 @@ services:
       options:
         max-size: "10m"           # access/error 走 stdout/stderr，由日志驱动轮转
         max-file: "3"
+networks:
+  oyblog_oyblog-net:
+    external: true

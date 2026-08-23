@@ -197,7 +197,28 @@ onUnmounted(() => {
           required
         />
       </div>
-
+ <!-- ④ 图形验证码：输入框 + 图片（点击刷新，由 useCaptcha 管理） -->
+      <div class="form-group">
+        <label>{{ t('auth.captcha') }}</label>
+        <div class="captcha-row">
+          <input
+            type="text"
+            maxlength="4"
+            v-model="captchaCode"
+            :placeholder="t('auth.captchaPlaceholder')"
+            :class="{ 'has-error': fieldErrors.captchaCode }"
+            required
+          />
+          <img
+            v-if="captchaImg"
+            :src="captchaImg"
+            class="captcha-img"
+            :alt="t('auth.captcha')"
+            :title="t('auth.captchaRefresh')"
+            @click="refreshCaptcha"
+          />
+        </div>
+      </div>
       <!-- ③ 邮箱验证码：输入框 + 发送按钮（带 60s 倒计时，由 useEmailCode 管理） -->
       <div class="form-group">
         <label>{{ t('auth.verifyCode') }}</label>
@@ -223,28 +244,7 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- ④ 图形验证码：输入框 + 图片（点击刷新，由 useCaptcha 管理） -->
-      <div class="form-group">
-        <label>{{ t('auth.captcha') }}</label>
-        <div class="captcha-row">
-          <input
-            type="text"
-            maxlength="4"
-            v-model="captchaCode"
-            :placeholder="t('auth.captchaPlaceholder')"
-            :class="{ 'has-error': fieldErrors.captchaCode }"
-            required
-          />
-          <img
-            v-if="captchaImg"
-            :src="captchaImg"
-            class="captcha-img"
-            :alt="t('auth.captcha')"
-            :title="t('auth.captchaRefresh')"
-            @click="refreshCaptcha"
-          />
-        </div>
-      </div>
+     
 
       <!-- ⑤ 密码输入框 -->
       <div class="form-group">

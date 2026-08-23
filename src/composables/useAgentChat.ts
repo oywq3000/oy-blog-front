@@ -387,6 +387,9 @@ async function streamChat(
 
   const response = await fetch(url, {
     method: 'POST',
+    // 显式携带 cookie：游客会话身份（GUEST_ID cookie）完全依赖该请求，
+    // 同源默认即带，但显式声明防止未来 SSE URL 跨域改动时游客会话静默失联
+    credentials: 'same-origin',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${localStorage.getItem('token') ?? ''}`,

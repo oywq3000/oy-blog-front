@@ -84,6 +84,32 @@
   }
 }
 
+// 图形验证码行：输入框 + 验证码图片（点击刷新）
+.captcha-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.captcha-img {
+  flex-shrink: 0;
+  width: 120px;
+  height: 40px;
+  border: 1px solid var(--color-input-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--color-accent-primary);
+  }
+}
+
 .form-actions {
   display: flex;
   justify-content: flex-end;

@@ -112,9 +112,27 @@ export const getEmailVerificationStatus = () => {
   return request.get<any, ResultBoolean>(baseUrl+'/email/verification/status');
 };
 
-// Send email verification code (register / reset password)
-export const sendEmailCode = (data: { email: string; purpose?: 'register' | 'reset' }) => {
+// Send email verification code (register / reset password) — captcha required
+export const sendEmailCode = (data: { email: string; purpose?: 'register' | 'reset'; captchaId: string; captchaCode: string }) => {
   return request.post<any, ResultObject>(baseUrl+'/email/verification/send-code', data);
+};
+
+// 图形验证码（发邮件前的人机验证）
+export interface CaptchaData {
+  captchaId: string;
+  captchaImg: string;
+}
+
+export interface ResultCaptcha {
+  errCode: number;
+  errMsg: string;
+  isSuccess: boolean;
+  data: CaptchaData;
+}
+
+// Get captcha image before sending email verification code
+export const getCaptcha = () => {
+  return request.get<any, ResultCaptcha>(baseUrl+'/email/verification/captcha');
 };
 
 export interface ResetPasswordDto {

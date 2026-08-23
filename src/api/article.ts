@@ -119,9 +119,33 @@ export interface ResultPageArticle {
 
 //base url
 const baseUrl = "/api/article-service"
-// Query Published Articles List
-export const getPublishedArticles = () => {
-  return request.get<any, ResultListArticle>(baseUrl+'/article/read/published');
+// Query Published Articles List (paged, 置顶优先 + 发布时间降序，由后端排序)
+export const getPublishedArticles = (pageNum: number = 1, pageSize: number = 10) => {
+  return request.get<any, ResultPageArticle>(baseUrl+'/article/read/published', { params: { pageNum, pageSize } });
+};
+
+// Query Hot Published Articles List (paged, 后端热度权重排序)
+export const getHotArticles = (pageNum: number = 1, pageSize: number = 10) => {
+  return request.get<any, ResultPageArticle>(baseUrl+'/article/read/published/hot', { params: { pageNum, pageSize } });
+};
+
+export interface GlobalArticleStats {
+  articleCount: number;
+  viewCount: number;
+  likeCount: number;
+  tagCount: number;
+}
+
+export interface ResultGlobalArticleStats {
+  errCode: number;
+  errMsg: string;
+  isSuccess: boolean;
+  data: GlobalArticleStats;
+}
+
+// Get Global Article Stats (全库已发布文章统计)
+export const getGlobalStats = () => {
+  return request.get<any, ResultGlobalArticleStats>(baseUrl+'/article/read/stats/global');
 };
 
 // Get Article by ID

@@ -6,8 +6,13 @@ import PopularArticleCard from '../components/PopularArticleCard.vue';
 import HeroSection from '../components/HeroSection.vue';
 import TagCloud from '../components/TagCloud.vue';
 import { useAppStore } from '../store/app';
-import { getPublishedArticles, getUserStats, type ArticleInfo, type UserArticleStats } from '../api/article';
-import { OWNER_USER_ID } from '../config/site';
+import {
+  getPublishedArticles,
+  getHotArticles,
+  getGlobalStats,
+  type ArticleInfo,
+  type GlobalArticleStats,
+} from '../api/article';
 
 const { t } = useI18n();
 const { stopLoading } = useAppStore();
@@ -15,6 +20,7 @@ const isFetching = ref(true);
 
 const showContent = computed(() => !isFetching.value);
 
+// ---- 最新文章：服务端分页（pageNum/pageSize），直接渲染返回页，不做本地切片 ----
 interface ArticleItem {
   id: string;
   title: string;
@@ -30,68 +36,56 @@ interface ArticleItem {
   authorAvatar?: string;
 }
 
-const rawArticles = ref<ArticleInfo[]>([]);
-const articles = ref<ArticleItem[]>([]);
-const serverStats = ref<UserArticleStats | null>(null);
+const mapArticle = (a: ArticleInfo): ArticleItem => ({
+  id: a.id,
+  title: a.title,
+  summary: a.summary,
+  date: a.publishAt || a.createdAt,
+  tags: a.tags || [],
+  image: a.coverUrl || '',
+  viewCount: a.viewCount,
+  likeCount: a.likeCount,
+  favorites: a.favorites,
+  readingTimeMinutes: a.readingTimeMinutes,
+  authorName: a.authorName,
+  authorAvatar: a.authorAvatar,
+});
 
-// ---- 统计条：配置了 OWNER_USER_ID 则优先后端统计，字段缺失时逐项回退到列表聚合 ----
-interface HomeStats {
-  articleCount: number;
-  views: number;
-  likes: number;
-  tags: number;
-}
+const LATEST_PAGE_SIZE = 10;
+const latestPage = ref(1);
+const latestTotalPages = ref(1);
+const latestArticles = ref<ArticleItem[]>([]);
 
-function aggregateFromList(list: ArticleInfo[]): HomeStats {
-  let views = 0;
-  let likes = 0;
-  const tagSet = new Set<string>();
-  for (const a of list) {
-    views += a.viewCount ?? 0;
-    likes += a.likeCount ?? 0;
-    (a.tags ?? []).forEach((tag) => tagSet.add(tag));
+const fetchLatest = async (pageNum: number) => {
+  const res = await getPublishedArticles(pageNum, LATEST_PAGE_SIZE);
+  if (res.isSuccess && res.data) {
+    latestArticles.value = res.data.data.map(mapArticle);
+    latestPage.value = res.data.currentPage ?? pageNum;
+    latestTotalPages.value = res.data.totalPages ?? 1;
   }
-  return { articleCount: list.length, views, likes, tags: tagSet.size };
-}
+};
 
-const stats = computed<HomeStats | null>(() => {
+// ---- 最热门：后端热度权重排序，仅取第 1 页前 8 条，不做本地排序 ----
+const HOT_LIMIT = 8;
+const hotArticles = ref<ArticleItem[]>([]);
+
+const fetchHot = async () => {
+  const res = await getHotArticles(1, HOT_LIMIT);
+  if (res.isSuccess && res.data) {
+    hotArticles.value = res.data.data.map(mapArticle);
+  }
+};
+
+// ---- 统计条：全局统计接口直出，不做客户端聚合 ----
+const globalStats = ref<GlobalArticleStats | null>(null);
+
+const stats = computed<{ articleCount: number; views: number; likes: number; tags: number } | null>(() => {
   if (isFetching.value) return null;
-  const agg = aggregateFromList(rawArticles.value);
-  if (OWNER_USER_ID.trim() && serverStats.value) {
-    return {
-      articleCount: serverStats.value.articleCount ?? agg.articleCount,
-      views: serverStats.value.viewCount ?? agg.views,
-      likes: serverStats.value.likeCount ?? agg.likes,
-      // 后端统计无标签数，始终用列表聚合
-      tags: agg.tags,
-    };
-  }
-  return agg;
+  const s = globalStats.value;
+  return s
+    ? { articleCount: s.articleCount, views: s.viewCount, likes: s.likeCount, tags: s.tagCount }
+    : { articleCount: 0, views: 0, likes: 0, tags: 0 };
 });
-
-// ---- 时间线：按发布年份过滤（后端暂未返回分类，用年份替代）----
-const selectedYear = ref<number | ''>('');
-const years = computed(() => {
-  const set = new Set<number>();
-  for (const a of rawArticles.value) {
-    const y = new Date(a.publishAt || a.createdAt).getFullYear();
-    if (!Number.isNaN(y)) set.add(y);
-  }
-  return [...set].sort((a, b) => b - a);
-});
-
-const filteredArticles = computed(() => {
-  if (selectedYear.value === '') return articles.value;
-  return articles.value.filter((a) => new Date(a.date).getFullYear() === selectedYear.value);
-});
-
-// ---- 最热门：按浏览量降序（同量级按点赞），取前 8；零新请求，从已拉取列表派生 ----
-const POPULAR_LIMIT = 8;
-const popularArticles = computed(() =>
-  [...articles.value]
-    .sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0) || (b.likeCount ?? 0) - (a.likeCount ?? 0))
-    .slice(0, POPULAR_LIMIT)
-);
 
 const observeElements = () => {
   const observer = new IntersectionObserver((entries) => {
@@ -111,48 +105,15 @@ const observeElements = () => {
 };
 
 onMounted(async () => {
-  const articlesPromise = getPublishedArticles();
-  // 未配置 OWNER_USER_ID 时不发起统计请求
-  const statsPromise = OWNER_USER_ID.trim() ? getUserStats(OWNER_USER_ID) : null;
+  // 三接口并行拉取，任一失败不影响其他（失败方显示空态/0 统计）
+  const [, , statsRes] = await Promise.allSettled([
+    fetchLatest(1),
+    fetchHot(),
+    getGlobalStats(),
+  ]);
 
-  const [articlesRes, statsRes] = await Promise.allSettled(
-    statsPromise ? [articlesPromise, statsPromise] : [articlesPromise]
-  );
-
-  if (articlesRes.status === 'fulfilled' && articlesRes.value.isSuccess && articlesRes.value.data) {
-    const fetched = articlesRes.value.data;
-    rawArticles.value = fetched;
-
-    // Map all articles with full data
-    articles.value = fetched.map((a) => {
-      return {
-        id: a.id,
-        title: a.title,
-        summary: a.summary,
-        date: a.publishAt || a.createdAt,
-        tags: a.tags || [],
-        image: a.coverUrl || '',
-        viewCount: a.viewCount,
-        likeCount: a.likeCount,
-        favorites: a.favorites,
-        readingTimeMinutes: a.readingTimeMinutes,
-        authorName: a.authorName,
-        authorAvatar: a.authorAvatar,
-      };
-    });
-
-    // Sort: pinned articles first, then by publish date descending
-    articles.value.sort((a, b) => {
-      const aIsTop = fetched.find((fa) => fa.id === a.id)?.isTop;
-      const bIsTop = fetched.find((fa) => fa.id === b.id)?.isTop;
-      if (aIsTop && !bIsTop) return -1;
-      if (!aIsTop && bIsTop) return 1;
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
-  }
-
-  if (statsRes && statsRes.status === 'fulfilled' && statsRes.value.isSuccess && statsRes.value.data) {
-    serverStats.value = statsRes.value.data;
+  if (statsRes.status === 'fulfilled' && statsRes.value.isSuccess && statsRes.value.data) {
+    globalStats.value = statsRes.value.data;
   }
 
   isFetching.value = false;
@@ -198,27 +159,10 @@ watch(showContent, (val) => {
             <h2 class="pane-title">
               <span class="text-gradient">{{ t('home.latestArticles') }}</span>
             </h2>
-            <!-- 年份筛选 -->
-            <div v-if="showContent && years.length > 1" class="year-filter" role="group" :aria-label="t('home.years')">
-              <button
-                class="year-chip"
-                :class="{ 'year-chip--active': selectedYear === '' }"
-                type="button"
-                @click="selectedYear = ''"
-              >{{ t('home.allYears') }}</button>
-              <button
-                v-for="y in years"
-                :key="y"
-                class="year-chip"
-                :class="{ 'year-chip--active': selectedYear === y }"
-                type="button"
-                @click="selectedYear = y"
-              >{{ y }}</button>
-            </div>
           </header>
 
-          <div v-if="showContent && filteredArticles.length" class="articles-list">
-            <div v-for="article in filteredArticles" :key="article.id" class="fade-in-up">
+          <div v-if="showContent && latestArticles.length" class="articles-list">
+            <div v-for="article in latestArticles" :key="article.id" class="fade-in-up">
               <ArticleCard v-bind="article" />
             </div>
           </div>
@@ -232,6 +176,13 @@ watch(showContent, (val) => {
               <div class="skeleton-line skeleton-line--medium"></div>
             </div>
           </div>
+
+          <!-- 服务端分页：直接切换请求页码，前端不做本地切片 -->
+          <div v-if="showContent && latestTotalPages > 1" class="pagination">
+            <button class="page-btn" type="button" :disabled="latestPage <= 1" @click="fetchLatest(latestPage - 1)">&lt;</button>
+            <span class="page-info">{{ latestPage }} / {{ latestTotalPages }}</span>
+            <button class="page-btn" type="button" :disabled="latestPage >= latestTotalPages" @click="fetchLatest(latestPage + 1)">&gt;</button>
+          </div>
         </section>
         <!-- 右窗格：最热门 -->
         <section class="article-pane" aria-label="最热门文章">
@@ -240,9 +191,9 @@ watch(showContent, (val) => {
               <span class="text-gradient">{{ t('home.popularArticles') }}</span>
             </h2>
           </header>
-          <div v-if="showContent && popularArticles.length" class="popular-list">
+          <div v-if="showContent && hotArticles.length" class="popular-list">
             <PopularArticleCard
-              v-for="(article, i) in popularArticles"
+              v-for="(article, i) in hotArticles"
               :key="article.id"
               :rank="i + 1"
               :id="article.id"
@@ -428,53 +379,44 @@ watch(showContent, (val) => {
   padding: $spacing-sm $spacing-sm;
 }
 
-// ---- 年份筛选 ----
-.year-filter {
+// ---- 服务端分页控件（与 SearchPage 一致）----
+.pagination {
   display: flex;
-  flex-wrap: wrap;
-  gap: $spacing-sm;
   justify-content: center;
-  margin-bottom: $spacing-lg;
+  align-items: center;
+  gap: $spacing-md;
+  padding-top: $spacing-lg;
+  border-top: 1px solid var(--color-border);
+  margin-top: $spacing-lg;
 
-  @media (max-width: $breakpoint-mobile) {
-    flex-wrap: nowrap;
-    justify-content: flex-start;
-    overflow-x: auto;
-    padding-bottom: $spacing-xs;
-  }
-}
+  .page-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-secondary);
+    border-radius: 8px;
+    color: var(--color-text-primary);
+    cursor: pointer;
+    transition: $transition-base;
 
-.year-chip {
-  padding: 6px 18px;
-  border-radius: $radius-full;
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: $color-text-secondary;
-  font-weight: 600;
-  font-size: 0.9rem;
-  transition: $transition-base;
-
-  &:hover {
-    border-color: $color-accent-primary;
-    color: $color-text-primary;
-  }
-
-  &--active {
-    background: var(--color-accent-primary);
-    color: #fff;
-    border-color: transparent;
-
-    :global(.dark) & {
-      color: #09090b;
+    &:hover:not(:disabled) {
+      border-color: var(--color-accent-primary);
+      color: var(--color-accent-primary);
     }
 
-    &:hover {
-      color: #fff;
-
-      :global(.dark) & {
-        color: #09090b;
-      }
+    &:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
     }
+  }
+
+  .page-info {
+    font-family: $font-family-code;
+    font-size: 0.9rem;
+    color: $color-text-secondary;
   }
 }
 

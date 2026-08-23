@@ -83,8 +83,6 @@ export default {
     loadingSummary: '正在获取最新文章...',
     latestArticles: '最新文章',
     popularArticles: '最热门文章',
-    years: '年份',
-    allYears: '全部',
     readFull: '阅读全文',
     noArticles: '暂无文章',
     stats: {

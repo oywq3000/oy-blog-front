@@ -83,8 +83,6 @@ export default {
     loadingSummary: 'Fetching latest articles...',
     latestArticles: 'Latest Articles',
     popularArticles: 'Most Popular',
-    years: 'Years',
-    allYears: 'All',
     readFull: 'Read Full Article',
     noArticles: 'No articles yet',
     stats: {

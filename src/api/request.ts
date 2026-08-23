@@ -49,11 +49,28 @@ const processQueue = (error: any, token: string | null) => {
 const REFRESH_URL = '/api/user-service/auth/refresh';
 const LOGIN_URL = '/api/user-service/auth/login';
 
+// 同一时间窗口内只派发一次 auth:unauthorized：
+// 并发多个 401（如 agent 页并行加载会话列表 + 推荐问题）会同时走 clearAuthAndNotify，
+// 旧实现派发多个事件导致 NavBar 的 handleUnauthorized 多次调用 openAuthModal，弹窗层叠。
+// 模式同 utils/errorHandler.ts 的 toast 去重：窗口期抑制重复，窗口过后视为新一轮未授权。
+const UNAUTHORIZED_DEDUPE_MS = 2000;
+let lastUnauthorizedAt = 0;
+
+/** 仅供测试重置未授权通知去重状态 */
+export const resetUnauthorizedNotify = () => {
+  lastUnauthorizedAt = 0;
+};
+
 // 清除本地凭证并通知应用进入未授权状态（打开登录弹窗）
 const clearAuthAndNotify = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('userInfo');
+  const now = Date.now();
+  if (now - lastUnauthorizedAt < UNAUTHORIZED_DEDUPE_MS) {
+    return;
+  }
+  lastUnauthorizedAt = now;
   window.dispatchEvent(new CustomEvent('auth:unauthorized'));
 };
 

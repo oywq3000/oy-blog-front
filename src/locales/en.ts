@@ -73,6 +73,10 @@ export default {
     resetFailed: 'Password reset failed',
     invalidEmail: 'Please enter a valid email address',
     invalidCode: 'Verification code must be 6 digits',
+    captcha: 'Captcha',
+    captchaPlaceholder: 'Enter characters shown',
+    captchaRefresh: 'Click image to refresh',
+    captchaRequired: 'Please complete the captcha',
   },
   home: {
     title: 'OY Blog',

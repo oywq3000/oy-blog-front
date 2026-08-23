@@ -73,6 +73,10 @@ export default {
     resetFailed: '密码重置失败',
     invalidEmail: '请输入有效的邮箱地址',
     invalidCode: '验证码应为 6 位数字',
+    captcha: '人机验证',
+    captchaPlaceholder: '输入图中字符',
+    captchaRefresh: '点击图片刷新',
+    captchaRequired: '请完成人机验证',
   },
   home: {
     title: 'oyblog',

@@ -3,13 +3,14 @@ import { ref, watch, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { sendEmailCode, resetPassword } from '../api/auth';
 import { useEmailCode } from '../composables/useEmailCode';
+import { useCaptcha } from '../composables/useCaptcha';
 import { useFieldErrors } from '../composables/useFieldErrors';
 import { isValidEmail, isValidEmailCode } from '../utils/formValidation';
 import { useToast } from '../composables/useToast';
 import AuthModalShell from './AuthModalShell.vue';
 
 /**
- * 重置密码弹窗（4 字段：邮箱/验证码/新密码/确认密码）。
+ * 重置密码弹窗（5 字段：邮箱/验证码/图形验证码/新密码/确认密码）。
  * 互切：switch-login（返回按钮 / 底部链接 / 重置成功 1.5s 后）。
  * 本地校验异常直接拦截不发请求；请求错误由拦截器统一气泡提示。
  */
@@ -30,19 +31,24 @@ const error = ref('');
 const success = ref(false);
 
 const { fieldErrors, setFieldError, clearFieldErrors, markAll } = useFieldErrors([
-  'email', 'emailCode', 'password', 'confirmPassword',
+  'email', 'emailCode', 'password', 'confirmPassword', 'captchaCode',
 ] as const);
+
+// 图形验证码（人机验证）：打开弹窗自动加载，发码成功/失败后刷新
+const { captchaId, captchaImg, captchaCode, refresh: refreshCaptcha, reset: resetCaptcha } = useCaptcha();
 
 // 邮箱验证码发送 + 60s 倒计时（reset 模式发送重置密码验证码）
 const { cooldown: sendCodeCooldown, sending: isSendingCode, send: sendCode, reset: resetEmailCode } = useEmailCode(
   async (email: string) => {
-    await sendEmailCode({ email, purpose: 'reset' });
+    await sendEmailCode({ email, purpose: 'reset', captchaId: captchaId.value, captchaCode: captchaCode.value });
   }
 );
 
-// 关闭 300ms 后重置状态：标红/表单内容不保留，重新打开为全新状态
+// 打开时加载图形验证码；关闭 300ms 后重置状态：标红/表单内容不保留，重新打开为全新状态
 watch(() => props.isOpen, (open) => {
-  if (!open) {
+  if (open) {
+    refreshCaptcha();
+  } else {
     setTimeout(resetState, 300);
   }
 });
@@ -57,6 +63,7 @@ const resetState = () => {
   isLoading.value = false;
   clearFieldErrors();
   resetEmailCode();
+  resetCaptcha();
 };
 
 const handleSendCode = async () => {
@@ -70,12 +77,19 @@ const handleSendCode = async () => {
     setFieldError('email');
     return;
   }
+  if (!captchaCode.value) {
+    error.value = t('auth.captchaRequired');
+    setFieldError('captchaCode');
+    return;
+  }
   error.value = '';
   try {
     await sendCode(email.value);
     addToast(t('auth.codeSent'), 'success');
+    refreshCaptcha(); // 本次验证码已消费，加载下一张
   } catch {
-    // 请求错误已由拦截器统一顶部气泡提示
+    // 请求错误已由拦截器统一顶部气泡提示；图形验证码可能已作废，刷新一张新的
+    refreshCaptcha();
   }
 };
 
@@ -179,11 +193,11 @@ onUnmounted(() => {
             :class="{ 'has-error': fieldErrors.emailCode }"
             required
           />
-          <!-- 发送验证码按钮：发送中 / 倒计时中 / 未填邮箱时禁用 -->
+          <!-- 发送验证码按钮：发送中 / 倒计时中 / 未填邮箱或图形验证码时禁用 -->
           <button
             type="button"
             class="code-send-btn"
-            :disabled="isSendingCode || sendCodeCooldown > 0 || !email"
+            :disabled="isSendingCode || sendCodeCooldown > 0 || !email || !captchaCode"
             @click="handleSendCode"
           >
             {{ isSendingCode ? t('auth.processing') : (sendCodeCooldown > 0 ? t('auth.resendInSeconds', { seconds: sendCodeCooldown }) : t('auth.sendCode')) }}
@@ -191,7 +205,30 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- ③ 新密码输入框 -->
+      <!-- ③ 图形验证码：输入框 + 图片（点击刷新，由 useCaptcha 管理） -->
+      <div class="form-group">
+        <label>{{ t('auth.captcha') }}</label>
+        <div class="captcha-row">
+          <input
+            type="text"
+            maxlength="4"
+            v-model="captchaCode"
+            :placeholder="t('auth.captchaPlaceholder')"
+            :class="{ 'has-error': fieldErrors.captchaCode }"
+            required
+          />
+          <img
+            v-if="captchaImg"
+            :src="captchaImg"
+            class="captcha-img"
+            :alt="t('auth.captcha')"
+            :title="t('auth.captchaRefresh')"
+            @click="refreshCaptcha"
+          />
+        </div>
+      </div>
+
+      <!-- ④ 新密码输入框 -->
       <div class="form-group">
         <label>{{ t('auth.newPassword') }}</label>
         <input
@@ -203,7 +240,7 @@ onUnmounted(() => {
         />
       </div>
 
-      <!-- ④ 确认密码输入框 -->
+      <!-- ⑤ 确认密码输入框 -->
       <div class="form-group">
         <label>{{ t('auth.confirmPassword') }}</label>
         <input
@@ -215,10 +252,10 @@ onUnmounted(() => {
         />
       </div>
 
-      <!-- ⑤ 错误提示条：本地校验失败时显示（请求错误由拦截器气泡提示） -->
+      <!-- ⑥ 错误提示条：本地校验失败时显示（请求错误由拦截器气泡提示） -->
       <span class="error-msg" v-if="error">{{ error }}</span>
 
-      <!-- ⑥ 提交按钮 -->
+      <!-- ⑦ 提交按钮 -->
       <button
         type="submit"
         class="submit-btn"

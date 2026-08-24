@@ -107,18 +107,13 @@ onUnmounted(() => {
       </p>
 
       <form class="hero__search hero-anim stagger-delay-2" role="search" @submit.prevent="submitSearch">
-        <svg class="hero__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg class="hero__search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="7" />
           <path d="M20 20l-4-4" />
         </svg>
-        <input
-          v-model="searchQuery"
-          type="search"
-          class="hero__search-input"
-          :placeholder="t('common.searchPlaceholder')"
-          :aria-label="t('common.search')"
-        />
+        <input v-model="searchQuery" type="search" class="hero__search-input"
+          :placeholder="t('common.searchPlaceholder')" :aria-label="t('common.search')" />
         <button type="submit" class="btn-primary hero__search-btn">{{ t('common.search') }}</button>
       </form>
 
@@ -126,10 +121,16 @@ onUnmounted(() => {
         <button class="btn-primary hero__cta" type="button" @click="scrollToArticles">{{ t('hero.cta') }}</button>
         <a class="btn-secondary hero__cta" :href="GITHUB_URL" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
-            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            <path
+              d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
           </svg>
           GitHub
         </a>
+      </div>
+      <div class="hero__scroll-indicator hero-anim" aria-hidden="true">
+        <div class="hero__mouse">
+          <div class="hero__mouse-wheel"></div>
+        </div>
       </div>
     </div>
 
@@ -146,9 +147,7 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div class="hero__scroll-indicator hero-anim" aria-hidden="true">
-      <div class="hero__mouse"><div class="hero__mouse-wheel"></div></div>
-    </div>
+
   </section>
 </template>
 
@@ -338,8 +337,10 @@ onUnmounted(() => {
   .hero__cta {
     display: inline-flex;
     align-items: center;
+    justify-content: center; // 内容窄于 min-width 时水平居中
     gap: 8px;
-    padding: 0.65rem 1.75rem;
+    min-width: 8rem; // 与图标按钮同宽：中文「开始阅读」/ 英文 Start Reading 均小于此值
+    padding: 0.65rem 1.4rem;
     border-radius: $radius-full;
     text-decoration: none;
     font-size: 1rem;
@@ -411,13 +412,10 @@ onUnmounted(() => {
 
 // ---- 滚动指示器 ----
 .hero__scroll-indicator {
-  position: absolute;
-  bottom: 108px; // 统计条上方
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: 0; // CTA 按钮下方一行
   opacity: 0.6;
   animation: float 2s ease-in-out infinite;
 
@@ -449,23 +447,52 @@ onUnmounted(() => {
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translate(-50%, 0); }
-  50% { transform: translate(-50%, 10px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(10px);
+  }
 }
 
 @keyframes scrollWheel {
-  0% { opacity: 1; top: 8px; }
-  100% { opacity: 0; top: 20px; }
+  0% {
+    opacity: 1;
+    top: 8px;
+  }
+
+  100% {
+    opacity: 0;
+    top: 20px;
+  }
 }
 
 @keyframes pulse {
-  0% { opacity: 0.4; }
-  50% { opacity: 0.8; }
-  100% { opacity: 0.4; }
+  0% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+
+  100% {
+    opacity: 0.4;
+  }
 }
 </style>

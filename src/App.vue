@@ -55,7 +55,8 @@ watch(locale, (newLocale) => {
 
 <template>
   <div class="app-layout">
-    <InteractiveBackground />
+    <!-- 编辑页不渲染粒子背景：编辑器需要不透明的阅读/写作环境 -->
+    <InteractiveBackground v-if="!route.path.startsWith('/creator/articles/')" />
     <div class="app-content">
       <SvgSprite />
       <Toast />

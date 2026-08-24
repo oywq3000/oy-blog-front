@@ -86,7 +86,6 @@ const handleSendCode = async () => {
   try {
     await sendCode(email.value);
     addToast(t('auth.codeSent'), 'success');
-    refreshCaptcha(); // 本次验证码已消费，加载下一张
   } catch {
     // 请求错误已由拦截器统一顶部气泡提示；图形验证码可能已作废，刷新一张新的
     refreshCaptcha();

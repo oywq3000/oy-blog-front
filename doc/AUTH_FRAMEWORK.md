@@ -280,7 +280,6 @@ uploadContentImage(file: File) → Promise<ResultString>
 interface LoginDto {
   username: string;
   password: string;
-  ipAddress: string;    // 当前固定传 '127.0.0.1'
 }
 
 interface RegisterDto {
@@ -288,7 +287,6 @@ interface RegisterDto {
   password?: string;
   confirmPassword?: string;
   email?: string;
-  ipAddress?: string;
 }
 
 interface UpdatePasswordDto {
@@ -741,7 +739,6 @@ if (res.isSuccess && res.data && res.data.status != 2) {
 | XSS 防护      | 依赖 Vue 模板转义              | 注意 v-html 等直接渲染场景         |
 | CSRF          | `withCredentials: true` 开启 | 需后端配合 CSRF Token 校验         |
 | 游客状态      | status=2 被视为未登录          | 可增加游客专属体验                 |
-| ipAddress     | 前端硬编码`127.0.0.1`        | 应从实际环境获取真实 IP            |
 
 ### 12.3 错误处理策略
 

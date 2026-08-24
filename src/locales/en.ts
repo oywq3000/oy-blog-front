@@ -36,7 +36,7 @@ export default {
     welcomeBackExcl: 'Welcome Back!',
     accountCreated: 'Account Created!',
     email: 'Email Address',
-    emailPlaceholder: 'john@example.com',
+    emailPlaceholder: "john{'@'}example.com",
     password: 'Password',
     passwordPlaceholder: 'Enter password',
     confirmPassword: 'Confirm Password',

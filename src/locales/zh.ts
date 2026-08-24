@@ -36,7 +36,7 @@ export default {
     welcomeBackExcl: '欢迎回来！',
     accountCreated: '账户已创建！',
     email: '电子邮件地址',
-    emailPlaceholder: 'john@example.com',
+    emailPlaceholder: "john{'@'}example.com",
     password: '密码',
     passwordPlaceholder: '输入密码',
     confirmPassword: '确认密码',

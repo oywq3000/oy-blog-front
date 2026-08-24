@@ -415,7 +415,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 0; // CTA 按钮下方一行
   opacity: 0.6;
   animation: float 2s ease-in-out infinite;
 

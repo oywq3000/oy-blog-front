@@ -58,8 +58,7 @@ const handleSubmit = async () => {
   try {
     const res = await login({
       username: username.value,
-      password: password.value,
-      ipAddress: '127.0.0.1'
+      password: password.value
     });
 
     success.value = true;

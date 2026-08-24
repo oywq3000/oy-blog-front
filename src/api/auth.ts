@@ -3,7 +3,6 @@ import request from './request';
 export interface LoginDto {
   username: string;
   password: string;
-  ipAddress: string;
 }
 
 export interface RegisterDto {
@@ -11,7 +10,6 @@ export interface RegisterDto {
   password?: string;
   confirmPassword?: string;
   email?: string;
-  ipAddress?: string;
   emailCode?: string;
 }
 

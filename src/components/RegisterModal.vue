@@ -147,6 +147,8 @@ const handleSubmit = async () => {
   } catch {
     // 请求错误：整组标红提示，气泡由拦截器统一打印
     markAll();
+    // 刷新image code
+    refreshCaptcha();
   } finally {
     isLoading.value = false;
   }
@@ -158,126 +160,72 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <AuthModalShell
-    :open="isOpen"
-    size="register"
-    back-button
-    :subtitle="t('auth.registerSubtitle')"
-    :close-disabled="isLoading"
-    :success="success"
-    :success-title="t('auth.welcomeTitle')"
-    :success-text="t('auth.accountCreated')"
-    @close="emit('close')"
-    @back="emit('switch-login')"
-  >
+  <AuthModalShell :open="isOpen" size="register" back-button :subtitle="t('auth.registerSubtitle')"
+    :close-disabled="isLoading" :success="success" :success-title="t('auth.welcomeTitle')"
+    :success-text="t('auth.accountCreated')" @close="emit('close')" @back="emit('switch-login')">
     <form @submit.prevent="handleSubmit" class="auth-form" :class="{ 'shake': !!error }">
 
       <!-- ① 用户名输入框 -->
       <div class="form-group">
         <label>{{ t('auth.username') }}</label>
-        <input
-          type="text"
-          v-model="username"
-          :placeholder="t('auth.usernamePlaceholder')"
-          :class="{ 'has-error': fieldErrors.username }"
-          required
-        />
+        <input type="text" v-model="username" :placeholder="t('auth.usernamePlaceholder')"
+          :class="{ 'has-error': fieldErrors.username }" required />
       </div>
 
       <!-- ② 邮箱输入框 -->
       <div class="form-group">
         <label>{{ t('auth.email') }}</label>
-        <input
-          type="email"
-          v-model="email"
-          :placeholder="t('auth.emailPlaceholder')"
-          :class="{ 'has-error': fieldErrors.email }"
-          required
-        />
+        <input type="email" v-model="email" :placeholder="t('auth.emailPlaceholder')"
+          :class="{ 'has-error': fieldErrors.email }" required />
       </div>
- <!-- ④ 图形验证码：输入框 + 图片（点击刷新，由 useCaptcha 管理） -->
+      <!-- ④ 图形验证码：输入框 + 图片（点击刷新，由 useCaptcha 管理） -->
       <div class="form-group">
         <label>{{ t('auth.captcha') }}</label>
         <div class="captcha-row">
-          <input
-            type="text"
-            maxlength="4"
-            v-model="captchaCode"
-            :placeholder="t('auth.captchaPlaceholder')"
-            :class="{ 'has-error': fieldErrors.captchaCode }"
-            required
-          />
-          <img
-            v-if="captchaImg"
-            :src="captchaImg"
-            class="captcha-img"
-            :alt="t('auth.captcha')"
-            :title="t('auth.captchaRefresh')"
-            @click="refreshCaptcha"
-          />
+          <input type="text" maxlength="4" v-model="captchaCode" :placeholder="t('auth.captchaPlaceholder')"
+            :class="{ 'has-error': fieldErrors.captchaCode }" required />
+          <img v-if="captchaImg" :src="captchaImg" class="captcha-img" :alt="t('auth.captcha')"
+            :title="t('auth.captchaRefresh')" @click="refreshCaptcha" />
         </div>
       </div>
       <!-- ③ 邮箱验证码：输入框 + 发送按钮（带 60s 倒计时，由 useEmailCode 管理） -->
       <div class="form-group">
         <label>{{ t('auth.verifyCode') }}</label>
         <div class="code-row">
-          <input
-            type="text"
-            inputmode="numeric"
-            maxlength="6"
-            v-model="emailCode"
-            :placeholder="t('auth.verifyCodePlaceholder')"
-            :class="{ 'has-error': fieldErrors.emailCode }"
-            required
-          />
+          <input type="text" inputmode="numeric" maxlength="6" v-model="emailCode"
+            :placeholder="t('auth.verifyCodePlaceholder')" :class="{ 'has-error': fieldErrors.emailCode }" required />
           <!-- 发送验证码按钮：发送中 / 倒计时中 / 未填邮箱或图形验证码时禁用 -->
-          <button
-            type="button"
-            class="code-send-btn"
-            :disabled="isSendingCode || sendCodeCooldown > 0 || !email || !captchaCode"
-            @click="handleSendCode"
-          >
-            {{ isSendingCode ? t('auth.processing') : (sendCodeCooldown > 0 ? t('auth.resendInSeconds', { seconds: sendCodeCooldown }) : t('auth.sendCode')) }}
+          <button type="button" class="code-send-btn"
+            :disabled="isSendingCode || sendCodeCooldown > 0 || !email || !captchaCode" @click="handleSendCode">
+            {{ isSendingCode ? t('auth.processing') : (sendCodeCooldown > 0 ? t('auth.resendInSeconds', {
+              seconds:
+                sendCodeCooldown
+            }) : t('auth.sendCode')) }}
           </button>
         </div>
       </div>
 
-     
+
 
       <!-- ⑤ 密码输入框 -->
       <div class="form-group">
         <label>{{ t('auth.password') }}</label>
-        <input
-          type="password"
-          v-model="password"
-          :placeholder="t('auth.passwordPlaceholder')"
-          :class="{ 'has-error': fieldErrors.password }"
-          required
-        />
+        <input type="password" v-model="password" :placeholder="t('auth.passwordPlaceholder')"
+          :class="{ 'has-error': fieldErrors.password }" required />
       </div>
 
       <!-- ⑥ 确认密码输入框 -->
       <div class="form-group">
         <label>{{ t('auth.confirmPassword') }}</label>
-        <input
-          type="password"
-          v-model="confirmPassword"
-          :placeholder="t('auth.passwordPlaceholder')"
-          :class="{ 'has-error': fieldErrors.confirmPassword }"
-          required
-        />
+        <input type="password" v-model="confirmPassword" :placeholder="t('auth.passwordPlaceholder')"
+          :class="{ 'has-error': fieldErrors.confirmPassword }" required />
       </div>
 
       <!-- ⑦ 错误提示条：本地校验失败时显示（请求错误由拦截器气泡提示） -->
       <span class="error-msg" v-if="error">{{ error }}</span>
 
       <!-- ⑧ 提交按钮 -->
-      <button
-        type="submit"
-        class="submit-btn"
-        :disabled="isLoading"
-        :class="{ 'loading': isLoading }"
-      >
+      <button type="submit" class="submit-btn" :disabled="isLoading" :class="{ 'loading': isLoading }">
         <span v-if="!isLoading">{{ t('auth.signUp') }}</span>
         <div v-else class="spinner"></div>
         <span class="btn-ripple"></span>

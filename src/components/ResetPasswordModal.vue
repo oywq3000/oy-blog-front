@@ -142,6 +142,8 @@ const handleSubmit = async () => {
   } catch {
     // 请求错误：整组标红提示，气泡由拦截器统一打印
     markAll();
+     // 刷新image code
+    refreshCaptcha();
   } finally {
     isLoading.value = false;
   }

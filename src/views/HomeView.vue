@@ -26,6 +26,7 @@ interface ArticleItem {
   title: string;
   summary: string;
   date: string;
+  publishAt: string;
   tags: string[];
   image: string;
   viewCount?: number;
@@ -36,20 +37,24 @@ interface ArticleItem {
   authorAvatar?: string;
 }
 
-const mapArticle = (a: ArticleInfo): ArticleItem => ({
-  id: a.id,
-  title: a.title,
-  summary: a.summary,
-  date: a.publishAt || a.createdAt,
-  tags: a.tags || [],
-  image: a.coverUrl || '',
-  viewCount: a.viewCount,
-  likeCount: a.likeCount,
-  favorites: a.favorites,
-  readingTimeMinutes: a.readingTimeMinutes,
-  authorName: a.authorName,
-  authorAvatar: a.authorAvatar,
-});
+const mapArticle = (a: ArticleInfo): ArticleItem => {
+  const publishedAt = a.publishAt || a.createdAt;
+  return {
+    id: a.id,
+    title: a.title,
+    summary: a.summary,
+    date: publishedAt,
+    publishAt: publishedAt,
+    tags: a.tags || [],
+    image: a.coverUrl || '',
+    viewCount: a.viewCount,
+    likeCount: a.likeCount,
+    favorites: a.favorites,
+    readingTimeMinutes: a.readingTimeMinutes,
+    authorName: a.authorName,
+    authorAvatar: a.authorAvatar,
+  };
+};
 
 const LATEST_PAGE_SIZE = 10;
 const latestPage = ref(1);

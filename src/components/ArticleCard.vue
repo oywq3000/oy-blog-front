@@ -9,7 +9,7 @@ const props = defineProps<{
   id: number | string;
   title: string;
   summary: string;
-  date: string;
+  publishAt: string;
   tags?: string[];
   image?: string;
   authorName?: string;
@@ -40,6 +40,15 @@ function formatCount(n: number | undefined): string {
   }
   return String(n);
 }
+
+function formatDate(d: string): string {
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return d;
+  // 纯数字 YYYY-MM-DD：不随 locale 变成中文年月，显示从简
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
 </script>
 
 <template>
@@ -50,6 +59,7 @@ function formatCount(n: number | undefined): string {
         <AvatarGenerator v-if="!authorAvatar" :username="authorName" :size="22" />
         <img v-else :src="authorAvatar" :alt="authorName" class="author-avatar" />
         <span class="author-name">{{ authorName }}</span>
+        <span v-if="publishAt" class="article-date">{{ formatDate(publishAt) }}</span>
       </div>
     </div>
     <!-- Row 2: Title -->

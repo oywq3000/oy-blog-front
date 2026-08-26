@@ -1,18 +1,28 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, type Component } from 'vue';
 import { useTheme } from '../composables/useTheme';
 import Logo from '../components/Logo.vue';
 import TextLogo from '../components/TextLogo.vue';
 import TechBadge from '../components/TechBadge.vue';
-import TechIcon from '../components/icons/TechIcon.vue';
+import IconMdiMonitorDashboard from '~icons/mdi/monitor-dashboard';
+import IconMdiServer from '~icons/mdi/server';
+import IconMdiDatabase from '~icons/mdi/database';
+import IconMdiBookOpenPageVariant from '~icons/mdi/book-open-page-variant';
+import IconMdiResponsive from '~icons/mdi/responsive';
+import IconMdiMagnify from '~icons/mdi/magnify';
+import IconMdiAccountGroup from '~icons/mdi/account-group';
+import IconMdiGithub from '~icons/mdi/github';
+import IconSiSpringboot from '~icons/simple-icons/springboot';
+import IconSiVuedotjs from '~icons/simple-icons/vuedotjs';
+import IconSiTypescript from '~icons/simple-icons/typescript';
 
 const { theme } = useTheme();
 const activeSection = ref('intro');
 
-const techStacks = [
+const techStacks: { category: string; icon: Component; items: { name: string; badge: string }[] }[] = [
   {
     category: 'Frontend',
-    icon: 'mdi:monitor-dashboard',
+    icon: IconMdiMonitorDashboard,
     items: [
       { name: 'Vue 3', badge: 'Composition API' },
       { name: 'TypeScript', badge: '5.0+' },
@@ -23,7 +33,7 @@ const techStacks = [
   },
   {
     category: 'Backend',
-    icon: 'mdi:server',
+    icon: IconMdiServer,
     items: [
       { name: 'Spring Boot', badge: '3.5.7' },
       { name: 'MyBatis Plus', badge: 'ORM' },
@@ -33,7 +43,7 @@ const techStacks = [
   },
   {
     category: 'Infra',
-    icon: 'mdi:database',
+    icon: IconMdiDatabase,
     items: [
       { name: 'MySQL', badge: '8.0' },
       { name: 'Redis', badge: 'Cache' },
@@ -42,26 +52,26 @@ const techStacks = [
   }
 ];
 
-const features = [
+const features: { title: string; desc: string; icon: Component }[] = [
   {
     title: 'Immersive Reading',
     desc: 'Markdown rendering, syntax highlighting, math formulas',
-    icon: 'mdi:book-open-page-variant'
+    icon: IconMdiBookOpenPageVariant
   },
   {
     title: 'Responsive Design',
     desc: 'Perfectly adapted for Desktop, Tablet, Mobile',
-    icon: 'mdi:responsive'
+    icon: IconMdiResponsive
   },
   {
     title: 'Powerful Search',
     desc: 'Full-text search based on Elasticsearch',
-    icon: 'mdi:magnify'
+    icon: IconMdiMagnify
   },
   {
     title: 'Community',
     desc: 'Nested comments, likes/favorites, anti-spam',
-    icon: 'mdi:account-group'
+    icon: IconMdiAccountGroup
   }
 ];
 
@@ -149,7 +159,7 @@ onMounted(() => {
 
           <div class="sidebar-footer">
             <a href="https://github.com/patton174/Rookie-Blog" target="_blank" class="github-btn">
-              <TechIcon name="mdi:github" :size="20" />
+              <IconMdiGithub :width="20" :height="20" aria-hidden="true" />
               <span>Star on GitHub</span>
             </a>
           </div>
@@ -176,9 +186,9 @@ onMounted(() => {
             </p>
             
             <div class="badges-row">
-              <TechBadge label="Spring Boot" message="3.5.7" color="6DB33F" logo="simple-icons:springboot" />
-              <TechBadge label="Vue.js" message="3.4+" color="4FC08D" logo="simple-icons:vuedotjs" />
-              <TechBadge label="TypeScript" message="5.0+" color="3178C6" logo="simple-icons:typescript" />
+              <TechBadge label="Spring Boot" message="3.5.7" color="6DB33F" :logo="IconSiSpringboot" />
+              <TechBadge label="Vue.js" message="3.4+" color="4FC08D" :logo="IconSiVuedotjs" />
+              <TechBadge label="TypeScript" message="5.0+" color="3178C6" :logo="IconSiTypescript" />
             </div>
           </div>
         </section>
@@ -191,7 +201,7 @@ onMounted(() => {
           <div class="tech-grid">
             <div v-for="stack in techStacks" :key="stack.category" class="tech-column glass-card">
               <div class="column-header">
-                <TechIcon :name="stack.icon" :size="24" class="header-icon" />
+                <component :is="stack.icon" :width="24" :height="24" class="header-icon" aria-hidden="true" />
                 <h3>{{ stack.category }}</h3>
               </div>
               <ul class="tech-list">
@@ -212,7 +222,7 @@ onMounted(() => {
           <div class="features-grid">
             <div v-for="feature in features" :key="feature.title" class="feature-item glass-card">
               <div class="icon-box">
-                <TechIcon :name="feature.icon" :size="28" />
+                <component :is="feature.icon" :width="28" :height="28" aria-hidden="true" />
               </div>
               <div class="feature-text">
                 <h3>{{ feature.title }}</h3>

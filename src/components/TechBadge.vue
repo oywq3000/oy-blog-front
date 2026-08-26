@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import TechIcon from './icons/TechIcon.vue';
+import { computed, type Component } from 'vue';
 
 // TechBadge Component - Replaces shields.io images for better performance and no CLS
 // Style: Flat Square (Label | Message)
@@ -9,7 +8,8 @@ const props = defineProps<{
   label: string;
   message: string;
   color: string;
-  logo?: string;
+  /** 品牌图标组件（由调用方传入，如 ~icons/simple-icons/springboot） */
+  logo?: Component;
   logoColor?: string;
 }>();
 
@@ -23,7 +23,7 @@ const style = computed(() => {
 <template>
   <div class="tech-badge">
     <div class="badge-label">
-      <TechIcon v-if="logo" :name="logo" :size="12" class="badge-logo" :style="{ color: logoColor || 'white' }" />
+      <component :is="logo" v-if="logo" :width="12" :height="12" class="badge-logo" :style="{ color: logoColor || 'white' }" />
       <span>{{ label }}</span>
     </div>
     <div class="badge-message" :style="style">

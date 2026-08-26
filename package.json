@@ -22,6 +22,7 @@
     "vue-router": "^4.6.3"
   },
   "devDependencies": {
+    "@iconify/json": "^2.2.520",
     "@types/matter-js": "^0.20.2",
     "@types/node": "^20.0.0",
     "@vitejs/plugin-vue": "^5.0.0",
@@ -30,6 +31,7 @@
     "happy-dom": "^20.11.2",
     "sass": "^1.70.0",
     "typescript": "^5.0.0",
+    "unplugin-icons": "^23.0.1",
     "vite": "^5.0.0",
     "vitest": "^4.1.10",
     "vue-tsc": "^2.0.0"

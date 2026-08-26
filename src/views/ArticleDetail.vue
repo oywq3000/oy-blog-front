@@ -12,6 +12,7 @@ import IconUser from '../components/icons/IconUser.vue';
 import IconLike from '../components/icons/IconLike.vue';
 import IconStar from '../components/icons/IconStar.vue';
 import IconShare from '../components/icons/IconShare.vue';
+import IconEye from '../components/icons/IconEye.vue';
 import CommentItem, { type Comment as UIComment } from '../components/CommentItem.vue';
 import { useToast } from '../composables/useToast';
 import {
@@ -681,10 +682,13 @@ const handleEdit = () => {
           <div class="article-meta">
             <span class="date">{{ formattedDate }}</span>
             <span class="dot">•</span>
-            <span class="views">{{ articleInfo.viewCount || 0 }} {{ t('articleDetail.views') }}</span>
+            <span class="views" :title="t('articleDetail.views')">
+              <IconEye :size="14" class="views-icon" />
+              {{ articleInfo.viewCount || 0 }}
+            </span>
             <span class="dot" v-if="articleInfo.tags && articleInfo.tags.length > 0">•</span>
             <div class="tags" v-if="articleInfo.tags && articleInfo.tags.length > 0">
-              <TagBadge v-for="tag in articleInfo.tags" :key="tag" :label="tag" size="sm" />
+              <TagBadge v-for="tag in articleInfo.tags" :key="tag" :label="tag" size="sm" variant="text" />
             </div>
           </div>
         </header>
@@ -1016,6 +1020,27 @@ const handleEdit = () => {
     color: $color-text-secondary;
     font-size: 0.8rem;
     flex-wrap: wrap;
+
+    // 阅读数：眼睛图标 + 数字，与日期/标签同色（继承 meta 的 secondary）
+    .views {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    // 标签：纯文本样式（无胶囊背景），与日期/浏览数同色同字号
+    .tags {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+
+      // text 变体默认 tertiary 色，这里对齐 meta 的 secondary；hover 仍保留强调色
+      :deep(.tag-badge--text):not(:hover),
+      :deep(.tag-badge--text):not(:hover) .tag-badge__text {
+        color: inherit;
+      }
+    }
 
     .tag {
       color: $color-accent-primary;

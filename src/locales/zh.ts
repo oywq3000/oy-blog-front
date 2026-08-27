@@ -315,6 +315,7 @@ export default {
     cancel: '取消',
     sortByHot: '按热度',
     sortByNewest: '按最新',
+    loadMoreComments: '加载更多评论',
   },
   cookie: {
     title: '隐私保护声明',

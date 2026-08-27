@@ -1,6 +1,6 @@
 <script lang="ts">
 export interface Comment {
-  id: number;
+  id: number | string;
   user: string;
   userId?: string; // Added to store raw user ID
   avatar?: string;
@@ -13,34 +13,40 @@ export interface Comment {
   replyCount?: number;
   isShow?: boolean; // Backend visibility flag
   replyToUsername?: string; // Target username for @mention (flat reply display)
-  replyToReplyId?: number | null; // Non-null = reply-to-reply, null = direct reply to comment
+  replyToReplyId?: number | string | null; // Non-null = reply-to-reply, null = direct reply to comment
 }
 </script>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import IconUser from './icons/IconUser.vue';
 
+// 纯展示组件：回复分页数据（replies/currentPage/loading）由父级（useComments）注入，
+// 本组件只负责渲染 + 派发事件，不再自行拉取。
 const props = withDefaults(defineProps<{
   comment: Comment;
   depth?: number;
-  parentUser?: string;
   suppressReplies?: boolean;
-  loadingReplies?: boolean;
-  rootCommentId?: number;
+  loading?: boolean;
+  rootCommentId?: number | string;
+  replies?: Comment[];
+  currentPage?: number;
 }>(), {
   depth: 0,
-  parentUser: '',
   suppressReplies: false,
-  loadingReplies: false,
+  loading: false,
   rootCommentId: undefined,
+  replies: () => [],
+  currentPage: 0,
 });
 
 const emit = defineEmits<{
-  (e: 'reply', commentId: number, content: string): void;
-  (e: 'vote', commentId: number, replyId: number | undefined, type: 'like' | 'dislike'): void;
-  (e: 'fetch-replies', commentId: number, page: number): void;
+  (e: 'reply', commentId: number | string, content: string): void;
+  (e: 'vote', commentId: number | string, replyId: number | string | undefined, type: 'like' | 'dislike'): void;
+  (e: 'fetch-replies', page: number): void;
+  (e: 'toggle-replies'): void;
+  (e: 'collapse-replies'): void;
 }>();
 
 const { t } = useI18n();
@@ -50,7 +56,6 @@ const replyContent = ref('');
 const isMobile = ref(false);
 const replyInput = ref<HTMLTextAreaElement | null>(null);
 const PAGE_SIZE = 10;
-const currentPage = ref(0); // 0 = collapsed
 const isAnimating = ref(false);
 const collapsibleRef = ref<HTMLElement | null>(null);
 const isContentHidden = ref(false);
@@ -64,9 +69,9 @@ const readHiddenIds = (): number[] => {
 };
 const writeHiddenIds = (ids: number[]) =>
   localStorage.setItem('hidden_comments', JSON.stringify(ids));
-const removeHiddenId = (id: number) => {
+const removeHiddenId = (id: number | string) => {
   const ids = readHiddenIds();
-  if (ids.includes(id)) writeHiddenIds(ids.filter(x => x !== id));
+  if (ids.includes(Number(id))) writeHiddenIds(ids.filter(x => x !== Number(id)));
 };
 
 // Backend isShow is primary source of truth; localStorage is a client-side supplement
@@ -79,92 +84,42 @@ const applyVisibility = () => {
   } else {
     // Fallback for old payloads without isShow: preserve existing behavior
     isContentHidden.value =
-      readHiddenIds().includes(props.comment.id) || props.comment.userVote === 'dislike';
+      readHiddenIds().includes(Number(props.comment.id)) || props.comment.userVote === 'dislike';
   }
 };
 watch(() => props.comment.isShow, applyVisibility, { immediate: true });
 
-type FlatReply = { comment: Comment; depth: number; parentUser: string };
-
-// Replies are stored flat; all at depth=1 with @username for targeting
-const flattenReplies = (list: Comment[], parentUser: string): FlatReply[] => {
-  return (list || []).map(c => ({ comment: c, depth: 1, parentUser }));
-};
-
-const flattenedReplies = computed<FlatReply[]>(() => {
-  if (!props.comment.replies) return [];
-  // 仅顶层评论计算并展示所有层级的回复，子项不再继续有自己的回复区
-  if (props.depth === 0 && !props.suppressReplies) {
-    return flattenReplies(props.comment.replies, props.comment.user);
-  }
-  return [];
-});
-
-// totalPages uses server-side replyCount (single source of truth)
+// totalPages uses server-side replyCount (single source of truth, synced by useComments)
 const totalPages = computed(() =>
   Math.ceil((props.comment.replyCount || 0) / PAGE_SIZE)
 );
 
-// Server-side pagination: displayedFlatReplies shows whatever the current page returns
-const displayedFlatReplies = computed<FlatReply[]>(() => {
-  if (currentPage.value === 0) return [];
-  return flattenedReplies.value;
-});
+const hasMoreReplies = computed(() =>
+  (props.comment.replyCount || 0) > 0 || (props.replies?.length || 0) > 0
+);
 
-const hasMoreReplies = computed(() => {
-  if (!props.comment.replies || props.comment.replies.length === 0) {
-    return (props.comment.replyCount || 0) > 0;
-  }
-  return flattenedReplies.value.length > 0;
-});
-
-const goToPage = (page: number) => {
-  currentPage.value = page;
-  emit('fetch-replies', props.comment.id, page);
-};
+const goToPage = (page: number) => emit('fetch-replies', page);
 
 const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    const next = currentPage.value + 1;
-    currentPage.value = next;
-    emit('fetch-replies', props.comment.id, next);
+  if (props.currentPage < totalPages.value) {
+    emit('fetch-replies', props.currentPage + 1);
   }
 };
 
-const collapseReplies = () => {
-  currentPage.value = 0;
-  emit('fetch-replies', props.comment.id, 0); // signal parent to clear cached replies
-};
+const collapseReplies = () => emit('collapse-replies');
 
-const toggleShowReplies = async () => {
+const toggleReplies = () => {
   if (isAnimating.value) return;
+  emit('toggle-replies');
+};
 
-  // Already expanded → collapse
-  if (currentPage.value > 0) {
-    collapseReplies();
-    return;
-  }
-
-  // Expand: load if needed
-  if ((!props.comment.replies || props.comment.replies.length === 0) && (props.comment.replyCount || 0) > 0) {
-    emit('fetch-replies', props.comment.id, 1);
-  }
-
-  const el = collapsibleRef.value;
-  if (!el) {
-    currentPage.value = 1;
-    return;
-  }
-
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  isAnimating.value = true;
-  el.classList.add('is-animating');
-
+// 展开/收起动画：响应父级 currentPage 变化
+const finishAnimation = (el: HTMLElement, keepOpen: boolean) => {
   const onEnd = () => {
     el.removeEventListener('transitionend', onEnd);
     el.classList.remove('is-animating');
     isAnimating.value = false;
-    if (currentPage.value > 0) {
+    if (keepOpen) {
       el.style.maxHeight = 'none';
       el.style.opacity = '1';
     } else {
@@ -172,52 +127,72 @@ const toggleShowReplies = async () => {
       el.style.opacity = '';
     }
   };
+  // 兜底：极端情况下 transitionend 未触发，避免 isAnimating 卡死
+  const fallback = window.setTimeout(onEnd, 600);
+  el.addEventListener('transitionend', () => {
+    window.clearTimeout(fallback);
+    onEnd();
+  });
+};
 
-  // Expand animation
-  currentPage.value = 1;
-  await nextTick();
-  const h = el.scrollHeight;
+const animateExpand = (el: HTMLElement) => {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  isAnimating.value = true;
+  el.classList.add('is-animating');
   if (reduce) {
     el.style.maxHeight = 'none';
     el.style.opacity = '1';
-    onEnd();
+    finishAnimation(el, true);
     return;
   }
   el.style.maxHeight = '0px';
   el.style.opacity = '0';
   void el.offsetHeight;
   requestAnimationFrame(() => {
-    el.style.maxHeight = h + 'px';
+    el.style.maxHeight = el.scrollHeight + 'px';
     el.style.opacity = '1';
   });
-
-  el.addEventListener('transitionend', onEnd);
+  finishAnimation(el, true);
 };
 
-// Watch for replies loading to update height if expanded
-watch(() => props.comment.replies, async () => {
-  if (currentPage.value > 0 && collapsibleRef.value) {
-    await nextTick();
-    // Recalculate height if needed, but since max-height is 'none' when open, it should adjust automatically.
-    // However, if we were in loading state, we might need to ensure it stays open correctly.
+const animateCollapse = (el: HTMLElement) => {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  isAnimating.value = true;
+  el.classList.add('is-animating');
+  if (reduce) {
+    el.style.maxHeight = '';
+    el.style.opacity = '';
+    finishAnimation(el, false);
+    return;
   }
-}, { deep: true });
+  el.style.maxHeight = el.scrollHeight + 'px';
+  void el.offsetHeight;
+  requestAnimationFrame(() => {
+    el.style.maxHeight = '0px';
+    el.style.opacity = '0';
+  });
+  finishAnimation(el, false);
+};
 
+watch(() => props.currentPage, (page, oldPage) => {
+  const el = collapsibleRef.value;
+  if (!el) return;
+  if (oldPage === 0 && page > 0) {
+    animateExpand(el);
+  } else if (oldPage > 0 && page === 0) {
+    animateCollapse(el);
+  }
+});
 
 // Long press handling
 let longPressTimer: number | undefined;
 const isLongPressMenuOpen = ref(false);
 const menuPosition = ref({ x: 0, y: 0 });
 
-onMounted(() => {
-  checkMobile();
-  window.addEventListener('resize', checkMobile);
-});
-
 const saveHiddenState = () => {
   const hiddenComments = readHiddenIds();
-  if (!hiddenComments.includes(props.comment.id)) {
-    hiddenComments.push(props.comment.id);
+  if (!hiddenComments.includes(Number(props.comment.id))) {
+    hiddenComments.push(Number(props.comment.id));
     writeHiddenIds(hiddenComments);
   }
 };
@@ -249,7 +224,8 @@ const checkMobile = () => {
 };
 
 onMounted(() => {
-  // Removed duplicate checkMobile logic as it's handled above
+  checkMobile();
+  window.addEventListener('resize', checkMobile);
 });
 
 onUnmounted(() => {
@@ -269,7 +245,7 @@ const handleVote = (type: 'like' | 'dislike') => {
     setTimeout(() => {
       isContentHidden.value = true;
       saveHiddenState();
-      currentPage.value = 0; // Auto collapse replies
+      collapseReplies(); // Auto collapse replies
       if (el) el.style.opacity = '1'; // Reset for when it's shown again
     }, 300);
   } else if (wasDisliked) {
@@ -302,7 +278,7 @@ const toggleReply = () => {
 
 const handleMobileReply = () => {
   if (!isMobile.value) return;
-  
+
   // Add delay as requested (200-300ms)
   // Visual feedback is handled by CSS :active
   setTimeout(() => {
@@ -349,11 +325,11 @@ const formatDateTime = (dateStr: string): string => {
 };
 
 // Recursive handlers
-const handleNestedReply = (id: number, content: string) => {
+const handleNestedReply = (id: number | string, content: string) => {
   emit('reply', id, content);
 };
 
-const handleNestedVote = (commentId: number, replyId: number | undefined, type: 'like' | 'dislike') => {
+const handleNestedVote = (commentId: number | string, replyId: number | string | undefined, type: 'like' | 'dislike') => {
   emit('vote', commentId, replyId, type);
 };
 </script>
@@ -371,7 +347,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
 
       <!-- Content Section -->
       <div class="content-section">
-        <div 
+        <div
           class="comment-content-wrapper"
           @touchstart="startLongPress"
           @touchend="cancelLongPress"
@@ -398,12 +374,12 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
             <div class="footer-meta">
               <span class="date">{{ formatDateTime(comment.date) }}</span>
               <button class="reply-trigger" @click.stop="toggleReply">{{ t('common.reply', 'Reply') }}</button>
-              
+
               <!-- Inline Actions -->
               <div class="inline-actions">
-                <button 
-                  class="action-btn like-btn" 
-                  :class="{ active: isLiked }" 
+                <button
+                  class="action-btn like-btn"
+                  :class="{ active: isLiked }"
                   @click.stop="handleVote('like')"
                 >
                   <svg class="icon heart-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -411,10 +387,10 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
                   </svg>
                   <span class="count" v-if="comment.likes > 0">{{ comment.likes }}</span>
                 </button>
-                
-                <button 
-                  class="action-btn dislike-btn" 
-                  :class="{ active: isDisliked }" 
+
+                <button
+                  class="action-btn dislike-btn"
+                  :class="{ active: isDisliked }"
                   @click.stop="handleVote('dislike')"
                 >
                   <svg class="icon dislike-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -430,9 +406,9 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
         <transition name="reply-expand">
           <div v-if="isReplying && !isContentHidden" class="reply-form-wrapper">
             <div class="reply-form" @click.stop>
-              <textarea 
-                v-model="replyContent" 
-                :placeholder="t('articleDetail.addReply')" 
+              <textarea
+                v-model="replyContent"
+                :placeholder="t('articleDetail.addReply')"
                 rows="2"
                 ref="replyInput"
               ></textarea>
@@ -454,16 +430,15 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
             :aria-busy="isAnimating ? 'true' : 'false'"
           >
             <div class="replies-list">
-              <div v-if="loadingReplies" class="loading-replies" style="padding: 10px; text-align: center; color: var(--color-text-secondary);">
+              <div v-if="loading" class="loading-replies" style="padding: 10px; text-align: center; color: var(--color-text-secondary);">
                  {{ t('articleDetail.loadingReplies') }}
               </div>
               <CommentItem
                 v-else
-                v-for="fr in displayedFlatReplies"
-                :key="fr.comment.id"
-                :comment="fr.comment"
-                :depth="fr.depth"
-                :parentUser="fr.parentUser"
+                v-for="r in replies"
+                :key="r.id"
+                :comment="r"
+                :depth="1"
                 :rootCommentId="comment.id"
                 :suppressReplies="true"
                 @vote="handleNestedVote"
@@ -496,17 +471,17 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
           <div class="expand-action">
             <button
               class="expand-btn"
-              @click="toggleShowReplies"
+              @click="toggleReplies"
               :aria-expanded="currentPage > 0 ? 'true' : 'false'"
               :aria-controls="`replies-${comment.id}`"
-              :disabled="isAnimating || loadingReplies"
-              :aria-disabled="(isAnimating || loadingReplies) ? 'true' : 'false'"
+              :disabled="isAnimating || loading"
+              :aria-disabled="(isAnimating || loading) ? 'true' : 'false'"
             >
               <span class="line"></span>
               <span class="text">
-                <span v-if="loadingReplies">{{ t('home.loadingTitle') }}</span>
+                <span v-if="loading">{{ t('home.loadingTitle') }}</span>
                 <span v-else>
-                  {{ currentPage > 0 ? t('common.collapse') : t('common.viewReplies', { count: comment.replyCount || flattenedReplies.length }) }}
+                  {{ currentPage > 0 ? t('common.collapse') : t('common.viewReplies', { count: comment.replyCount || replies.length }) }}
                 </span>
               </span>
               <span class="icon" aria-hidden="true">
@@ -525,8 +500,8 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
       <!-- Long Press Menu Overlay -->
       <teleport to="body" v-if="isLongPressMenuOpen">
         <div class="context-menu-overlay" @click="isLongPressMenuOpen = false">
-          <div 
-            class="context-menu" 
+          <div
+            class="context-menu"
             :style="{ top: `${menuPosition.y}px`, left: `${menuPosition.x}px` }"
             @click.stop
           >
@@ -544,15 +519,15 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
 
 .comment-item {
   margin-bottom: 16px;
-  
+
   &.is-nested {
     margin-bottom: 12px;
-    
+
     .avatar {
       width: 24px;
       height: 24px;
     }
-    
+
     .username {
       font-size: 0.85rem;
     }
@@ -567,14 +542,14 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
 
 .avatar-section {
   flex-shrink: 0;
-  
+
   .avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.1);
     overflow: hidden;
-    
+
     img {
       width: 100%;
       height: 100%;
@@ -596,7 +571,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
   padding: 2px 0; // Minimal padding: 2px top/bottom, 0 left/right (migrated from mobile)
   margin: 2px 0; // Minimal margin (migrated from mobile)
   transition: all 0.3s ease;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(255, 255, 255, 0.1);
@@ -623,7 +598,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
   margin-bottom: 4px;
   line-height: 1; // Tighten line-height to match avatar center
   min-height: 24px; // Ensure it has height to align with avatar, using min-height for robustness
-  
+
   .user-link {
     color: rgba(var(--color-text-secondary-rgb), 0.55);
     text-decoration: none;
@@ -677,7 +652,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
   color: $color-text-secondary;
   position: relative; // For context
   min-height: 24px;
-  
+
   .reply-trigger {
     background: none;
     border: none;
@@ -688,7 +663,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
     font-size: inherit;
     margin-left: 0; // Reset auto margin, place next to date
     transition: color 0.2s;
-    
+
     &:hover {
       color: $color-text-primary;
     }
@@ -715,7 +690,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
       transition: all 0.2s;
       position: relative; // For pseudo-element expansion
       // Ensure vertical alignment with text
-      align-self: center; 
+      align-self: center;
 
       // Expand click area via pseudo-element
       &::after {
@@ -747,13 +722,13 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
 
       &.active {
         color: #fe2c55;
-        
+
         .heart-icon {
           fill: #fe2c55;
           stroke: none;
           animation: heart-bounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        
+
         .dislike-icon {
           fill: currentColor;
           stroke: none;
@@ -767,7 +742,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
       &:hover {
         opacity: 0.8;
       }
-      
+
       &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
@@ -791,19 +766,19 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
   // Removed padding and margin to fix indentation alignment
   border-left: 2px solid rgba(255, 255, 255, 0.05);
   contain: layout style;
-  
+
   .replies-collapsible {
     max-height: 0;
     opacity: 0;
     overflow: hidden;
     transition: max-height 360ms ease-in-out, opacity 320ms ease-in-out;
     will-change: max-height, opacity;
-    
+
     &.is-animating {
       pointer-events: none;
     }
   }
-  
+
   .pagination-bar {
     display: flex;
     align-items: center;
@@ -867,7 +842,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
 
   .expand-action {
     margin-top: 8px;
-    
+
     .expand-btn {
       background: none;
       border: none;
@@ -877,10 +852,10 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
       font-weight: 600;
       cursor: pointer;
       line-height: 1;
-      
+
       // Migrated mobile styles to default (desktop)
-      font-size: 11px; 
-      padding: 0; 
+      font-size: 11px;
+      padding: 0;
       gap: 4px;
       height: 24px; // Explicit height to contain text and icon comfortably
 
@@ -888,13 +863,13 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
         height: 1px;
         background: currentColor;
         opacity: 0.5;
-        margin-top: 0; 
-        
+        margin-top: 0;
+
         // Migrated mobile style
         width: 12px;
         display: block; // Ensure it behaves as a block for height/width
       }
-      
+
       .text {
         display: flex; // Use flex to ensure vertical centering works perfectly
         align-items: center;
@@ -907,17 +882,17 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
         font-size: 11px;
         position: static; // Remove manual offset
         top: auto;
-        
+
         // Visual fix: Use negative margin to pull text up slightly
-         margin-top: -1px; 
+         margin-top: -1px;
        }
-      
+
       .icon {
         display: flex;
         align-items: center;
         line-height: 1;
         height: 100%; // Fill container height
-        
+
         .chevron-icon {
           width: 12px;
           height: 12px;
@@ -925,11 +900,11 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
         }
       }
     }
-    
+
     // Mobile adjustments (mostly redundant now but kept for safety/specific overrides if needed)
     @media (max-width: 768px) {
       margin-top: 4px;
-      
+
       .expand-btn {
         // Styles already synced to default above
       }
@@ -980,7 +955,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
     background: rgba(0, 0, 0, 0.2);
     border-color: rgba(255, 255, 255, 0.05);
   }
-  
+
   textarea {
     width: 100%;
     max-width: 100%; // Ensure constraint
@@ -995,7 +970,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
     line-height: 1.5;
     resize: none; // Prevent manual resize breaking layout
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
+
     :global(.dark) & {
       background: rgba(0, 0, 0, 0.2);
       border-color: rgba(255, 255, 255, 0.05);
@@ -1013,13 +988,13 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
       color: rgba($color-text-secondary, 0.6);
     }
   }
-  
+
   .form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 12px; // Increased gap
     margin-top: 12px;
-    
+
     button {
       padding: 8px 20px; // Larger touch target
       border-radius: 20px; // Match textarea radius
@@ -1035,7 +1010,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
         transform: scale(0.96); // Tactile feedback
       }
     }
-    
+
     .cancel-btn {
       background: rgba(255, 255, 255, 0.05);
       color: $color-text-secondary;
@@ -1046,24 +1021,24 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
         color: $color-text-primary;
       }
     }
-    
+
     .submit-btn {
       // Premium Dark/Light Button - NO BLUE
       background: #1a1a1a; // Premium Dark Grey for Light Mode
       color: #ffffff;
       border: 1px solid rgba(255,255,255,0.1);
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15); // Elegant shadow
-      
+
       :global(.dark) & {
         background: #ffffff; // White for Dark Mode
         color: #000000;
         box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15); // White glow
       }
-      
+
       &:hover:not(:disabled) {
         transform: translateY(-2px) scale(1.02);
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
-        
+
         :global(.dark) & {
            box-shadow: 0 8px 30px rgba(255, 255, 255, 0.25);
         }
@@ -1106,7 +1081,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
   align-items: center;
   font-size: 13px;
   color: $color-text-secondary;
-  
+
   .show-btn {
     background: none;
     border: none;
@@ -1137,7 +1112,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
   flex-direction: column;
   min-width: 120px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  
+
   button {
     background: none;
     border: none;
@@ -1147,11 +1122,11 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
     font-size: 14px;
     cursor: pointer;
     border-radius: 4px;
-    
+
     &:hover {
       background: rgba(255, 255, 255, 0.1);
     }
-    
+
     &.danger {
       color: #fe2c55;
     }
@@ -1186,7 +1161,7 @@ const handleNestedVote = (commentId: number, replyId: number | undefined, type: 
         height: auto;
         padding: 8px; // Reduced padding but enough for touch target
         position: relative;
-        
+
         // Use pseudo-element to guarantee 44x44pt (approx 58px or 44px depending on density, sticking to 44px min)
         &::after {
           content: '';

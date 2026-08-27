@@ -315,6 +315,7 @@ export default {
     cancel: 'Cancel',
     sortByHot: 'Hot',
     sortByNewest: 'Newest',
+    loadMoreComments: 'Load more comments',
   },
   cookie: {
     title: 'Privacy & Data Protection',

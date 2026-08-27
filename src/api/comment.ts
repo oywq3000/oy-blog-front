@@ -94,7 +94,7 @@ export const getCommentCount = (articleId: string) => {
 };
 
 // Query Replies List (if needed, usually embedded)
-export const getReplies = (commentId: number, pageNum: number = 1, pageSize: number = 10) => {
+export const getReplies = (commentId: number | string, pageNum: number = 1, pageSize: number = 10) => {
   return request.get<any, ResultListCommentReply>(baseUrl+`/article/comment/${commentId}/replies`, {
     params: { pageNum, pageSize }
   });
@@ -109,7 +109,7 @@ export const addComment = (articleId: string, content: string) => {
 };
 
 // Reply Comment
-export const replyComment = (commentId: number, content: string, articleId: string, replyToReplyId?: number, replyToUserId?: string) => {
+export const replyComment = (commentId: number | string, content: string, articleId: string, replyToReplyId?: number | string, replyToUserId?: string) => {
   const data: any = { commentId, content, articleId };
   if (replyToReplyId) data.replyToReplyId = replyToReplyId;
   if (replyToUserId) data.replyToUserId = replyToUserId;
@@ -117,7 +117,7 @@ export const replyComment = (commentId: number, content: string, articleId: stri
 };
 
 // React to Comment
-export const reactToComment = (type: string, articleId: string, commentId?: number, replyId?: number) => {
+export const reactToComment = (type: string, articleId: string, commentId?: number | string, replyId?: number | string) => {
   const params: any = { type, articleId };
   if (commentId) params.commentId = commentId;
   if (replyId) params.replyId = replyId;

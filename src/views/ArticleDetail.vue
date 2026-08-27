@@ -2,19 +2,15 @@
 import { ref, computed, watch, onMounted, onUpdated, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-/* import TagsCard from '../components/TagsCard.vue';
-import SeriesCard from '../components/SeriesCard.vue';
-import RecommendedCard from '../components/RecommendedCard.vue';
-import UserCard from '../components/UserCard.vue';
-import ArticleToc from '../components/ArticleToc.vue'; */
 import TagBadge from '../components/TagBadge.vue';
 import IconUser from '../components/icons/IconUser.vue';
 import IconLike from '../components/icons/IconLike.vue';
 import IconStar from '../components/icons/IconStar.vue';
 import IconShare from '../components/icons/IconShare.vue';
 import IconEye from '../components/icons/IconEye.vue';
-import CommentItem, { type Comment as UIComment } from '../components/CommentItem.vue';
+import CommentItem from '../components/CommentItem.vue';
 import { useToast } from '../composables/useToast';
+import { useComments } from '../composables/useComments';
 import {
   getArticleById,
   getArticleContent,
@@ -28,19 +24,9 @@ import {
   recordArticleView,
   checkArticleOwnership,
   type ArticleInfo,
-  type ArticleChapter,
-  type UserArticleStats
+  type ArticleChapter
 } from '../api/article';
-import {
-  getComments,
-  getReplies,
-  addComment,
-  replyComment,
-  reactToComment,
-  type Comment as APIComment,
-  type CommentReply as APICommentReply
-} from '../api/comment';
-import { getUserPublicProfile, type SimpleUserProfile } from '../api/user';
+import { type SimpleUserProfile } from '../api/user';
 import { useUserStore } from '../store/user';
 // import { MdPreview } from 'md-editor-v3'; // Removed, using MarkdownViewer
 // import 'md-editor-v3/lib/preview.css'; // Removed
@@ -97,10 +83,15 @@ const simpleAuthorProfile = ref<SimpleUserProfile | null>(null)
 const articleContent = ref(''); // Stores Markdown
 const articleHtml = ref(''); // Stores HTML fallback
 const isLoading = ref(false);
-const isSubmittingComment = ref(false);
-const comments = ref<UIComment[]>([]);
-const totalCommentCount = ref<number>(0);
-const commentSortMode = ref<'newest' | 'hot'>('hot');
+const commentsApi = useComments();
+const {
+  comments,
+  totalCommentCount,
+  sortMode: commentSortMode,
+  isSubmittingComment,
+  hasMoreComments,
+  loadingMoreComments,
+} = commentsApi;
 const newComment = ref('');
 
 // Formatted date YYYY-MM-DD HH:mm:ss
@@ -110,131 +101,6 @@ const formattedDate = computed(() => {
   const d = new Date(raw);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-});
-
-// Helper to convert API Reply to UI Comment
-const mapReplyToUI = (r: APICommentReply): UIComment => ({
-  id: r.id,
-  user: r.username || r.userId || 'User',
-  userId: r.userId,
-  avatar: r.avatar || undefined,
-  date: r.replyAt,
-  content: r.content,
-  likes: r.likeCount ?? 0,
-  dislikes: r.dislikeCount ?? 0,
-  userVote: (r.userReaction as UIComment['userVote']) ?? null,
-  isShow: r.isShow,
-  replyToUsername: r.replyToUsername,
-  replyToReplyId: r.replyToReplyId,
-  replies: []
-});
-
-// Map API comment to UI comment
-const mapComment = (c: APIComment): UIComment => {
-  const root: UIComment = {
-    id: c.id,
-    // Prefer username from API response, fallback to userId, then "User"
-    user: c.username || c.userId || 'User',
-    userId: c.userId,
-    avatar: c.avatar || undefined,
-    // Backend uses commentAt as the primary timestamp
-    date: c.commentAt,
-    content: c.content,
-    likes: c.likeCount ?? 0,
-    dislikes: c.dislikeCount ?? 0,
-    userVote: (c.userReaction as UIComment['userVote']) ?? null,
-    // Recursively map replies if they exist
-    replies: [],
-    replyCount: c.replyCount || 0, // Map replyCount
-    isShow: c.isShow
-  };
-
-  // Flag to indicate if we need to fetch replies
-  // We don't rely on this flag anymore for auto-fetching, but we use replyCount for the button.
-  // if (c.hasReply === 1 && (!c.replies || c.replies.length === 0)) {
-  //   (root as any)._hasReplyFlag = true;
-  // }
-
-  // All replies are stored flat (B站-style); @username handles targeting
-  if (c.replies && c.replies.length > 0) {
-    root.replies = c.replies.map(mapReplyToUI);
-  }
-
-  return root;
-};
-
-
-// Cache for usernames to avoid duplicate requests
-const usernameCache = new Map<string, UserArticleStats>();
-
-
-const fetchUserInfo = async (userId: string) => {
-  if (!userId || usernameCache.has(userId)) return usernameCache.get(userId);
-  try {
-    const res = await getUserPublicProfile(userId);
-    if (res.isSuccess && res.data) {
-      const author = res.data;
-      if (author) {
-        usernameCache.set(userId, author); // Cache using the ORIGINAL userId as key
-        return author;
-      }
-    }
-  } catch (e) {
-    console.error('Failed to fetch username for', userId, e);
-  }
-  return null;
-}
-
-
-
-const loadComments = async (articleId: string) => {
-  try {
-    const res = await getComments(articleId, commentSortMode.value);
-    if (res.isSuccess && res.data) {
-      // API might return array directly or { items: [] }
-      // Based on user feedback: "data": [ { ... }, { ... } ]
-      const rawComments = Array.isArray(res.data.data) ? res.data.data : (res.data.data.items || []);
-      const mapped = rawComments.map(mapComment);
-     
-      // Helper to process a list of comments (including replies)
-      const processComments = async (list: UIComment[]) => {
-        for (const c of list) {
-          // If user looks like an ID (32 chars), try to fetch real name
-          // Or if it starts with "User-" followed by ID, maybe we want to check? 
-          // Actually, the user complained "User-..." is an ID. 
-          // But if the username IS "User-...", we can't do much unless we format it.
-          // Let's assume the user mainly wants to fix the raw ID case.
-          // But for the "User-..." case, let's try to fetch just in case the API returns a better "username" than what was in the comment object.
-
-          // Check if user is exactly the ID (raw ID case) or "User-"+ID
-          const isRawId = c.user.length === 32 && /^[0-9a-fA-F]+$/.test(c.user);
-          const isDefaultUser = c.user.startsWith('User-') && c.user.length === 37;
-
-          if (isRawId || isDefaultUser) {
-            const name = await fetchUserInfo(c.user);
-            if (name) c.user = name;
-          }
-          // Also process replies
-          if (c.replies && c.replies.length > 0) {
-            await processComments(c.replies);
-          }
-        }
-      };
-
-      await processComments(mapped);
-      comments.value = mapped;
-      totalCommentCount.value = res.data.data?.totalCommentCount;
-    }
-  } catch (error) {
-    console.error('Failed to load comments:', error);
-  }
-};
-
-// 监听排序模式变化，重新加载评论
-watch(commentSortMode, () => {
-  if (articleInfo.value?.id) {
-    loadComments(articleInfo.value.id);
-  }
 });
 
 interface ArticleLink {
@@ -377,7 +243,8 @@ const loadArticle = async (articleId: string) => {
 
       // 3. Get Comments
       console.log('Loading comments for article ID:', articleData.id);
-      loadComments(articleData.id);
+      commentsApi.setArticleId(articleData.id);
+      commentsApi.loadComments();
     } else {
       console.error('Article data invalid or not found in response:', res);
       // Show error state or message
@@ -421,151 +288,24 @@ watch(isLoggedIn, (newVal) => {
   }
 });
 
-const PAGE_SIZE = 10;
-
-const handleFetchReplies = async (commentId: number, page: number = 1) => {
-  const comment = findCommentById(commentId);
-  if (!comment) return;
-
-  // page 0 = collapse signal — just clear replies, no API call
-  if (page === 0) {
-    comment.replies = [];
-    return;
-  }
-
-  if (loadingRepliesSet.value.has(commentId)) return;
-  loadingRepliesSet.value.add(commentId);
-
-  try {
-    const replyRes = await getReplies(commentId, page, PAGE_SIZE);
-    if (replyRes.isSuccess && replyRes.data?.data?.length > 0) {
-      comment.replies = replyRes.data.data.map(mapReplyToUI);
-    } else {
-      comment.replies = [];
-    }
-  } catch (e) {
-    console.error('Failed to fetch replies for', commentId, e);
-  } finally {
-    loadingRepliesSet.value.delete(commentId);
-  }
-};
-
-const loadingRepliesSet = ref(new Set<number>());
-
-// 找根评论 — 纯平层查找
-const findCommentById = (id: number): UIComment | undefined => {
-  return comments.value.find(c => c.id === id);
-};
-
-// 找回复 — 知道父评论 ID 时直接定位
-const findReplyById = (commentId: number, replyId: number): UIComment | undefined => {
-  const root = findCommentById(commentId);
-  return root?.replies?.find(r => r.id === replyId);
-};
-
-
-
-
-const handleVote = async (commentId: number, replyId: number | undefined, type: 'like' | 'dislike') => {
+const handleVote = async (
+  commentId: number | string,
+  replyId: number | string | undefined,
+  type: 'like' | 'dislike'
+) => {
   if (!isLoggedIn.value) {
     addToast(t('articleDetail.loginToVote'), 'warning');
     return;
   }
-  let comment: UIComment | undefined;
-  if (replyId) {
-    // Voting on a reply — find it within the root comment's replies
-    comment = findReplyById(commentId, replyId);
-  } else {
-    // Voting on a root comment
-    comment = findCommentById(commentId);
-  }
-  // Optimistic update
-  if (!comment) return;
-
-  // Call API
-  try {
-    await reactToComment(type, String(props.id),commentId,replyId);
-    // Reload comments to get fresh state? Or update locally?
-    // Updating locally is complex with logic. 
-    // For now, simple reload or just assume success
-    if (comment.userVote === type) {
-      comment.userVote = null;
-      if (type === 'like') comment.likes--; else comment.dislikes--;
-    } else {
-      if (comment.userVote) {
-        if (comment.userVote === 'like') comment.likes--; else comment.dislikes--;
-      }
-      comment.userVote = type;
-      if (type === 'like') comment.likes++; else comment.dislikes++;
-    }
-  } catch (error) {
-    console.error('Failed to vote:', error);
-  }
+  await commentsApi.vote(commentId, replyId, type);
 };
 
-const handleReply = async (commentId: number, content: string) => {
-  if (!articleInfo.value) return;
+const handleReply = async (commentId: number | string, content: string) => {
   if (!isLoggedIn.value) {
     addToast(t('articleDetail.loginToReply'), 'warning');
     return;
   }
-
-  // Find the comment we are replying to
-  let targetComment: UIComment | undefined;
-  let rootCommentId: number | undefined;
-  let replyToReplyId: number | undefined;
-
-  // Helper to find comment and its root
-  const findTarget = (list: UIComment[], rootId: number): boolean => {
-    for (const c of list) {
-      if (c.id === commentId) {
-        targetComment = c;
-        rootCommentId = rootId;
-        // If the target is NOT the root itself, then it's a reply-to-reply
-        if (c.id !== rootId) {
-          replyToReplyId = c.id;
-        }
-        return true;
-      }
-      if (c.replies && c.replies.length > 0) {
-        if (findTarget(c.replies, rootId)) return true;
-      }
-    }
-    return false;
-  };
-
-  // Search in root comments
-  for (const root of comments.value) {
-    if (findTarget([root], root.id)) break;
-  }
-
-  if (!targetComment || !rootCommentId) {
-    console.error('Target comment not found for id:', commentId);
-    return;
-  }
-
-  try {
-    // replyComment(commentId, content, articleId, replyToReplyId, replyToUserId)
-    // commentId param in API is the ROOT comment ID.
-    // replyToReplyId is the ID of the reply we are replying to (if any).
-    const res = await replyComment(
-      rootCommentId,
-      content,
-      articleInfo.value.id,
-      replyToReplyId,
-      targetComment.userId
-    );
-
-    if (res.isSuccess) {
-      // Refresh the last page of this comment's replies, preserving expansion state
-      const rootComment = findCommentById(rootCommentId);
-      const totalAfterReply = (rootComment?.replyCount || 0) + 1;
-      const lastPage = Math.ceil(totalAfterReply / PAGE_SIZE);
-      await handleFetchReplies(rootCommentId, lastPage);
-    }
-  } catch (error) {
-    console.error('Failed to reply:', error);
-  }
+  await commentsApi.submitReply(commentId, content);
 };
 
 const submitComment = async () => {
@@ -574,18 +314,8 @@ const submitComment = async () => {
     addToast(t('articleDetail.loginToComment'), 'warning');
     return;
   }
-
-  isSubmittingComment.value = true;
-  try {
-    const res = await addComment(articleInfo.value.id, newComment.value);
-    if (res.isSuccess) {
-      newComment.value = '';
-      loadComments(articleInfo.value.id);
-    }
-  } catch (error) {
-    console.error('Failed to submit comment:', error);
-  } finally {
-    isSubmittingComment.value = false;
+  if (await commentsApi.addComment(newComment.value)) {
+    newComment.value = '';
   }
 };
 
@@ -760,12 +490,12 @@ const handleEdit = () => {
           <button
             class="sort-tab"
             :class="{ active: commentSortMode === 'hot' }"
-            @click="commentSortMode = 'hot'"
+            @click="commentsApi.setSortMode('hot')"
           >{{ t('articleDetail.sortByHot') }}</button>
           <button
             class="sort-tab"
             :class="{ active: commentSortMode === 'newest' }"
-            @click="commentSortMode = 'newest'"
+            @click="commentsApi.setSortMode('newest')"
           >{{ t('articleDetail.sortByNewest') }}</button>
         </div>
       </div>
@@ -790,9 +520,26 @@ const handleEdit = () => {
       </div>
 
       <div class="comments-list">
-        <CommentItem v-for="comment in comments" :key="comment.id" :comment="comment"
-          :loading-replies="loadingRepliesSet.has(comment.id)" @vote="handleVote" @reply="handleReply"
-          @fetch-replies="handleFetchReplies" />
+        <CommentItem
+          v-for="comment in comments"
+          :key="comment.id"
+          :comment="comment"
+          :replies="commentsApi.getReplyReplies(comment.id)"
+          :current-page="commentsApi.getReplyCurrentPage(comment.id)"
+          :loading="commentsApi.getReplyLoading(comment.id)"
+          @vote="handleVote"
+          @reply="handleReply"
+          @fetch-replies="(page) => commentsApi.goToReplyPage(comment.id, page)"
+          @toggle-replies="commentsApi.toggleReplies(comment.id)"
+          @collapse-replies="commentsApi.collapseReplies(comment.id)"
+        />
+      </div>
+
+      <div v-if="hasMoreComments" class="comments-load-more">
+        <button class="load-more-btn" @click="commentsApi.loadMoreComments()" :disabled="loadingMoreComments">
+          <span v-if="loadingMoreComments">{{ t('home.loadingTitle') }}</span>
+          <span v-else>{{ t('articleDetail.loadMoreComments', '加载更多评论') }}</span>
+        </button>
       </div>
     </section>
     <!-- <aside class="sidebar-section">
@@ -1430,6 +1177,35 @@ const handleEdit = () => {
 .comments-list {
   display: flex;
   flex-direction: column;
+}
+
+.comments-load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+
+  .load-more-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 8px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    color: $color-text-secondary;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.1);
+      color: $color-text-primary;
+      transform: translateY(-1px);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
 }
 
 // Skeleton Loader Styles

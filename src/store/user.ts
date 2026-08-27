@@ -1,22 +1,10 @@
 import { reactive, computed } from 'vue';
 import { getUserInfo, logout } from '../api/auth';
+import type { UserInfo } from '../types/user';
 
 interface UserState {
   userInfo: UserInfo | null;
   loading: boolean;
-}
-
-export interface UserInfo {
-  id: string;
-  username: string;
-  email: string;
-  status: number;
-  bio?: string;
-  avatarUrl: string;
-  emailVerified: boolean;
-  ipAddress: string;
-  lastLogin: string;
-  createdAt: string;
 }
 
 const state = reactive<UserState>({

@@ -1,4 +1,5 @@
 import request from './request';
+import type { UserInfo } from '../types/user';
 
 export interface LoginDto {
   username: string;
@@ -62,24 +63,11 @@ export const updatePassword = (data: UpdatePasswordDto) => {
   return request.post<any, ResultObject>(baseUrl+'/auth/password/update', data);
 };
 
-export interface UserDto {
-  id: string;
-  username: string;
-  email: string;
-  status: number;
-  avatarUrl: string;
-  bio?: string;
-  emailVerified: boolean;
-  ipAddress: string;
-  lastLogin: string;
-  createdAt: string
-}
-
 export interface ResultUserDto {
   errCode: number;
   errMsg: string;
   isSuccess: boolean;
-  data: UserDto;
+  data: UserInfo;
 }
 
 export const getUserInfo = () => {

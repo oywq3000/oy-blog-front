@@ -19,8 +19,8 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const showModelMenu = ref(false)
 
 const models = [
-  { value: 'deepseek-v4-pro', label: 'deepseek-v4-pro' },
   { value: 'deepseek-v4-flash', label: 'deepseek-v4-flash'},
+  { value: 'deepseek-v4-pro', label: 'deepseek-v4-pro' },
 ]
 
 const selectedModelLabel = computed(

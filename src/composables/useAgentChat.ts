@@ -72,7 +72,7 @@ const loading = ref(false)
 const sidebarSearch = ref('')
 
 const defaultSettings: ChatSettings = {
-  model: 'deepseek-v4-pro',
+  model: 'deepseek-v4-flash',
   temperature: 0.7,
   deepThinking: false,
 }

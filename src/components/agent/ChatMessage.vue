@@ -8,6 +8,9 @@ import IconCheck from '../icons/IconCheck.vue'
 import IconThumbUp from '../icons/IconThumbUp.vue'
 import IconThumbDown from '../icons/IconThumbDown.vue'
 import type { Message } from '../../types/agent'
+import { useUserStore } from '../../store/user'
+
+const { user } = useUserStore()
 
 const props = defineProps<{
   message: Message
@@ -95,7 +98,11 @@ function handleFeedback(type: 'like' | 'dislike') {
     <!-- User message -->
     <template v-if="isUser">
       <div class="chat-message__row chat-message__row--user">
-        <div class="chat-message__avatar chat-message__avatar--user">👤</div>
+        <div class="chat-message__avatar chat-message__avatar--user">
+          <!-- 登录且配置了 avatarUrl 时显示真实头像，否则保留 👤 占位 -->
+          <img v-if="user?.avatarUrl" :src="user.avatarUrl" :alt="user?.username" class="chat-message__avatar-img" />
+          <template v-else>👤</template>
+        </div>
         <div class="chat-message__bubble chat-message__bubble--user">
           {{ message.content }}
         </div>
@@ -221,6 +228,14 @@ function handleFeedback(type: 'like' | 'dislike') {
       background: linear-gradient(135deg, #2060C0, #4080E0);
       color: white;
       order: 2;
+      overflow: hidden;
+
+      .chat-message__avatar-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+      }
     }
 
     &--assistant {

@@ -321,7 +321,7 @@ export interface MyArticlesParams {
 
 // Get Current User's Articles (published or drafts, paged)
 export const getMyArticles = (params: MyArticlesParams) => {
-  return request.get<any, ResultPageArticle>(baseUrl+'/article/read/me', { params });
+  return request.get<any, ResultPageArticle>(baseUrl+'/article/creator/me', { params });
 };
 
 

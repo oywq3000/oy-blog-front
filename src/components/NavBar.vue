@@ -15,11 +15,13 @@ import IconLangZh from './icons/IconLangZh.vue';
 import { useUserStore } from '../store/user';
 import { useTheme } from '../composables/useTheme';
 import { useAuthModalState } from '../composables/useAuthModalState';
+import { useAgentChat } from '../composables/useAgentChat';
 import AvatarGenerator from './AvatarGenerator.vue';
 
 const { t, locale } = useI18n();
 const router = useRouter();
 const { isLoggedIn, user, logoutUser } = useUserStore();
+const { resetState: resetAgentChat } = useAgentChat();
 
 const { theme } = useTheme();
 
@@ -63,6 +65,9 @@ const toggleUserDropdown = () => {
 
 const handleLogout = async () => {
   await logoutUser();
+  // 登出后身份变为游客，清除模块级单例中上一身份的 agent 会话残留
+  // （否则重新进入 Agent 页会残留旧聊天，发送报"该Session不存在"）
+  resetAgentChat();
   isUserDropdownOpen.value = false;
   isMenuOpen.value = false;
   router.push('/');
@@ -134,6 +139,8 @@ const handleSearchInput = () => {
 
 // Listen for 401 unauthorized event from the HTTP interceptor
 const handleUnauthorized = () => {
+  // token 过期身份切换为游客：清除残留的 agent 会话（停留在页面时也会命中）
+  resetAgentChat();
   openAuthModal();
 };
 

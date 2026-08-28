@@ -96,3 +96,83 @@ describe('SSE 游客会话（GUEST_ID cookie 关联）', () => {
     expect(unauthorized).toHaveLength(0);
   });
 });
+
+/**
+ * 身份切换残留回归测试。
+ *
+ * 背景：useAgentChat 状态是模块级单例，跨越登录态存续。用户退出登录（变为游客）
+ * 后重新进入 Agent 页，上一用户的 conversations/activeConversationId/messagesMap
+ * 若不重置，聊天记录会残留，且发送消息引用已不属于当前身份的 session，
+ * 后端报"该Session不存在"。
+ */
+describe('身份切换：resetState 与 loadConversations 调和', () => {
+  it('should clear all agent chat state on resetState', async () => {
+    // Arrange: 构造上一登录用户残留的会话状态
+    chatApi.conversations.value = [
+      {
+        id: 'conv-1',
+        title: '旧会话',
+        createdAt: '2026-08-01T00:00:00Z',
+        updatedAt: '2026-08-01T00:00:00Z',
+        messageCount: 1,
+      },
+    ];
+    chatApi.activeConversationId.value = 'conv-1';
+    chatApi.messagesMap.value.set('conv-1', [
+      { id: 'm1', role: 'user', content: '残留消息', createdAt: '2026-08-01T00:00:00Z' },
+    ]);
+    chatApi.streaming.value = true;
+    chatApi.loading.value = true;
+    chatApi.sidebarSearch.value = 'x';
+
+    // Act
+    chatApi.resetState();
+
+    // Assert
+    expect(chatApi.conversations.value).toEqual([]);
+    expect(chatApi.activeConversationId.value).toBeNull();
+    expect(chatApi.messagesMap.value.size).toBe(0);
+    expect(chatApi.streaming.value).toBe(false);
+    expect(chatApi.loading.value).toBe(false);
+    expect(chatApi.sidebarSearch.value).toBe('');
+    expect(chatApi.activeMessages.value).toEqual([]);
+  });
+
+  it('should clear stale active conversation and its cached messages after identity change (logout → guest)', async () => {
+    // Arrange: 上一身份加载并激活了一个会话
+    const api = await import('../api/agent');
+    const getConversations = api.getConversations as ReturnType<typeof vi.fn>;
+    getConversations.mockResolvedValueOnce({
+      data: {
+        data: [
+          {
+            id: 'conv-1',
+            title: '旧会话',
+            createdAt: '2026-08-01T00:00:00Z',
+            updatedAt: '2026-08-01T00:00:00Z',
+            messageCount: 0,
+          },
+        ],
+        total: 1,
+        currentPage: 1,
+        totalPages: 1,
+      },
+    });
+    await chatApi.loadConversations();
+    chatApi.activeConversationId.value = 'conv-1';
+    chatApi.messagesMap.value.set('conv-1', [
+      { id: 'm1', role: 'user', content: '残留消息', createdAt: '2026-08-01T00:00:00Z' },
+    ]);
+
+    // Act: 身份切换为游客（无任何会话）
+    getConversations.mockResolvedValueOnce({
+      data: { data: [], total: 0, currentPage: 1, totalPages: 0 },
+    });
+    await chatApi.loadConversations();
+
+    // Assert: 残留会话被调和清除，回到空态（Welcome 页）
+    expect(chatApi.activeConversationId.value).toBeNull();
+    expect(chatApi.messagesMap.value.has('conv-1')).toBe(false);
+    expect(chatApi.activeMessages.value).toEqual([]);
+  });
+});

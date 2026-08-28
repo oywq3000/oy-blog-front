@@ -169,6 +169,14 @@ async function loadConversations(pageNum = 1, pageSize = 20): Promise<void> {
     const res = await agentApi.getConversations(pageNum, pageSize)
     // axios 拦截器返回整个 Result 信封，conversations 端点的 data 是 PageVo，取其 data 字段
     conversations.value = res.data?.data ?? []
+    // 身份切换（登出/登入）后模块级单例可能残留上一身份的会话：
+    // 若当前激活会话已不在新列表（不属于当前身份），清掉它及其消息缓存，
+    // 避免残留聊天展示、以及发送时引用不存在的 session 报"该Session不存在"
+    const activeId = activeConversationId.value
+    if (activeId && !conversations.value.some(c => c.id === activeId)) {
+      activeConversationId.value = null
+      messagesMap.value.delete(activeId)
+    }
   } catch {
     // Keep existing conversations on error
   } finally {
@@ -344,6 +352,28 @@ function clearAllConversations(): void {
   currentStreamThinking.value = ''
 }
 
+/**
+ * 身份切换（登出/登入/token 过期）时重置模块级单例状态。
+ * 与 clearAllConversations 的区别：同时终止进行中的流式请求，
+ * 并复位 loading/deepThinking/sidebarSearch 等会话相关状态。
+ * settings/suggestedQuestions 与身份无关，保持不变。
+ */
+function resetState(): void {
+  if (abortController) {
+    abortController.abort()
+    abortController = null
+  }
+  conversations.value = []
+  messagesMap.value.clear()
+  activeConversationId.value = null
+  streaming.value = false
+  deepThinking.value = false
+  loading.value = false
+  sidebarSearch.value = ''
+  currentStreamContent.value = ''
+  currentStreamThinking.value = ''
+}
+
 function updateSettings(partial: Partial<ChatSettings>): void {
   settings.value = { ...settings.value, ...partial }
   if (partial.deepThinking !== undefined) {
@@ -507,6 +537,7 @@ export function useAgentChat() {
     toggleDeepThinking,
     setModel,
     clearAllConversations,
+    resetState,
     updateSettings,
     loadSuggestedQuestions,
   }

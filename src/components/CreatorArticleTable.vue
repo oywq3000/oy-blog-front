@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import type { ArticleInfo } from '../api/article';
+import { reviewStatusMeta } from '../utils/reviewStatus';
 
 defineProps<{
   articles: ArticleInfo[];
-  status: 'published' | 'draft';
+  status: 'published' | 'draft' | 'reviewing';
   isLoading: boolean;
 }>();
+
+// 审核状态徽标：null 表示该行不显示徽标
+function statusMeta(article: ArticleInfo) {
+  return reviewStatusMeta(article.reviewStatus, article.status);
+}
 
 const emit = defineEmits<{
   'edit': [id: string];
@@ -27,6 +33,7 @@ function formatDate(dateStr: string): string {
       <thead>
         <tr>
           <th class="col-title">{{ $t('creator.title') }}</th>
+          <th class="col-status">{{ $t('creator.status') }}</th>
           <th class="col-time">{{ status === 'published' ? $t('creator.time') : $t('creator.lastModified') }}</th>
           <th v-if="status === 'published'" class="col-views">{{ $t('creator.views') }}</th>
           <th v-if="status === 'published'" class="col-comments">{{ $t('creator.comments') }}</th>
@@ -35,12 +42,12 @@ function formatDate(dateStr: string): string {
       </thead>
       <tbody>
         <tr v-if="isLoading">
-          <td :colspan="status === 'published' ? 5 : 3" class="empty-cell">
+          <td :colspan="status === 'published' ? 6 : 4" class="empty-cell">
             {{ $t('common.loading') || 'Loading...' }}
           </td>
         </tr>
         <tr v-else-if="articles.length === 0">
-          <td :colspan="status === 'published' ? 5 : 3" class="empty-cell">
+          <td :colspan="status === 'published' ? 6 : 4" class="empty-cell">
             {{ status === 'published' ? $t('creator.emptyPublished') : $t('creator.emptyDrafts') }}
           </td>
         </tr>
@@ -62,6 +69,17 @@ function formatDate(dateStr: string): string {
             >
               {{ article.title || $t('editor.untitled') || 'Untitled' }}
             </router-link>
+          </td>
+
+          <!-- 审核状态徽标（approved/exempt/无审核状态时不显示） -->
+          <td class="col-status">
+            <span
+              v-if="statusMeta(article)"
+              :class="['status-badge', `status-badge--${statusMeta(article)!.tone}`]"
+              :title="article.reviewReason || ''"
+            >
+              {{ statusMeta(article)!.label }}
+            </span>
           </td>
 
           <!-- Time -->
@@ -142,6 +160,34 @@ function formatDate(dateStr: string): string {
 
 .col-title {
   min-width: 180px;
+}
+
+.col-status {
+  width: 110px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: $radius-sm;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.status-badge--info {
+  color: #2563eb;
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.status-badge--warning {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.1);
+}
+
+.status-badge--danger {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 .col-time {

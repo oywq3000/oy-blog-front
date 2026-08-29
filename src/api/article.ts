@@ -1,10 +1,10 @@
 import request from './request';
 
-export interface ResultObject {
+export interface ResultObject<T = any> {
   errCode: number;
   errMsg: string;
   isSuccess: boolean;
-  data: any;
+  data: T;
 }
 
 export interface ArticleInfo {
@@ -42,6 +42,9 @@ export interface ArticleInfo {
   viewedAt?: string;
   // 收藏时间（仅我的收藏接口返回）
   favoritedAt?: string;
+  // 审核字段（后端 Task 9 新增，创作中心状态徽标用）
+  reviewStatus?: string;
+  reviewReason?: string;
 }
 
 export interface ArticleChapter {
@@ -225,8 +228,15 @@ export interface ArticleSaveDto {
   allowComment?: number; // 1 for yes, 0 for no
 }
 
+// 发布结果：verdict 为后端审核判定（ai_reviewing / approved / exempt / rejected 等）
+export interface PublishResultData {
+  articleId: string;
+  verdict: string;
+  reason?: string;
+}
+
 export const publishArticle = (data: ArticleSaveDto) => {
-  return request.post<any, ResultObject>(baseUrl+'/article/publish', data);
+  return request.post<any, ResultObject<PublishResultData>>(baseUrl+'/article/publish', data);
 };
 
 // Save Draft
@@ -312,9 +322,12 @@ export const getMyHeatmap = () => {
   return request.get<any, ResultListHeatmapDay>(baseUrl+'/article/stats/heatmap/me');
 };
 
+// 创作中心文章状态：已发布 / 草稿 / AI 审核中 / 待人工审核 / 已驳回
+export type CreatorArticleStatus = 'published' | 'draft' | 'ai_reviewing' | 'pending_review' | 'rejected';
+
 // Params for fetching current user's own articles
 export interface MyArticlesParams {
-  status: 'published' | 'draft';
+  status: CreatorArticleStatus;
   pageNum?: number;
   pageSize?: number;
 }

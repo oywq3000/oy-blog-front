@@ -25,7 +25,7 @@ const handleDelete = async (id: string) => {
 
 const handlePublish = async (id: string) => {
   if (!window.confirm('确定要发布这篇草稿吗？')) return;
-  const ok = await publishDraft(id);
+  const { ok } = await publishDraft(id, true);
   if (ok) {
     refreshDraftCount();
   }

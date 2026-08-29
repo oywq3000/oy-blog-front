@@ -1,9 +1,9 @@
 import { ref } from 'vue';
-import type { ArticleInfo } from '../api/article';
+import type { ArticleInfo, CreatorArticleStatus } from '../api/article';
 import { getMyArticles, deleteArticle, publishArticle } from '../api/article';
 import { useCreatorStore } from '../store/creator';
 
-export function useCreatorList(status: 'published' | 'draft', pageSize = 10) {
+export function useCreatorList(status: CreatorArticleStatus, pageSize = 10) {
   const articles = ref<ArticleInfo[]>([]);
   const currentPage = ref(1);
   const total = ref(0);
@@ -48,25 +48,25 @@ export function useCreatorList(status: 'published' | 'draft', pageSize = 10) {
     }
   };
 
-  const publishDraft = async (id: string): Promise<boolean> => {
+  // 发布草稿：返回 ok 与后端 verdict（ai_reviewing/approved/rejected 等），供调用方提示
+  const publishDraft = async (id: string, isDraft: boolean): Promise<{ ok: boolean; verdict?: string; reason?: string }> => {
     try {
       const res = await publishArticle({ id, title: '', contentMd: '', contentHtml: '' });
-      // Note: publishArticle will overwrite with empty content if we don't fetch first.
-      // The actual publish flow should happen via the editor (load draft → edit → publish).
-      // Here we use a simpler approach: just call the API — the backend handles status change.
       if (res.isSuccess) {
         await load(currentPage.value);
         if (articles.value.length === 0 && currentPage.value > 1) {
           await load(currentPage.value - 1);
         }
-        decrementDraftCount();
+        if (isDraft) {
+          decrementDraftCount();
+        }
         refreshDraftCount();
-        return true;
+        return { ok: true, verdict: res.data?.verdict, reason: res.data?.reason };
       }
-      return false;
+      return { ok: false };
     } catch (error) {
       console.error('Failed to publish draft:', error);
-      return false;
+      return { ok: false };
     }
   };
 

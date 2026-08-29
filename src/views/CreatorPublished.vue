@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useCreatorList } from '../composables/useCreatorList';
 import CreatorArticleTable from '../components/CreatorArticleTable.vue';
@@ -11,6 +11,17 @@ const { articles, currentPage, totalPages, isLoading, load, removeArticle } = us
 onMounted(() => {
   load(1);
 });
+
+// 有"编辑审核中"的文章时才轮询（旧版展示中，等待审核结果替换生效）
+const hasReviewingEdit = computed(() => articles.value.some(a => a.reviewStatus === 'ai_reviewing'));
+let timer: ReturnType<typeof setInterval> | null = null;
+watch(hasReviewingEdit, (on) => {
+  if (timer) { clearInterval(timer); timer = null; }
+  if (on) {
+    timer = setInterval(() => load(currentPage.value), 15000);
+  }
+});
+onUnmounted(() => { if (timer) clearInterval(timer); });
 
 const handleEdit = (id: string) => {
   router.push(`/creator/articles/${id}/edit`);

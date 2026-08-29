@@ -6,6 +6,7 @@ import { MdEditor } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import { publishArticle, saveDraft, getArticleContent, getArticleById, getPopularTags, type TagStat } from '../api/article';
 import { uploadCover, uploadContentImage } from '../api/upload';
+import { verdictFeedback } from '../utils/reviewStatus';
 // import { useUserStore } from '../store/user';
 import { useTheme } from '../composables/useTheme';
 import { useToast } from '../composables/useToast';
@@ -294,9 +295,20 @@ const submitArticle = async () => {
     });
 
     if (res.isSuccess) {
-      addToast(t('editor.publishSuccess') || 'Published successfully', 'success');
+      // 发布结果按后端 verdict 分支提示与跳转（verdict 可能 undefined：老后端/豁免路径按发布成功处理）
+      const fb = verdictFeedback(res.data?.verdict ?? '', res.data?.reason);
+      addToast(fb.text, fb.tone === 'success' ? 'success' : fb.tone === 'error' ? 'error' : 'info');
       refreshDraftCount();
-      router.push('/creator/published');
+      if (res.data?.verdict === 'ai_reviewing') {
+        // AI 审核中：跳转审核中列表页查看进度
+        router.push('/creator/reviewing');
+      } else if (res.data?.verdict === 'rejected') {
+        // 驳回：留在编辑页让作者修改后重发（return 在 try 内，finally 仍会重置提交状态并关闭弹窗）
+        return;
+      } else {
+        // approved / exempt / verdict 缺失：视为发布成功，跳转已发布列表
+        router.push('/creator/published');
+      }
     }
   } catch {
     // 请求错误已由拦截器统一顶部气泡提示

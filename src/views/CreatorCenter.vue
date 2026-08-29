@@ -40,6 +40,13 @@ watch(() => route.path, () => {
           {{ t('creator.drafts') }}
           <span v-if="draftCount > 0" class="tab-badge">{{ draftCount }}</span>
         </router-link>
+        <router-link
+          to="/creator/reviewing"
+          class="tab-btn"
+          active-class="tab-btn--active"
+        >
+          {{ t('creator.reviewing') }}
+        </router-link>
       </div>
 
       <!-- Child route content -->

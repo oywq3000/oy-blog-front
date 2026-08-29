@@ -5,9 +5,12 @@ import { useCreatorList } from '../composables/useCreatorList';
 import CreatorArticleTable from '../components/CreatorArticleTable.vue';
 import CreatorPagination from '../components/CreatorPagination.vue';
 import { useCreatorStore } from '../store/creator';
+import { useToast } from '../composables/useToast';
+import { verdictFeedback } from '../utils/reviewStatus';
 
 const router = useRouter();
 const { refreshDraftCount } = useCreatorStore();
+const toast = useToast();
 const { articles, currentPage, totalPages, isLoading, load, removeArticle, publishDraft } = useCreatorList('draft');
 
 onMounted(() => {
@@ -25,8 +28,10 @@ const handleDelete = async (id: string) => {
 
 const handlePublish = async (id: string) => {
   if (!window.confirm('确定要发布这篇草稿吗？')) return;
-  const { ok } = await publishDraft(id, true);
+  const { ok, verdict, reason } = await publishDraft(id, true);
   if (ok) {
+    const fb = verdictFeedback(verdict ?? '', reason);
+    toast.addToast(fb.text, fb.tone === 'success' ? 'success' : fb.tone === 'error' ? 'error' : 'info');
     refreshDraftCount();
   }
 };

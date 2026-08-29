@@ -29,6 +29,7 @@ const navGroups = computed<NavGroup[]>(() => [
     items: [
       { id: 'published', label: t('creator.published'), icon: '📄', path: '/creator/published' },
       { id: 'drafts', label: t('creator.drafts'), icon: '📋', path: '/creator/drafts', badge: draftCount.value },
+      { id: 'reviewing', label: t('creator.reviewing'), icon: '🔍', path: '/creator/reviewing' },
     ],
   },
   // Reserved for future expansion:

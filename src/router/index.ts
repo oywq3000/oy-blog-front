@@ -52,6 +52,11 @@ const router = createRouter({
           name: 'creator-drafts',
           component: () => import('../views/CreatorDrafts.vue')
         },
+        {
+          path: 'reviewing',
+          name: 'creator-reviewing',
+          component: () => import('../views/CreatorReviewing.vue')
+        },
       ]
     },
     // Editor routes — top level (no sidebar, full-screen editor)

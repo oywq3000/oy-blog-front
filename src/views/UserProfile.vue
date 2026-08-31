@@ -46,6 +46,7 @@ const handleUpdateProfile = async () => {
     if (res.isSuccess) {
       await fetchUserInfo();
       addToast(t('profile.updateSuccess'), 'success');
+      loadUserStats();
     }
   } catch {
     // 请求错误已由拦截器统一顶部气泡提示

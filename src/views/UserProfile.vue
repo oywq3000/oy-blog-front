@@ -3,7 +3,7 @@ import { ref, computed, onUnmounted, onMounted, watch, watchEffect, nextTick } f
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import ArticleCard from '../components/ArticleCard.vue';
-import AvatarGenerator from '../components/AvatarGenerator.vue';
+import IconUser from '../components/icons/IconUser.vue';
 import { useUserStore } from '../store/user';
 import { requestEmailVerification, updateUserInfo, updatePassword as updatePasswordApi, type UpdateProfileDto } from '../api/auth';
 import { uploadAvatar } from '../api/upload';
@@ -505,7 +505,7 @@ onUnmounted(() => {
         <div class="profile-card glass-panel">
           <div class="avatar-wrapper">
             <img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.name" class="profile-avatar-img" />
-            <AvatarGenerator v-else :username="user.name" :size="120" />
+            <IconUser v-else :size="120" />
             <div class="status-indicator" :class="{ online: true }"></div>
           </div>
           

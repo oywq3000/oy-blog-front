@@ -271,7 +271,7 @@ export default {
     deleteSuccess: '删除成功',
     publishSuccess: '发布成功',
     status: '状态',
-    reviewing: '审核中',
+    reviewing: '审核',
     reviewingAll: '全部',
     reviewingAi: 'AI 审核中',
     reviewingManual: '待人工审核',

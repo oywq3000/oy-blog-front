@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import AvatarGenerator from './AvatarGenerator.vue';
+import IconUser from './icons/IconUser.vue';
 import TagBadge from './TagBadge.vue';
 
 const props = defineProps<{
@@ -47,7 +47,7 @@ function formatDate(d: string): string {
     <div class="featured-card__content">
       <!-- 作者行 -->
       <div class="featured-card__author">
-        <AvatarGenerator v-if="!authorAvatar" :username="authorName || t('home.title')" :size="26" />
+        <IconUser v-if="!authorAvatar" :size="26" />
         <img v-else :src="authorAvatar" :alt="authorName || ''" class="featured-card__author-avatar" />
         <span class="featured-card__author-name">{{ authorName }}</span>
         <span class="featured-card__date">{{ formatDate(date) }}</span>

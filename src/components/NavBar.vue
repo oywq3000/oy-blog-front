@@ -16,7 +16,6 @@ import { useUserStore } from '../store/user';
 import { useTheme } from '../composables/useTheme';
 import { useAuthModalState } from '../composables/useAuthModalState';
 import { useAgentChat } from '../composables/useAgentChat';
-import AvatarGenerator from './AvatarGenerator.vue';
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -244,7 +243,7 @@ const handleKeydown = (e: KeyboardEvent) => {
               <div class="profile-phantom" :class="{ 'lang-zh': locale === 'zh' }">
                 <div class="nav-avatar-wrapper">
                   <img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.username" class="nav-avatar" />
-                  <AvatarGenerator v-else :username="user.username" :size="22" />
+                  <IconUser v-else :size="22" />
                 </div>
                 <span class="nav-username">{{ user.username }}</span>
               </div>
@@ -258,7 +257,7 @@ const handleKeydown = (e: KeyboardEvent) => {
                 <div class="capsule-header">
                   <div class="nav-avatar-wrapper">
                     <img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.username" class="nav-avatar" />
-                    <AvatarGenerator v-else :username="user.username" :size="22" />
+                    <IconUser v-else :size="22" />
                   </div>
                   <span class="nav-username">{{ user.username }}</span>
                 </div>
@@ -318,7 +317,7 @@ const handleKeydown = (e: KeyboardEvent) => {
           <div class="mobile-user-info">
             <div class="mobile-avatar-wrapper">
               <img v-if="user.avatarUrl" :src="user.avatarUrl" :alt="user.username" class="mobile-avatar" />
-              <AvatarGenerator v-else :username="user.username" :size="50" />
+              <IconUser v-else :size="50" />
             </div>
             <span class="mobile-username">{{ user.username }}</span>
           </div>

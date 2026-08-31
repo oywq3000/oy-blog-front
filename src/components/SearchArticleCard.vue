@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import AvatarGenerator from './AvatarGenerator.vue';
+import IconUser from './icons/IconUser.vue';
 import TagBadge from './TagBadge.vue';
 import { pickDisplayTags } from '../utils/tagDisplay';
 
@@ -70,7 +70,7 @@ function formatDate(d: string): string {
     <!-- Row 1: Author + date -->
     <div class="article-author-row">
       <div v-if="authorName" class="article-author">
-        <AvatarGenerator v-if="!authorAvatar" :username="authorName" :size="22" />
+        <IconUser v-if="!authorAvatar" :size="22" />
         <img v-else :src="authorAvatar" :alt="authorName" class="author-avatar" />
         <!-- 作者名命中时用 ES 高亮片段渲染 -->
         <span v-if="highlightAuthorName" class="author-name" v-html="highlightAuthorName"></span>

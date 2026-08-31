@@ -149,7 +149,7 @@ export default {
     number: '数字',
     minChars: '8位以上',
     profileInfo: '个人信息',
-    avatarUrl: '头像链接',
+    avatarUrl: '头像',
     enterAvatarUrl: '输入图片链接',
     username: '用户名',
     enterUsername: '输入用户名',

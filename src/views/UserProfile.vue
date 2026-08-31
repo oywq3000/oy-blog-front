@@ -62,6 +62,8 @@ const handleAvatarFileChange = async (event: Event) => {
       const res = await uploadAvatar(input.files[0]);
       if (res.isSuccess) {
         profileForm.value.avatarUrl = res.data;
+        // 后端 uploadAvatar 已持久化头像，刷新 store 让侧边栏/NavBar 等全站头像即时更新
+        await fetchUserInfo();
       }
     } catch {
       // 请求错误已由拦截器统一顶部气泡提示
@@ -723,24 +725,20 @@ onUnmounted(() => {
                         <div class="form-group avatar-group">
                           <label>{{ t('profile.avatarUrl') }}</label>
                           <div class="input-with-preview">
+                            <div class="avatar-preview-small" v-if="profileForm.avatarUrl">
+                              <img :src="profileForm.avatarUrl" alt="Preview" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
+                            </div>
                             <div class="input-wrapper">
-                              <input 
-                                type="text" 
-                                v-model="profileForm.avatarUrl"
-                                :placeholder="t('profile.enterAvatarUrl')"
-                              />
                               <label class="upload-btn" title="Upload Image">
-                                <input type="file" accept="image/*" @change="handleAvatarFileChange" hidden />
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                   <polyline points="17 8 12 3 7 8"></polyline>
                                   <line x1="12" y1="3" x2="12" y2="15"></line>
                                 </svg>
+                                <input type="file" accept="image/*" @change="handleAvatarFileChange" hidden />
                               </label>
                             </div>
-                            <div class="avatar-preview-small" v-if="profileForm.avatarUrl">
-                              <img :src="profileForm.avatarUrl" alt="Preview" @error="(e) => (e.target as HTMLImageElement).style.display = 'none'" />
-                            </div>
+                            
                           </div>
                         </div>
 

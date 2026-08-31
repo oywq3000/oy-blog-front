@@ -149,7 +149,7 @@ export default {
     number: 'Number',
     minChars: '8+ Chars',
     profileInfo: 'Profile Information',
-    avatarUrl: 'Avatar URL',
+    avatarUrl: 'Avatar',
     enterAvatarUrl: 'Enter image URL',
     username: 'Username',
     enterUsername: 'Enter username',

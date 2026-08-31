@@ -4,6 +4,13 @@ export interface ResultString {
   errCode: number;
   errMsg: string;
   isSuccess: boolean;
+  data: string;
+}
+
+export interface ResultImageInfo {
+  errCode: number;
+  errMsg: string;
+  isSuccess: boolean;
   data: ImageInfo;
 }
 export interface ImageInfo{
@@ -17,7 +24,7 @@ export interface ImageInfo{
 export const uploadAvatar = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return request.post<any, ResultString>('/api/user-service/profile/avatar', formData, {
+  return request.post<any, ResultImageInfo>('/api/user-service/profile/avatar', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -28,7 +35,7 @@ export const uploadAvatar = (file: File) => {
 export const uploadCover = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return request.post<any, ResultString>('/api/article-service/article/cover', formData, {
+  return request.post<any, ResultImageInfo>('/api/article-service/article/cover', formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

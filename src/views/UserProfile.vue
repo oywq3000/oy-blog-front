@@ -61,7 +61,7 @@ const handleAvatarFileChange = async (event: Event) => {
     try {
       const res = await uploadAvatar(input.files[0]);
       if (res.isSuccess) {
-        profileForm.value.avatarUrl = res.data;
+        profileForm.value.avatarUrl = res.data.url;
         // 后端 uploadAvatar 已持久化头像，刷新 store 让侧边栏/NavBar 等全站头像即时更新
         await fetchUserInfo();
       }

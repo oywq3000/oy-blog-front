@@ -128,7 +128,7 @@ export default {
     updatePassword: '更新密码',
     passwordPlaceholder: '输入密码',
     guest: '访客',
-    bio: '全栈开发者 | Vue.js 爱好者',
+    bio: '个人简介',
     themeLight: '浅色',
     themeDark: '深色',
     themeSystem: '跟随系统',

@@ -128,7 +128,7 @@ export default {
     updatePassword: 'Update Password',
     passwordPlaceholder: 'Enter password',
     guest: 'Guest',
-    bio: 'Full Stack Developer | Vue.js Enthusiast',
+    bio: 'Bio',
     themeLight: 'Light',
     themeDark: 'Dark',
     themeSystem: 'System',

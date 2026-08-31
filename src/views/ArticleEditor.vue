@@ -36,7 +36,7 @@ const processFile = async (file: File) => {
      try {
        const res = await uploadCover(file);
        if (res.isSuccess) {
-         publishForm.coverUrl = res.data;
+         publishForm.coverUrl = res.data?.url;
        }
      } catch {
        // 请求错误已由拦截器统一顶部气泡提示

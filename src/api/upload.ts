@@ -4,7 +4,13 @@ export interface ResultString {
   errCode: number;
   errMsg: string;
   isSuccess: boolean;
-  data: string;
+  data: ImageInfo;
+}
+export interface ImageInfo{
+  key: string,
+  url: string,
+  contentType: string,
+  size: number
 }
 
 // Upload User Avatar

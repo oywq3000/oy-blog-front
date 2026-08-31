@@ -298,7 +298,8 @@ function formatDate(d: string): string {
   border-radius: 10px;
   overflow: hidden;
   height: 100%;
-  min-height: 100px;
+  min-height: 70px;
+  max-height: 100px; // 防止超高图片把卡片撑大（与移动端固定高度一致）
 
   @media (max-width: $breakpoint-mobile) {
     grid-column: 1 !important;

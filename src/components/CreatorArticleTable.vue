@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import type { ArticleInfo } from '../api/article';
 import { reviewStatusMeta } from '../utils/reviewStatus';
+import ReviewReasonModal from './ReviewReasonModal.vue';
 
 defineProps<{
   articles: ArticleInfo[];
@@ -16,8 +18,10 @@ function statusMeta(article: ArticleInfo) {
 const emit = defineEmits<{
   'edit': [id: string];
   'delete': [id: string];
-  'publish': [id: string];
 }>();
+
+// 点击状态徽标 → 弹出审核理由弹窗
+const reviewTarget = ref<ArticleInfo | null>(null);
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return '-';
@@ -28,12 +32,17 @@ function formatDate(dateStr: string): string {
 </script>
 
 <template>
-  <div class="article-table-wrapper">
+  <div class="article-table-wrapper" :class="{ 'article-table-wrapper--no-clip': $slots.statusFilter }">
     <table class="article-table">
       <thead>
         <tr>
-          <th class="col-title">{{ $t('creator.title') }}</th>
-          <th class="col-status">{{ $t('creator.status') }}</th>
+          <th class="col-title">{{ $t('creator.title_column') }}</th>
+          <th v-if="status === 'reviewing'" class="col-status">
+            <div class="status-header">
+              <span>{{ $t('creator.status') }}</span>
+              <slot name="statusFilter" />
+            </div>
+          </th>
           <th class="col-time">{{ status === 'published' ? $t('creator.time') : $t('creator.lastModified') }}</th>
           <th v-if="status === 'published'" class="col-views">{{ $t('creator.views') }}</th>
           <th v-if="status === 'published'" class="col-comments">{{ $t('creator.comments') }}</th>
@@ -42,13 +51,13 @@ function formatDate(dateStr: string): string {
       </thead>
       <tbody>
         <tr v-if="isLoading">
-          <td :colspan="status === 'published' ? 6 : 4" class="empty-cell">
+          <td :colspan="status === 'published' ? 5 : status === 'reviewing' ? 4 : 3" class="empty-cell">
             {{ $t('common.loading') || 'Loading...' }}
           </td>
         </tr>
         <tr v-else-if="articles.length === 0">
-          <td :colspan="status === 'published' ? 6 : 4" class="empty-cell">
-            {{ status === 'published' ? $t('creator.emptyPublished') : $t('creator.emptyDrafts') }}
+          <td :colspan="status === 'published' ? 5 : status === 'reviewing' ? 4 : 3" class="empty-cell">
+            {{ status === 'published' ? $t('creator.emptyPublished') : status === 'reviewing' ? $t('creator.emptyReviewing') : $t('creator.emptyDrafts') }}
           </td>
         </tr>
         <tr v-for="article in articles" :key="article.id">
@@ -71,20 +80,23 @@ function formatDate(dateStr: string): string {
             </router-link>
           </td>
 
-          <!-- 审核状态徽标（approved/exempt/无审核状态时不显示） -->
-          <td class="col-status">
-            <span
+          <!-- 审核状态徽标（仅审核页展示；approved/exempt/无审核状态时不显示）；点击弹出审核理由 -->
+          <td v-if="status === 'reviewing'" class="col-status">
+            <button
               v-if="statusMeta(article)"
-              :class="['status-badge', `status-badge--${statusMeta(article)!.tone}`]"
-              :title="article.reviewReason || ''"
+              type="button"
+              class="status-badge"
+              :class="`status-badge--${statusMeta(article)!.tone}`"
+              :aria-label="statusMeta(article)!.label"
+              @click="reviewTarget = article"
             >
               {{ statusMeta(article)!.label }}
-            </span>
+            </button>
           </td>
 
           <!-- Time -->
           <td class="col-time">
-            {{ formatDate(status === 'published' ? article.publishAt : article.updatedAt) }}
+            {{ formatDate(status === 'published' ? article.publishAt : article.updateAt) }}
           </td>
 
           <!-- Views (published only) -->
@@ -111,9 +123,6 @@ function formatDate(dateStr: string): string {
               <button class="action-btn action-edit" @click="emit('edit', article.id)">
                 {{ $t('creator.continueEdit') }}
               </button>
-              <button class="action-btn action-publish" @click="emit('publish', article.id)">
-                {{ $t('creator.publish') }}
-              </button>
               <button class="action-btn action-delete" @click="emit('delete', article.id)">
                 {{ $t('creator.delete') }}
               </button>
@@ -122,6 +131,7 @@ function formatDate(dateStr: string): string {
         </tr>
       </tbody>
     </table>
+    <ReviewReasonModal :article="reviewTarget" @close="reviewTarget = null" />
   </div>
 </template>
 
@@ -131,6 +141,13 @@ function formatDate(dateStr: string): string {
 .article-table-wrapper {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+
+  // 表头含筛选下拉（审核页）时，桌面端关闭滚动容器，避免裁切绝对定位的下拉菜单（空表格时菜单会超出容器底边）
+  &--no-clip {
+    @media (min-width: 769px) {
+      overflow: visible;
+    }
+  }
 }
 
 .article-table {
@@ -163,16 +180,35 @@ function formatDate(dateStr: string): string {
 }
 
 .col-status {
-  width: 110px;
+  width: 170px;
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .status-badge {
   display: inline-block;
   padding: 2px 10px;
+  border: none;
   border-radius: $radius-sm;
   font-size: 0.75rem;
   line-height: 1.6;
   white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.2s;
+
+  &:hover {
+    filter: brightness(1.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent-primary;
+    outline-offset: 1px;
+  }
 }
 
 .status-badge--info {

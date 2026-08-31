@@ -2,26 +2,23 @@
 import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { getMyArticles, deleteArticle, publishArticle } from '../api/article';
+import { getMyArticles, deleteArticle } from '../api/article';
 import type { ArticleInfo, CreatorArticleStatus } from '../api/article';
-import { useCreatorStore } from '../store/creator';
-import { useToast } from '../composables/useToast';
-import { verdictFeedback } from '../utils/reviewStatus';
 import CreatorArticleTable from '../components/CreatorArticleTable.vue';
 import CreatorPagination from '../components/CreatorPagination.vue';
+import FilterDropdown from '../components/FilterDropdown.vue';
 
 const router = useRouter();
 const { t } = useI18n();
-const toast = useToast();
-const { refreshDraftCount } = useCreatorStore();
 
-const status = ref<CreatorArticleStatus>('ai_reviewing');
+const filter = ref<CreatorArticleStatus>('all');
 const articles = ref<ArticleInfo[]>([]);
 const currentPage = ref(1);
 const totalPages = ref(0);
 const isLoading = ref(false);
 
-const tabs: { value: CreatorArticleStatus; label: string }[] = [
+const filterOptions: { value: CreatorArticleStatus; label: string }[] = [
+  { value: 'all', label: t('creator.reviewingAll') },
   { value: 'ai_reviewing', label: t('creator.reviewingAi') },
   { value: 'pending_review', label: t('creator.reviewingManual') },
   { value: 'rejected', label: t('creator.reviewingRejected') },
@@ -30,7 +27,7 @@ const tabs: { value: CreatorArticleStatus; label: string }[] = [
 async function load(pageNum: number) {
   isLoading.value = true;
   try {
-    const res = await getMyArticles({ status: status.value, pageNum, pageSize: 10 });
+    const res = await getMyArticles({ status: filter.value, pageNum, pageSize: 10 });
     if (res.isSuccess && res.data) {
       articles.value = res.data.data;
       totalPages.value = res.data.totalPages;
@@ -43,7 +40,7 @@ async function load(pageNum: number) {
   }
 }
 
-watch(status, () => { currentPage.value = 1; load(1); });
+watch(filter, () => { currentPage.value = 1; load(1); });
 
 // 15 秒轮询：审核结果异步落库，前端定时刷新状态（仅停留在本页时）
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -59,41 +56,21 @@ const handleDelete = async (id: string) => {
     if (res.isSuccess) await load(currentPage.value);
   } catch { /* 拦截器已提示 */ }
 };
-
-const handlePublish = async (id: string) => {
-  // 已驳回文章"重新发布"：走 publish 接口重新触发审核
-  try {
-    const res = await publishArticle({ id, title: '', contentMd: '', contentHtml: '' });
-    if (res.isSuccess) {
-      const fb = verdictFeedback(res.data?.verdict ?? '', res.data?.reason);
-      toast.addToast(fb.text, fb.tone === 'success' ? 'success' : fb.tone === 'error' ? 'error' : 'info');
-      refreshDraftCount();
-      await load(currentPage.value);
-    }
-  } catch { /* 拦截器已提示 */ }
-};
 </script>
 
 <template>
   <div class="reviewing-page">
-    <div class="sub-tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.value"
-        :class="['sub-tab', { 'sub-tab--active': status === tab.value }]"
-        @click="status = tab.value"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
     <CreatorArticleTable
       :articles="articles"
       status="reviewing"
       :is-loading="isLoading"
       @edit="handleEdit"
       @delete="handleDelete"
-      @publish="handlePublish"
-    />
+    >
+      <template #statusFilter>
+        <FilterDropdown v-model="filter" :options="filterOptions" compact />
+      </template>
+    </CreatorArticleTable>
     <CreatorPagination
       :current-page="currentPage"
       :total-pages="totalPages"
@@ -104,24 +81,4 @@ const handlePublish = async (id: string) => {
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
-
-.sub-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 16px;
-}
-
-.sub-tab {
-  padding: 8px 16px;
-  border: 1px solid $color-border;
-  border-radius: $radius-sm;
-  background: none;
-  cursor: pointer;
-  color: $color-text-secondary;
-
-  &--active {
-    color: $color-accent-primary;
-    border-color: $color-accent-primary;
-  }
-}
 </style>

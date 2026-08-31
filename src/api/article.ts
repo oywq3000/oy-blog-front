@@ -21,7 +21,8 @@ export interface ArticleInfo {
   allowComment: number;
   publishAt: string;
   createdAt: string;
-  updatedAt: string;
+  // 后端 VO 字段名为 updateAt（实体 update_at，内容更新时间）
+  updateAt: string;
   // Optional fields that might not be in ArticleVo but used in UI (to be verified)
   viewCount?: number;
   likeCount?: number;
@@ -322,8 +323,8 @@ export const getMyHeatmap = () => {
   return request.get<any, ResultListHeatmapDay>(baseUrl+'/article/stats/heatmap/me');
 };
 
-// 创作中心文章状态：已发布 / 草稿 / AI 审核中 / 待人工审核 / 已驳回
-export type CreatorArticleStatus = 'published' | 'draft' | 'ai_reviewing' | 'pending_review' | 'rejected';
+// 创作中心文章状态：已发布 / 草稿 / AI 审核中 / 待人工审核 / 已驳回；'all' = 三个审核中状态合并查询
+export type CreatorArticleStatus = 'published' | 'draft' | 'ai_reviewing' | 'pending_review' | 'rejected' | 'all';
 
 // Params for fetching current user's own articles
 export interface MyArticlesParams {

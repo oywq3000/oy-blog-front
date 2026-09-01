@@ -26,17 +26,18 @@ export const formatLocalDateKey = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 /**
- * API 扁平 {date, count} 列表 → 周一对齐的日历周网格（覆盖昨天及之前 52 完整周 + 当前周已过天数，今天不入网格）。
+ * API 扁平 {date, count} 列表 → 周一对齐的日历周网格（覆盖今天及之前 52 完整周 + 当前周已过天数，含今天）。
  * 列起点固定周一：左侧 Mon/Wed/Fri 星期轴才能与格子行精确对齐；
- * 非周一时末列为当前周部分（周一…昨天），网格最多 53 列。
+ * 末列为当前周部分（周一…今天），网格恒为 53 列。
  */
 export const buildHeatmapData = (entries: HeatmapDayEntry[], now: Date = new Date()): HeatmapData => {
   const byDate = new Map(entries.map((e) => [e.date, e.count]));
   // 今天所在周的周一距今天几天（getDay: 0=Sun → (0+6)%7=6，即周日回退 6 天）
   const daysBackToMonday = (now.getDay() + 6) % 7;
-  const totalDays = WEEKS * DAYS + daysBackToMonday;
+  // +1 使窗口收尾于今天（否则末格恒为昨天）；起点仍为 52 周前的周一
+  const totalDays = WEEKS * DAYS + daysBackToMonday + 1;
   const start = new Date(now);
-  start.setDate(now.getDate() - totalDays);
+  start.setDate(now.getDate() - totalDays + 1);
   const data: HeatmapData = [];
   for (let w = 0; w * DAYS < totalDays; w++) {
     const week: HeatmapDay[] = [];

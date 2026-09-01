@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute} from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import ArticleCard from '../components/ArticleCard.vue';
 import CreatorPagination from '../components/CreatorPagination.vue';
@@ -9,9 +9,7 @@ import { getUserHeatmap, getUserPublishedArticles, type ArticleInfo } from '../a
 import { getUserPublicProfile, type UserPublicProfile } from '../api/user';
 import { buildHeatmapData, buildMonthLabels, buildWeekdayLabels, cellBackground, type HeatmapData } from '../utils/heatmap';
 import { useTheme } from '../composables/useTheme';
-
 const route = useRoute();
-const router = useRouter();
 const { t, d } = useI18n();
 const { theme } = useTheme();
 

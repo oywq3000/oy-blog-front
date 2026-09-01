@@ -52,11 +52,13 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 
-// 评论作者主页跳转目标：有 userId 走公开主页 /user/:id；无 id 时不可跳（退回纯文本）
-const userProfileTarget = (userId: string | undefined, username: string) => {
-  if (userId) return { name: 'user-profile', params: { id: userId } };
-  return null;
-};
+// 评论作者主页跳转目标：有 userId 走公开主页 /user/:id；无 id 时为 null（模板 v-if 窄化后不渲染链接）
+const commentAuthorLink = computed(() =>
+  props.comment.userId ? { name: 'user-profile', params: { id: props.comment.userId } } : null
+);
+const replyTargetLink = computed(() =>
+  props.comment.replyToUserId ? { name: 'user-profile', params: { id: props.comment.replyToUserId } } : null
+);
 
 const isReplying = ref(false);
 const replyContent = ref('');
@@ -371,17 +373,17 @@ const handleNestedVote = (commentId: number | string, replyId: number | string |
           <template v-else>
             <div class="username" :class="{ 'username--inline': depth > 0 }">
               <router-link
-                v-if="userProfileTarget(comment.userId, comment.user)"
+                v-if="commentAuthorLink"
                 class="user-link"
-                :to="userProfileTarget(comment.userId, comment.user)"
+                :to="commentAuthorLink"
               >{{ comment.user }}</router-link>
               <span v-else class="user-link user-link--plain">{{ comment.user }}</span>
               <template v-if="comment.replyToReplyId">
                 <span class="reply-to-separator">{{ t('common.replyTo', '回复') }}</span>
                 <router-link
-                  v-if="userProfileTarget(comment.replyToUserId, comment.replyToUsername)"
+                  v-if="replyTargetLink"
                   class="user-link reply-to"
-                  :to="userProfileTarget(comment.replyToUserId, comment.replyToUsername)"
+                  :to="replyTargetLink"
                 >@{{ comment.replyToUsername }}</router-link>
                 <span v-else class="user-link user-link--plain reply-to">@{{ comment.replyToUsername }}</span>
               </template>

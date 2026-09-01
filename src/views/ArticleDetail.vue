@@ -435,7 +435,17 @@ const handleEdit = () => {
           <div class="no-content" v-else>{{ t('articleDetail.noContent') }}</div>
 
           <div class="article-actions">
-            <div class="author-info">
+            <router-link
+              v-if="articleInfo.authorId"
+              class="author-info author-info--link"
+              :to="{ name: 'user-profile', params: { id: articleInfo.authorId } }"
+            >
+              <div class="avatar">
+                <IconUser :size="20" :avatar="simpleAuthorProfile?.avatar" />
+              </div>
+              <span class="name">{{ simpleAuthorProfile?.name }}</span>
+            </router-link>
+            <div v-else class="author-info">
               <div class="avatar">
                 <IconUser :size="20" :avatar="simpleAuthorProfile?.avatar" />
               </div>
@@ -829,6 +839,15 @@ const handleEdit = () => {
     font-size: 0.9rem;
     color: $color-text-primary;
     white-space: nowrap;
+  }
+
+  &.author-info--link {
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover .name {
+      color: $color-accent-primary;
+    }
   }
 }
 

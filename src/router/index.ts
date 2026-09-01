@@ -26,6 +26,11 @@ const router = createRouter({
       name: 'profile',
       component: () => import('../views/UserProfile.vue')
     },
+    {
+      path: '/user/:id',
+      name: 'user-profile',
+      component: () => import('../views/UserPublicProfile.vue')
+    },
     // Legacy redirect
     {
       path: '/editor',

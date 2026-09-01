@@ -650,6 +650,7 @@ onUnmounted(() => {
                     :reading-time-minutes="article.readingTimeMinutes"
                     :author-name="article.authorName"
                     :author-avatar="article.authorAvatar"
+                    :author-id="article.authorId"
                   />
                   <button
                     class="unfavorite-btn"

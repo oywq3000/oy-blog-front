@@ -13,6 +13,7 @@ export interface Comment {
   replyCount?: number;
   isShow?: boolean; // Backend visibility flag
   replyToUsername?: string; // Target username for @mention (flat reply display)
+  replyToUserId?: string; // Target user ID for @mention (profile link)
   replyToReplyId?: number | string | null; // Non-null = reply-to-reply, null = direct reply to comment
 }
 </script>
@@ -50,6 +51,12 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+// 评论作者主页跳转目标：有 userId 走公开主页 /user/:id；无 id 时不可跳（退回纯文本）
+const userProfileTarget = (userId: string | undefined, username: string) => {
+  if (userId) return { name: 'user-profile', params: { id: userId } };
+  return null;
+};
 
 const isReplying = ref(false);
 const replyContent = ref('');
@@ -363,10 +370,20 @@ const handleNestedVote = (commentId: number | string, replyId: number | string |
 
           <template v-else>
             <div class="username" :class="{ 'username--inline': depth > 0 }">
-              <router-link class="user-link" :to="{ name: 'profile', query: { user: comment.user } }">{{ comment.user }}</router-link>
+              <router-link
+                v-if="userProfileTarget(comment.userId, comment.user)"
+                class="user-link"
+                :to="userProfileTarget(comment.userId, comment.user)"
+              >{{ comment.user }}</router-link>
+              <span v-else class="user-link user-link--plain">{{ comment.user }}</span>
               <template v-if="comment.replyToReplyId">
                 <span class="reply-to-separator">{{ t('common.replyTo', '回复') }}</span>
-                <router-link class="user-link reply-to" :to="{ name: 'profile', query: { user: comment.replyToUsername } }">@{{ comment.replyToUsername }}</router-link>
+                <router-link
+                  v-if="userProfileTarget(comment.replyToUserId, comment.replyToUsername)"
+                  class="user-link reply-to"
+                  :to="userProfileTarget(comment.replyToUserId, comment.replyToUsername)"
+                >@{{ comment.replyToUsername }}</router-link>
+                <span v-else class="user-link user-link--plain reply-to">@{{ comment.replyToUsername }}</span>
               </template>
               <span v-if="depth > 0" class="text text--inline">{{ comment.content }}</span>
             </div>
@@ -608,6 +625,16 @@ const handleNestedVote = (commentId: number | string, replyId: number | string |
       color: $color-text-primary;
       text-decoration: underline;
       outline: none;
+    }
+
+    &.user-link--plain {
+      cursor: default;
+
+      &:hover,
+      &:focus {
+        color: rgba(var(--color-text-secondary-rgb), 0.55);
+        text-decoration: none;
+      }
     }
 
     &.reply-to {

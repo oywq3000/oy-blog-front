@@ -10,6 +10,8 @@ const props = defineProps<{
     articleCount?: number;
     likeCount?: number;
   }
+  /** 作者ID：存在时用户名可点击跳转作者主页 /user/:id */
+  userId?: string;
 }>();
 
 const authorName = computed(() => props.author?.name || 'Anonymous');
@@ -31,7 +33,14 @@ const stats = computed(() => [
         </div>
       </div>
       <div class="user-info">
-        <h3 class="username">{{ authorName }}</h3>
+        <router-link
+          v-if="userId"
+          class="username-link"
+          :to="{ name: 'user-profile', params: { id: userId } }"
+        >
+          <h3 class="username">{{ authorName }}</h3>
+        </router-link>
+        <h3 v-else class="username">{{ authorName }}</h3>
         <p class="bio">{{ authorBio }}</p>
       </div>
     </div>
@@ -88,6 +97,13 @@ const stats = computed(() => [
 }
 
 .user-info {
+  .username-link {
+    text-decoration: none;
+
+    &:hover .username {
+      color: $color-accent-primary;
+    }
+  }
   flex: 1;
   overflow: hidden;
   

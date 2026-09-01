@@ -162,6 +162,11 @@ export default {
     passwordUpdateFailed: 'Failed to update password',
     verificationEmailSent: 'Verification email sent, please check your inbox',
   },
+  userProfile: {
+    publishedArticles: 'Published Articles',
+    noArticles: 'No published articles yet',
+    notFound: 'User not found',
+  },
   verify: {
     verifying: 'Verifying your email...',
     success: 'Email verified successfully!',

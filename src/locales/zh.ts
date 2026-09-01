@@ -162,6 +162,11 @@ export default {
     passwordUpdateFailed: '密码修改失败',
     verificationEmailSent: '验证邮件已发送，请查收邮箱',
   },
+  userProfile: {
+    publishedArticles: '已发布文章',
+    noArticles: '暂无已发布文章',
+    notFound: '用户不存在',
+  },
   verify: {
     verifying: '正在验证您的邮箱...',
     success: '邮箱验证成功！',

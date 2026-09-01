@@ -14,6 +14,8 @@ const props = defineProps<{
   image?: string;
   authorName?: string;
   authorAvatar?: string;
+  /** 作者ID：存在时可点击跳转作者主页 /user/:id */
+  authorId?: string;
   viewCount?: number;
   likeCount?: number;
   favorites?: number;
@@ -56,9 +58,21 @@ function formatDate(d: string): string {
     <!-- Row 1: Author + date -->
     <div class="article-author-row">
       <div v-if="authorName" class="article-author">
-        <IconUser v-if="!authorAvatar" :size="22" />
-        <img v-else :src="authorAvatar" :alt="authorName" class="author-avatar" />
-        <span class="author-name">{{ authorName }}</span>
+        <router-link
+          v-if="authorId"
+          class="author-link"
+          :to="{ name: 'user-profile', params: { id: authorId } }"
+          @click.stop
+        >
+          <IconUser v-if="!authorAvatar" :size="22" />
+          <img v-else :src="authorAvatar" :alt="authorName" class="author-avatar" />
+          <span class="author-name">{{ authorName }}</span>
+        </router-link>
+        <template v-else>
+          <IconUser v-if="!authorAvatar" :size="22" />
+          <img v-else :src="authorAvatar" :alt="authorName" class="author-avatar" />
+          <span class="author-name">{{ authorName }}</span>
+        </template>
         <span v-if="publishAt" class="article-date">{{ formatDate(publishAt) }}</span>
       </div>
     </div>
@@ -187,6 +201,18 @@ function formatDate(d: string): string {
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+
+  .author-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover .author-name {
+      color: var(--color-accent-primary);
+    }
+  }
 
   .author-avatar {
     width: 22px;

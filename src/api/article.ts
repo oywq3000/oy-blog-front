@@ -323,6 +323,16 @@ export const getMyHeatmap = () => {
   return request.get<any, ResultListHeatmapDay>(baseUrl+'/article/stats/heatmap/me');
 };
 
+// Get a specific user's activity heatmap (public, for other-user profile)
+export const getUserHeatmap = (userId: string) => {
+  return request.get<any, ResultListHeatmapDay>(baseUrl+`/article/stats/heatmap/${userId}`);
+};
+
+// Get a specific user's published articles (public, paged)
+export const getUserPublishedArticles = (userId: string, pageNum: number = 1, pageSize: number = 10) => {
+  return request.get<any, ResultPageArticle>(baseUrl+`/article/read/published/by-author/${userId}`, { params: { pageNum, pageSize } });
+};
+
 // 创作中心文章状态：已发布 / 草稿 / AI 审核中 / 待人工审核 / 已驳回；'all' = 三个审核中状态合并查询
 export type CreatorArticleStatus = 'published' | 'draft' | 'ai_reviewing' | 'pending_review' | 'rejected' | 'all';
 

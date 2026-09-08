@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { MdEditor } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
-import { publishArticle, saveDraft, getArticleContent, getArticleById, getPopularTags, type TagStat } from '../api/article';
+import { publishArticle, saveDraft, getArticleContent, getArticleById, getPopularTags, getSeriesList, type TagStat, type SeriesReadItem } from '../api/article';
 import { uploadCover, uploadContentImage } from '../api/upload';
 import { verdictFeedback } from '../utils/reviewStatus';
 // import { useUserStore } from '../store/user';
@@ -72,6 +72,27 @@ const publishForm = reactive({
   coverUrl: '',
   tags: ''
 });
+
+// 发布弹窗专栏点选（≤3）：可选项来自公开专栏列表 getSeriesList（信封 data 数组），
+// 勾选结果进 selectedColumns，随草稿保存/发布一并提交 seriesIds
+const availableColumns = ref<SeriesReadItem[]>([]);
+const selectedColumns = ref<string[]>([]);
+const columnLimitHint = ref(false);
+
+async function loadColumns() {
+  try { availableColumns.value = (await getSeriesList()).data ?? [] } catch { availableColumns.value = [] }
+}
+
+function isColumnSelected(id: string) { return selectedColumns.value.includes(id) }
+
+function toggleColumn(c: SeriesReadItem) {
+  const i = selectedColumns.value.indexOf(c.id);
+  if (i >= 0) selectedColumns.value.splice(i, 1);
+  else if (selectedColumns.value.length >= 3) {
+    columnLimitHint.value = true;          // 超限提示：2 秒后自动消失，不依赖任何 toast 库
+    setTimeout(() => { columnLimitHint.value = false }, 2000);
+  } else selectedColumns.value.push(c.id);
+}
 
 // 常用标签（后端预置 is_common=1），点选即加入/移出标签；自创标签仍走输入框
 const commonTags = ref<TagStat[]>([]);
@@ -174,7 +195,8 @@ const handleSaveDraft = async () => {
       contentHtml: contentHtml.value,
       summary,
       coverUrl: publishForm.coverUrl,
-      tags: getTagsArray()
+      tags: getTagsArray(),
+      seriesIds: selectedColumns.value
     });
 
     if (res.isSuccess) {
@@ -236,6 +258,8 @@ const loadArticleForEdit = async (id: string) => {
         if (metaRes.data.tags) {
             publishForm.tags = metaRes.data.tags.join(', ');
         }
+        // 编辑回显：详情接口 enrich 的 seriesList（无专栏为 null）→ 勾选对应 chips
+        selectedColumns.value = metaRes.data.seriesList?.map(l => l.seriesId) ?? [];
     }
 
   } catch (error) {
@@ -247,6 +271,7 @@ const isMobile = ref(false);
 
 onMounted(() => {
   loadCommonTags();
+  loadColumns();
 
   if (window.innerWidth < 768) {
     isMobile.value = true;
@@ -291,7 +316,8 @@ const submitArticle = async () => {
       contentHtml: contentHtml.value,
       summary,
       coverUrl: publishForm.coverUrl,
-      tags: getTagsArray()
+      tags: getTagsArray(),
+      seriesIds: selectedColumns.value
     });
 
     if (res.isSuccess) {
@@ -471,6 +497,19 @@ const submitArticle = async () => {
                     </button>
                   </div>
                 </div>
+              </div>
+
+              <!-- 所属专栏：chips 点选 ≤3（交互同常用标签），草稿/发布 payload 均携带 seriesIds -->
+              <div class="column-picker" v-if="availableColumns.length">
+                <p class="picker-label">{{ t('editor.columnSelect') }}</p>
+                <span
+                  v-for="c in availableColumns"
+                  :key="c.id"
+                  class="common-tag-chip"
+                  :class="{ active: isColumnSelected(c.id) }"
+                  @click="toggleColumn(c)"
+                >{{ c.name }}</span>
+                <p v-if="columnLimitHint" class="column-limit-hint">{{ t('editor.columnLimit') }}</p>
               </div>
             </div>
           </div>
@@ -868,6 +907,73 @@ const submitArticle = async () => {
 
   &.bottom-row {
     flex-direction: column; // Or just block
+  }
+}
+
+/* 专栏点选区：chips 视觉与常用标签(.common-tag-chip)保持一致（scoped 嵌套样式无法跨 .common-tags 复用，此处镜像一份） */
+.column-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+
+  .picker-label,
+  .column-limit-hint {
+    width: 100%;
+    margin: 0;
+    font-size: 0.75rem;
+  }
+
+  .picker-label {
+    color: rgba($color-text-primary, 0.45);
+
+    :global(.dark) & {
+      color: rgba(255, 255, 255, 0.45);
+    }
+  }
+
+  .common-tag-chip {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 999px;
+    border: 1px solid $color-border;
+    background: rgba(0, 0, 0, 0.05);
+    color: $color-text-secondary;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s;
+
+    :global(.dark) & {
+      background: rgba(0, 0, 0, 0.4);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    &:hover {
+      border-color: $color-accent-primary;
+      color: $color-accent-primary;
+    }
+
+    &.active {
+      background: rgba($color-accent-primary-rgb, 0.15);
+      border-color: $color-accent-primary;
+      color: $color-accent-primary;
+      font-weight: 600;
+
+      :global(.dark) & {
+        background: rgba($color-accent-primary-rgb, 0.3);
+        color: #fff;
+      }
+    }
+  }
+
+  .column-limit-hint {
+    color: #e6a23c;
+
+    :global(.dark) & {
+      color: #f0a94e;
+    }
   }
 }
 

@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onUpdated, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import TagBadge from '../components/TagBadge.vue';
+import SeriesCard from '../components/SeriesCard.vue';
 import IconUser from '../components/icons/IconUser.vue';
 import IconLike from '../components/icons/IconLike.vue';
 import IconStar from '../components/icons/IconStar.vue';
@@ -556,15 +557,17 @@ const handleEdit = () => {
     <div class="sidebar-content">
       <UserCard v-if="authorInfo" :author="authorInfo" />
       <div class="sticky-wrapper">
-        <ArticleToc 
-          v-if="chapters.length > 0 || isLoadingChapters" 
-          :chapters="chapters" 
-          :is-loading="isLoadingChapters" 
+        <ArticleToc
+          v-if="chapters.length > 0 || isLoadingChapters"
+          :chapters="chapters"
+          :is-loading="isLoadingChapters"
           class="toc-card"
         />
-        
+
         <TagsCard class="tags-card" />
-        <SeriesCard class="series-card" />
+    -->
+    <SeriesCard v-if="articleInfo?.seriesList?.length" :series="articleInfo.seriesList" class="series-card" />
+    <!--
         <RecommendedCard class="recommended-card" />
       </div>
     </div>

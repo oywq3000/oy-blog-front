@@ -314,6 +314,7 @@ export default {
     publishedAt: 'Published at',
     updatedAt: 'Updated at',
     series: 'Series',
+    columnArticles: '{count} articles',
     copied: 'Copied to clipboard successfully!',
     copyFailed: 'Failed to copy, please share manually',
     notFound: 'Article not found.',

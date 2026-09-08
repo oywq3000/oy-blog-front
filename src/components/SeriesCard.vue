@@ -1,35 +1,34 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import type { ArticleSeriesLink } from '../api/article';
 
-interface Series {
-  id: string;
-  title: string;
-  articleCount: number;
-}
+const { t } = useI18n();
 
-const seriesList = ref<Series[]>([
-  { id: '1', title: 'Java Core', articleCount: 12 },
-  { id: '2', title: 'Spring Boot in Action', articleCount: 8 },
-  { id: '3', title: 'Microservices Patterns', articleCount: 15 },
-  { id: '4', title: 'Vue.js 3 Deep Dive', articleCount: 10 },
-]);
+// props 驱动：父级（文章详情）传入 articleInfo.seriesList；无专栏时为 null/空，
+// 由父级 v-if 与组件自身 v-if 双重保底，组件不自行拉取
+defineProps<{ series: ArticleSeriesLink[] }>();
 </script>
 
 <template>
-  <div class="series-card">
+  <div v-if="series.length" class="series-card">
     <div class="card-header">
       <h3 class="card-title">
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-        <span>专栏系列</span>
+        <span>{{ t('articleDetail.series') }}</span>
       </h3>
     </div>
-    
+
     <div class="card-content">
       <div class="series-list">
-        <a v-for="item in seriesList" :key="item.id" href="#" class="series-item">
-          <span class="series-title">{{ item.title }}</span>
-          <span class="series-count">{{ item.articleCount }} 篇</span>
-        </a>
+        <router-link
+          v-for="item in series"
+          :key="item.seriesId"
+          :to="{ name: 'column-detail', params: { id: item.seriesId } }"
+          class="series-item"
+        >
+          <span class="series-title">{{ item.name }}</span>
+          <span class="series-count">{{ t('articleDetail.columnArticles', { count: item.totalCount }) }}</span>
+        </router-link>
       </div>
     </div>
   </div>
@@ -55,7 +54,7 @@ const seriesList = ref<Series[]>([
   border-bottom: 1px solid rgba($color-border, 0.3);
   background: rgba($color-bg-secondary, 0.5);
   flex-shrink: 0;
-  
+
   .card-title {
     font-size: 1rem;
     font-weight: 700;
@@ -65,7 +64,7 @@ const seriesList = ref<Series[]>([
     align-items: center;
     gap: 0.5rem;
     letter-spacing: 0.05em;
-    
+
     .icon {
       color: $color-accent-primary;
     }
@@ -91,7 +90,7 @@ const seriesList = ref<Series[]>([
   font-size: 0.9rem;
   transition: all 0.3s ease;
   position: relative;
-  
+
   // Hover Animation
   &::after {
     content: '';
@@ -105,29 +104,29 @@ const seriesList = ref<Series[]>([
     transform-origin: right;
     transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
   }
-  
+
   &:hover {
     color: $color-text-primary;
     background: rgba($color-text-primary, 0.02);
-    
+
     &::after {
       transform: scaleX(1);
       transform-origin: left;
     }
-    
+
     .series-count {
       color: $color-accent-primary;
       background: rgba($color-accent-primary, 0.1);
     }
   }
-  
+
   .series-title {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 70%;
   }
-  
+
   .series-count {
     font-size: 0.75rem;
     background: rgba($color-text-secondary, 0.1);

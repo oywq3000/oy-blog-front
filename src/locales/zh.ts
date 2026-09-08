@@ -314,6 +314,7 @@ export default {
     publishedAt: '发布于',
     updatedAt: '更新于',
     series: '专栏系列',
+    columnArticles: '共 {count} 篇',
     copied: '链接已复制，快去分享吧！',
     copyFailed: '复制失败，请手动分享',
     notFound: '文章未找到。',

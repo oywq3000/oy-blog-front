@@ -116,6 +116,12 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue')
     },
     {
+      path: '/column/:id',
+      name: 'column-detail',
+      component: () => import('../views/ColumnDetailView.vue'),
+      props: true
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('../views/NotFoundView.vue')

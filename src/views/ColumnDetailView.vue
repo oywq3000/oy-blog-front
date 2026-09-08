@@ -8,16 +8,27 @@ import { getSeriesDetail, type SeriesDetail } from '../api/article';
 
 const { t } = useI18n();
 const route = useRoute();
+// 路由声明了 props: true，路由参数 id 会作为 prop 注入；在此消费（声明即消费，避免其
+// 作为未声明属性落到根元素上），页面内取参仍统一走 useRoute
+defineProps<{ id?: string }>();
 const detail = ref<SeriesDetail | null>(null);
 const isLoading = ref(false);
+const loadFailed = ref(false);
 const pageNum = ref(1);
 const pageSize = 10;
 
 async function load() {
   isLoading.value = true;
+  loadFailed.value = false;
   try {
+    // request 拦截器对 HTTP 错误与业务失败（isSuccess=false）一律 reject，
+    // 因此失败路径只有 catch；成功时返回 ResultObject 信封，取 .data
     const res = await getSeriesDetail(route.params.id as string, pageNum.value, pageSize);
-    detail.value = res.data; // request 返回完整 ResultObject 信封，取 .data
+    detail.value = res.data;
+  } catch (e) {
+    console.error('Failed to load column detail:', e);
+    detail.value = null;
+    loadFailed.value = true;
   } finally {
     isLoading.value = false;
   }
@@ -79,6 +90,9 @@ onMounted(load);
       />
     </template>
     <p v-else class="empty">{{ t('editor.columnEmpty') }}</p>
+  </div>
+  <div v-else-if="loadFailed" class="column-detail">
+    <p class="empty">{{ t('articleDetail.loadFailed') }}</p>
   </div>
 </template>
 

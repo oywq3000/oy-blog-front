@@ -255,6 +255,9 @@ export default {
     publishFailed: '发布失败: {msg}',
     saveDraftFailed: '保存草稿失败: {msg}',
     updateSuccess: '文章更新成功！',
+    columnSelect: '所属专栏（最多 3 个）',
+    columnLimit: '最多加入 3 个专栏',
+    columnEmpty: '暂无专栏',
   },
   creator: {
     title: '创作者中心',

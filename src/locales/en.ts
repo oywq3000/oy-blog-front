@@ -255,6 +255,9 @@ export default {
     publishFailed: 'Failed to publish: {msg}',
     saveDraftFailed: 'Failed to save draft: {msg}',
     updateSuccess: 'Article updated successfully!',
+    columnSelect: 'Series (up to 3)',
+    columnLimit: 'An article can join up to 3 series',
+    columnEmpty: 'No series yet',
   },
   creator: {
     title: 'Creator Center',

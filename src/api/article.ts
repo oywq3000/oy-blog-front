@@ -46,6 +46,8 @@ export interface ArticleInfo {
   // 审核字段（后端 Task 9 新增，创作中心状态徽标用）
   reviewStatus?: string;
   reviewReason?: string;
+  // 所属专栏列表（详情接口返回；无专栏时后端为 null，故联合 null）
+  seriesList?: ArticleSeriesLink[] | null;
 }
 
 export interface ArticleChapter {
@@ -167,6 +169,47 @@ export const getArticleContent = (articleId: string) => {
   return request.get<any, ResultArticleContent>(baseUrl+`/article/read/${articleId}/content`);
 };
 
+// 专栏（Series）前台读接口 —— 契约同后端 Task 6
+export interface SeriesReadItem {
+  id: string;
+  name: string;
+  description?: string;
+  coverUrl?: string;
+  articleCount: number;
+}
+
+// 专栏详情：分页文章列表（文章为 ArticleInfo 形态，含 seriesList 自身链接）
+export interface SeriesDetail {
+  id: string;
+  name: string;
+  description?: string;
+  coverUrl?: string;
+  pageNum: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+  articles: ArticleInfo[];
+}
+
+// 文章详情中 "所属专栏" 卡片的一条链接（ArticleInfo.seriesList 元素）
+export interface ArticleSeriesLink {
+  seriesId: string;
+  name: string;
+  coverUrl?: string;
+  sortOrder: number;
+  totalCount: number;
+}
+
+// Query All Series (GET /article/read/series)
+export const getSeriesList = () => {
+  return request.get<any, ResultObject<SeriesReadItem[]>>(baseUrl+'/article/read/series');
+};
+
+// Query Series Detail with paged articles (GET /article/read/series/{id}?pageNum=&pageSize=)
+export const getSeriesDetail = (id: string, pageNum: number, pageSize: number) => {
+  return request.get<any, ResultObject<SeriesDetail>>(baseUrl+`/article/read/series/${id}`, { params: { pageNum, pageSize } });
+};
+
 // Like Article
 export const likeArticle = (articleId: string) => {
   return request.post<any, ResultObject>(baseUrl+`/article/interaction/${articleId}/like`);
@@ -226,6 +269,8 @@ export interface ArticleSaveDto {
   contentHtml: string; // HTML content
   coverUrl?: string;
   tags?: string[];
+  // 所属专栏 id 列表（最多 3 个，发布弹窗勾选）
+  seriesIds?: string[];
   allowComment?: number; // 1 for yes, 0 for no
 }
 

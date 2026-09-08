@@ -89,7 +89,7 @@ onMounted(load);
         @page-change="onPageChange"
       />
     </template>
-    <p v-else class="empty">{{ t('editor.columnEmpty') }}</p>
+    <p v-else class="empty">{{ t('columnDetail.noArticles') }}</p>
   </div>
   <div v-else-if="loadFailed" class="column-detail">
     <p class="empty">{{ t('articleDetail.loadFailed') }}</p>

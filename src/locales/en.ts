@@ -336,6 +336,9 @@ export default {
     sortByNewest: 'Newest',
     loadMoreComments: 'Load more comments',
   },
+  columnDetail: {
+    noArticles: 'No articles yet',
+  },
   cookie: {
     title: 'Privacy & Data Protection',
     text: 'We take your data security seriously. This site uses only essential cookies to store preferences (like language, theme) and optimize experience. We strictly adhere to privacy protocols and do not collect sensitive personal data for third-party tracking.',

@@ -21,6 +21,8 @@ export interface ImageInfo{
 }
 
 // Upload User Avatar
+// 契约与 uploadCover 一致：data 为文件信息对象 {key,url,contentType,size}
+// （后端曾把 URL 错放进 errMsg，已在 user-service 修复对齐，勿再按 errMsg 取值）
 export const uploadAvatar = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);

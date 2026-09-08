@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "axios": "^1.13.2",
+    "cropperjs": "^1.6.2",
     "gsap": "^3.13.0",
     "highlight.js": "^11.9.0",
     "marked": "^17.0.1",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "@iconify/json": "^2.2.520",
+    "@types/cropperjs": "^1.1.5",
     "@types/matter-js": "^0.20.2",
     "@types/node": "^20.0.0",
     "@vitejs/plugin-vue": "^5.0.0",

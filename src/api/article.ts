@@ -210,6 +210,42 @@ export const getSeriesDetail = (id: string, pageNum: number, pageSize: number) =
   return request.get<any, ResultObject<SeriesDetail>>(baseUrl+`/article/read/series/${id}`, { params: { pageNum, pageSize } });
 };
 
+// 我的专栏（登录态创作端 SeriesReadVo；形态与前台 SeriesReadItem 一致，多语义为"归属我的"）
+export interface SeriesOwn {
+  id: string;
+  name: string;
+  description?: string;
+  coverUrl?: string;
+  articleCount: number;
+}
+
+// 新建/编辑专栏入参（name 必填，description/coverUrl 可选）
+export interface SeriesSaveDto {
+  name: string;
+  description?: string;
+  coverUrl?: string;
+}
+
+// Get My Series (GET /article/creator/series) —— 仅我的专栏，含已发布文章计数
+export const getMySeries = () => {
+  return request.get<any, ResultObject<SeriesOwn[]>>(baseUrl+'/article/creator/series');
+};
+
+// Create My Series (POST /article/creator/series) —— data 为新专栏 id
+export const createSeries = (data: SeriesSaveDto) => {
+  return request.post<any, ResultObject<string>>(baseUrl+'/article/creator/series', data);
+};
+
+// Update My Series (PUT /article/creator/series/{id}) —— 仅 owner（ADMIN 例外）
+export const updateSeries = (id: string, data: SeriesSaveDto) => {
+  return request.put<any, ResultObject<boolean>>(baseUrl+`/article/creator/series/${id}`, data);
+};
+
+// Delete My Series (DELETE /article/creator/series/{id}) —— 仅 owner（ADMIN 例外；级联清成员）
+export const deleteSeries = (id: string) => {
+  return request.delete<any, ResultObject<boolean>>(baseUrl+`/article/creator/series/${id}`);
+};
+
 // Like Article
 export const likeArticle = (articleId: string) => {
   return request.post<any, ResultObject>(baseUrl+`/article/interaction/${articleId}/like`);

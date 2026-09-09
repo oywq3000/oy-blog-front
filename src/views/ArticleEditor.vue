@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { MdEditor } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
-import { publishArticle, saveDraft, getArticleContent, getArticleById, getPopularTags, getSeriesList, type TagStat, type SeriesReadItem } from '../api/article';
+import { publishArticle, saveDraft, getArticleContent, getArticleById, getPopularTags, getMySeries, type TagStat, type SeriesOwn } from '../api/article';
 import { uploadCover, uploadContentImage } from '../api/upload';
 import { verdictFeedback } from '../utils/reviewStatus';
 // import { useUserStore } from '../store/user';
@@ -73,19 +73,34 @@ const publishForm = reactive({
   tags: ''
 });
 
-// 发布弹窗专栏点选（≤3）：可选项来自公开专栏列表 getSeriesList（信封 data 数组），
+// 发布弹窗专栏点选（≤3）：可选项来自"我的专栏" getMySeries（登录态 creator 端点，信封 data 数组），
 // 勾选结果进 selectedColumns，随草稿保存/发布一并提交 seriesIds
-const availableColumns = ref<SeriesReadItem[]>([]);
+const availableColumns = ref<SeriesOwn[]>([]);
 const selectedColumns = ref<string[]>([]);
 const columnLimitHint = ref(false);
+// 列表拉取是否已有结果（成功/失败都算）：我的专栏为空时据此渲染引导行，避免加载中的瞬时空态误导
+const columnsLoaded = ref(false);
+let columnsLoadPromise: Promise<void> | null = null;
 
-async function loadColumns() {
-  try { availableColumns.value = (await getSeriesList()).data ?? [] } catch { availableColumns.value = [] }
+async function fetchColumns() {
+  try {
+    availableColumns.value = (await getMySeries()).data ?? [];
+  } catch {
+    availableColumns.value = [];
+  } finally {
+    columnsLoaded.value = true;
+  }
+}
+
+// 并发安全：同一次会话内只发一次请求；onMounted 编辑分支 await 它保证回显过滤前列表已就绪
+function loadColumns(): Promise<void> {
+  if (!columnsLoadPromise) columnsLoadPromise = fetchColumns();
+  return columnsLoadPromise;
 }
 
 function isColumnSelected(id: string) { return selectedColumns.value.includes(id) }
 
-function toggleColumn(c: SeriesReadItem) {
+function toggleColumn(c: SeriesOwn) {
   const i = selectedColumns.value.indexOf(c.id);
   if (i >= 0) selectedColumns.value.splice(i, 1);
   else if (selectedColumns.value.length >= 3) {
@@ -258,8 +273,13 @@ const loadArticleForEdit = async (id: string) => {
         if (metaRes.data.tags) {
             publishForm.tags = metaRes.data.tags.join(', ');
         }
-        // 编辑回显：详情接口 enrich 的 seriesList（无专栏为 null）→ 勾选对应 chips
-        selectedColumns.value = metaRes.data.seriesList?.map(l => l.seriesId) ?? [];
+        // 编辑回显：详情接口 enrich 的 seriesList（无专栏为 null）→ 勾选对应 chips。
+        // 只保留"我的专栏"集合内的 id：T16 起后端 publish 对非本人专栏整单 403 回滚，
+        // 管理员绑定的他人/站长级专栏不在可选项（不渲染 chip）也不能残留进 payload，此处静默剔除
+        const myColumnIds = new Set(availableColumns.value.map((c) => c.id));
+        selectedColumns.value = (metaRes.data.seriesList ?? [])
+          .map((l) => l.seriesId)
+          .filter((id) => myColumnIds.has(id));
     }
 
   } catch (error) {
@@ -269,7 +289,7 @@ const loadArticleForEdit = async (id: string) => {
 
 const isMobile = ref(false);
 
-onMounted(() => {
+onMounted(async () => {
   loadCommonTags();
   loadColumns();
 
@@ -279,6 +299,8 @@ onMounted(() => {
   }
 
   window.addEventListener('keydown', handleKeydown);
+  // 编辑回显需按"我的专栏"集合过滤，先等列表拉完再取文章详情，保证顺序确定
+  await loadColumns();
   const id = (route.params.id as string) || (route.query.id as string);
   if (id) {
     draftId.value = id;
@@ -499,17 +521,26 @@ const submitArticle = async () => {
                 </div>
               </div>
 
-              <!-- 所属专栏：chips 点选 ≤3（交互同常用标签），草稿/发布 payload 均携带 seriesIds -->
-              <div class="column-picker" v-if="availableColumns.length">
+              <!-- 所属专栏：chips 点选 ≤3（交互同常用标签），草稿/发布 payload 均携带 seriesIds；
+                   我的专栏为空时渲染引导行（去创作中心创建），不再整块消失 -->
+              <div class="column-picker">
                 <p class="picker-label">{{ t('editor.columnSelect') }}</p>
-                <span
-                  v-for="c in availableColumns"
-                  :key="c.id"
-                  class="common-tag-chip"
-                  :class="{ active: isColumnSelected(c.id) }"
-                  @click="toggleColumn(c)"
-                >{{ c.name }}</span>
-                <p v-if="columnLimitHint" class="column-limit-hint">{{ t('editor.columnLimit') }}</p>
+                <template v-if="availableColumns.length">
+                  <span
+                    v-for="c in availableColumns"
+                    :key="c.id"
+                    class="common-tag-chip"
+                    :class="{ active: isColumnSelected(c.id) }"
+                    @click="toggleColumn(c)"
+                  >{{ c.name }}</span>
+                  <p v-if="columnLimitHint" class="column-limit-hint">{{ t('editor.columnLimit') }}</p>
+                </template>
+                <p v-else-if="columnsLoaded" class="column-empty">
+                  {{ t('editor.columnEmpty') }}
+                  <router-link to="/creator/columns" class="column-empty-link">
+                    {{ t('editor.columnEmptyCreate') }}
+                  </router-link>
+                </p>
               </div>
             </div>
           </div>
@@ -919,7 +950,8 @@ const submitArticle = async () => {
   margin-top: 0.25rem;
 
   .picker-label,
-  .column-limit-hint {
+  .column-limit-hint,
+  .column-empty {
     width: 100%;
     margin: 0;
     font-size: 0.75rem;
@@ -930,6 +962,26 @@ const submitArticle = async () => {
 
     :global(.dark) & {
       color: rgba(255, 255, 255, 0.45);
+    }
+  }
+
+  .column-empty {
+    color: rgba($color-text-primary, 0.6);
+    line-height: 1.8;
+
+    :global(.dark) & {
+      color: rgba(255, 255, 255, 0.6);
+    }
+  }
+
+  .column-empty-link {
+    color: $color-accent-primary;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: none;
     }
   }
 

@@ -62,6 +62,11 @@ const router = createRouter({
           name: 'creator-reviewing',
           component: () => import('../views/CreatorReviewing.vue')
         },
+        {
+          path: 'columns',
+          name: 'creator-columns',
+          component: () => import('../views/CreatorColumns.vue')
+        },
       ]
     },
     // Editor routes — top level (no sidebar, full-screen editor)

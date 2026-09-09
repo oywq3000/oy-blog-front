@@ -47,6 +47,13 @@ watch(() => route.path, () => {
         >
           {{ t('creator.reviewing') }}
         </router-link>
+        <router-link
+          to="/creator/columns"
+          class="tab-btn"
+          active-class="tab-btn--active"
+        >
+          {{ t('creator.columns') }}
+        </router-link>
       </div>
 
       <!-- Child route content -->

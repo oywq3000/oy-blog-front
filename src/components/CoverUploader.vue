@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { uploadSeriesCover } from '../api/upload';
 import { useToast } from '../composables/useToast';
@@ -10,9 +10,14 @@ import { useToast } from '../composables/useToast';
  * - v-model 为封面 URL 字符串；已上传后展示预览，可再次点击更换
  * - ✕ 移除封面 → v-model 置 ''（配合编辑页 PUT 传 '' 即清空的语义）
  * - 上传中禁点（防重复上传）；失败/超限由请求拦截器统一顶部气泡提示
+ * - uploading-change：忙碌态同步上报父级——父级在 isUploading 期间禁用保存/关闭，
+ *   避免"快速保存发出 coverUrl:''/旧值后弹窗卸载，迟到的上传成功写入 detached v-model"
  */
 defineProps<{ modelValue: string }>();
-const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>();
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string): void;
+  (e: 'uploading-change', uploading: boolean): void;
+}>();
 
 const { t } = useI18n();
 const toast = useToast();
@@ -20,6 +25,9 @@ const toast = useToast();
 const isDragging = ref(false);
 const isUploading = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
+
+// 忙碌态每次翻转同步上报（flush: 'sync'：父级收事件时本组件内部判断仍可用自身上传中标志）
+watch(isUploading, (uploading) => emit('uploading-change', uploading), { flush: 'sync' });
 
 async function processFile(file: File) {
   if (!file.type.startsWith('image/')) {
@@ -78,14 +86,17 @@ function remove() {
       @drop.prevent="handleDrop"
     >
       <img v-if="modelValue" :src="modelValue" alt="" class="cover-img" />
-      <span
+      <!-- 真 button：键盘天然可达，消除 span[role=button] 嵌套在外层 div[role=button] 内的交互角色嵌套；
+           @keydown.stop 阻止 Enter/Space 冒泡到外层触发 openPicker，click 的 .stop 同理防误打开文件选择器 -->
+      <button
         v-if="modelValue && !isUploading"
+        type="button"
         class="cover-remove"
-        role="button"
         :title="t('coverUpload.remove')"
         :aria-label="t('coverUpload.remove')"
         @click.stop="remove"
-      >✕</span>
+        @keydown.stop
+      >✕</button>
 
       <div v-if="isUploading" class="cover-mask">
         <span class="cover-spinner"></span>
@@ -163,19 +174,27 @@ function remove() {
   right: 6px;
   width: 22px;
   height: 22px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
   font-size: 12px;
   line-height: 1;
+  font-family: inherit;
   cursor: pointer;
   transition: background 0.2s;
 
   &:hover {
     background: rgba(0, 0, 0, 0.8);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $color-accent-primary;
+    outline-offset: 1px;
   }
 }
 

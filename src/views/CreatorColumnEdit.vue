@@ -41,9 +41,16 @@ const router = useRouter();
 // ---- 顶部：专栏基础信息 ----
 const form = reactive({ name: '', description: '', coverUrl: '' });
 const isSavingInfo = ref(false);
+// CoverUploader 上传忙碌态（uploading-change 上报）：期间禁存，
+// 防止"保存发出旧 coverUrl 后上传成功迟到回填"造成预览新图但 DB 落旧图
+const coverUploading = ref(false);
+
+function onCoverUploading(uploading: boolean) {
+  coverUploading.value = uploading;
+}
 
 async function saveInfo() {
-  if (isSavingInfo.value) return;
+  if (isSavingInfo.value || coverUploading.value) return;
   const name = form.name.trim();
   if (!name) {
     toast.addToast(t('creator.columnNameRequired'), 'warning');
@@ -352,10 +359,15 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
         </div>
         <div class="cce-field">
           <label class="cce-label">{{ t('creator.columnCover') }}</label>
-          <CoverUploader v-model="form.coverUrl" />
+          <CoverUploader v-model="form.coverUrl" @uploading-change="onCoverUploading" />
         </div>
         <div class="cce-actions">
-          <button type="button" class="cce-btn cce-btn--primary cce-save-btn" :disabled="isSavingInfo" @click="saveInfo">
+          <button
+            type="button"
+            class="cce-btn cce-btn--primary cce-save-btn"
+            :disabled="isSavingInfo || coverUploading"
+            @click="saveInfo"
+          >
             <span v-if="isSavingInfo" class="cce-spinner"></span>
             {{ t('creator.save') }}
           </button>

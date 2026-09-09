@@ -33,12 +33,20 @@ async function load() {
 // ---- 新建弹窗（编辑已迁至独立编辑页 CreatorColumnEdit.vue） ----
 const showForm = ref(false);
 const isSaving = ref(false);
+// CoverUploader 上传忙碌态（uploading-change 上报）：期间禁存/禁关，
+// 防止"保存发出 coverUrl:'' 后弹窗卸载，迟到的上传成功写进 detached v-model"导致封面静默丢失
+const coverUploading = ref(false);
 const form = reactive({ name: '', description: '', coverUrl: '' });
+
+function onCoverUploading(uploading: boolean) {
+  coverUploading.value = uploading;
+}
 
 function openCreate() {
   form.name = '';
   form.description = '';
   form.coverUrl = '';
+  coverUploading.value = false;
   showForm.value = true;
 }
 
@@ -53,12 +61,13 @@ function goDetail(c: SeriesOwn) {
 }
 
 function closeForm() {
-  if (isSaving.value) return;
+  // 保存或封面上传中不关弹窗（上传中关闭 → 上传回调写入已卸载的 form.coverUrl）
+  if (isSaving.value || coverUploading.value) return;
   showForm.value = false;
 }
 
 async function save() {
-  if (isSaving.value) return;
+  if (isSaving.value || coverUploading.value) return;
   const name = form.name.trim();
   if (!name) {
     toast.addToast(t('creator.columnNameRequired'), 'warning');
@@ -144,7 +153,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
         <div class="column-form" role="dialog" aria-modal="true" :aria-label="t('creator.newColumn')">
           <div class="column-form__header">
             <h3 class="column-form__title">{{ t('creator.newColumn') }}</h3>
-            <button type="button" class="column-form__close" :disabled="isSaving" @click="closeForm">✕</button>
+            <button type="button" class="column-form__close" :disabled="isSaving || coverUploading" @click="closeForm">✕</button>
           </div>
 
           <div class="column-form__body">
@@ -172,15 +181,25 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
             </div>
             <div class="column-form__field">
               <label class="column-form__label">{{ t('creator.columnCover') }}</label>
-              <CoverUploader v-model="form.coverUrl" />
+              <CoverUploader v-model="form.coverUrl" @uploading-change="onCoverUploading" />
             </div>
           </div>
 
           <div class="column-form__footer">
-            <button type="button" class="column-form__btn column-form__btn--cancel" :disabled="isSaving" @click="closeForm">
+            <button
+              type="button"
+              class="column-form__btn column-form__btn--cancel"
+              :disabled="isSaving || coverUploading"
+              @click="closeForm"
+            >
               {{ t('creator.cancel') }}
             </button>
-            <button type="button" class="column-form__btn column-form__btn--confirm" :disabled="isSaving" @click="save">
+            <button
+              type="button"
+              class="column-form__btn column-form__btn--confirm"
+              :disabled="isSaving || coverUploading"
+              @click="save"
+            >
               <span v-if="isSaving" class="spinner"></span>
               {{ t('creator.save') }}
             </button>

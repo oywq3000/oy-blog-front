@@ -11,9 +11,11 @@ import { getFavoriteArticles, getReadingHistory, unfavoriteArticle, getMyStats, 
 import { buildHeatmapData, buildMonthLabels, buildWeekdayLabels, cellBackground, type HeatmapData } from '../utils/heatmap';
 import { useTheme } from '../composables/useTheme';
 import { useToast } from '../composables/useToast';
+import AvatarCropDialog from '../components/AvatarCropDialog.vue';
+import { AVATAR_MIN_SIDE, validateAvatarFile, readAvatarImageSize } from '../utils/avatarFile';
 
 const { t, d } = useI18n();
-const { user: currentUser, fetchUserInfo } = useUserStore();
+const { state: userStoreState, user: currentUser, fetchUserInfo } = useUserStore();
 const { theme, themePreference, setThemePreference } = useTheme();
 const { addToast } = useToast();
 const router = useRouter();
@@ -55,22 +57,73 @@ const handleUpdateProfile = async () => {
   }
 };
 
+// 选图后先弹裁剪对话框，确认时才上传裁剪结果（原图不直接上传）
+const avatarPickFile = ref<File | null>(null);
+const isAvatarUploading = ref(false);
+
 const handleAvatarFileChange = async (event: Event) => {
   const input = event.target as HTMLInputElement;
-  if (input.files && input.files[0]) {
-    try {
-      const res = await uploadAvatar(input.files[0]);
-      if (res.isSuccess) {
-        profileForm.value.avatarUrl = res.data.url;
-        // 后端 uploadAvatar 已持久化头像，刷新 store 让侧边栏/NavBar 等全站头像即时更新
-        await fetchUserInfo();
-      }
-    } catch {
-      // 请求错误已由拦截器统一顶部气泡提示
-    } finally {
-      // Clear input so same file can be selected again
-      input.value = '';
+  const file = input.files?.[0];
+  // Clear input so same file can be selected again
+  input.value = '';
+  if (!file) return;
+
+  const check = validateAvatarFile(file);
+  if (!check.valid) {
+    addToast(
+      check.issue === 'too-large' ? t('profile.avatarTooLarge') : t('profile.avatarNotImage'),
+      'error'
+    );
+    return;
+  }
+  const size = await readAvatarImageSize(file);
+  if (!size) {
+    addToast(t('profile.avatarDecodeFailed'), 'error');
+    return;
+  }
+  if (size.width < AVATAR_MIN_SIDE || size.height < AVATAR_MIN_SIDE) {
+    addToast(t('profile.avatarTooSmall'), 'error');
+    return;
+  }
+  avatarPickFile.value = file;
+};
+
+const closeAvatarCrop = () => {
+  avatarPickFile.value = null;
+};
+
+const onAvatarCropped = async (cropped: File) => {
+  if (isAvatarUploading.value) return;
+  isAvatarUploading.value = true;
+  try {
+    const res = await uploadAvatar(cropped);
+    // 契约与 uploadCover 一致：data 为 {key,url,contentType,size}
+    if (!res.isSuccess || !res.data?.url) {
+      // 响应到达但结构异常：记录以便定位（上传结果未持久化成功时也走这里）
+      console.error('[avatar] 上传响应异常:', res);
+      return; // 保留对话框，用户可重试
     }
+    const url = res.data.url;
+    profileForm.value.avatarUrl = url;
+    // 先关闭对话框并提示成功，避免后续刷新失败拖累 UI 反馈
+    avatarPickFile.value = null;
+    addToast(t('profile.avatarUpdated'), 'success');
+    // 乐观直更 store 中的头像：不依赖网络请求，NavBar/Sidebar/头部立即生效
+    if (userStoreState.userInfo) {
+      userStoreState.userInfo.avatarUrl = url;
+    }
+  } catch (err) {
+    // 请求错误已由拦截器统一顶部气泡提示；失败时保留对话框，用户可重试
+    console.error('[avatar] 上传失败:', err);
+    return;
+  } finally {
+    isAvatarUploading.value = false;
+  }
+  // 刷新其余用户信息（与 UI 反馈隔离；内部已捕获异常，不外抛）
+  try {
+    await fetchUserInfo();
+  } catch (err) {
+    console.error('[avatar] 刷新用户信息失败:', err);
   }
 };
 
@@ -742,6 +795,13 @@ onUnmounted(() => {
                             
                           </div>
                         </div>
+
+                        <AvatarCropDialog
+                          :file="avatarPickFile"
+                          :uploading="isAvatarUploading"
+                          @cancel="closeAvatarCrop"
+                          @confirm="onAvatarCropped"
+                        />
 
                         <!-- Username -->
                         <div class="form-group username-group">

@@ -169,6 +169,11 @@ async function removeMember(m: SeriesMemberItem) {
   }
 }
 
+// 成员行整行可点 → 文章详情（路由 name/params 与 ArticleCard 一致）
+function goArticle(m: SeriesMemberItem) {
+  router.push({ name: 'article-detail', params: { id: m.articleId } });
+}
+
 // ---- 「添加文章」弹窗：候选 = 我的已发布文章（getMyArticles status=published，10/页，
 //      与创作中心 CreatorPublished 同一接口形态）；已在专栏内的文章过滤不展示 ----
 const addOpen = ref(false);
@@ -381,9 +386,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
         </div>
         <p v-else-if="members.length === 0" class="cce-hint">{{ t('creator.emptyColumnMembers') }}</p>
         <ul v-else class="cce-members">
-          <li v-for="(m, idx) in members" :key="m.articleId" class="cce-member">
+        <!-- 成员行整行可点 → 文章详情；↑/↓/移除按钮 @click.stop 阻止冒泡防误触跳转 -->
+          <li v-for="(m, idx) in members" :key="m.articleId" class="cce-member" @click="goArticle(m)">
             <img v-if="m.coverUrl" :src="m.coverUrl" alt="" class="cce-member__cover" />
-            <span v-else class="cce-member__cover cce-member__cover--placeholder" />
             <div class="cce-member__info">
               <div class="cce-member__title">{{ m.title }}</div>
               <span class="cce-member__status" :class="`cce-member__status--${m.status}`">
@@ -397,7 +402,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                 :disabled="rowBusy || idx === 0"
                 :aria-label="t('creator.moveUp')"
                 :title="t('creator.moveUp')"
-                @click="moveMember(m, 'up')"
+                @click.stop="moveMember(m, 'up')"
               >
                 ↑
               </button>
@@ -407,11 +412,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                 :disabled="rowBusy || idx === members.length - 1"
                 :aria-label="t('creator.moveDown')"
                 :title="t('creator.moveDown')"
-                @click="moveMember(m, 'down')"
+                @click.stop="moveMember(m, 'down')"
               >
                 ↓
               </button>
-              <button type="button" class="cce-remove-btn" :disabled="rowBusy" @click="removeMember(m)">
+              <button type="button" class="cce-remove-btn" :disabled="rowBusy" @click.stop="removeMember(m)">
                 {{ t('creator.removeMember') }}
               </button>
             </div>
@@ -718,6 +723,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
   gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid $color-border;
+  cursor: pointer; // 整行可点 → 文章详情（同 ArticleCard 的可点提示）
 
   &:last-child {
     border-bottom: none;
@@ -730,12 +736,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     border-radius: $radius-sm;
     object-fit: cover;
     flex-shrink: 0;
-
-    &--placeholder {
-      background: $color-bg-secondary;
-      border: 1px solid $color-border;
-      display: inline-block;
-    }
   }
 
   &__info {

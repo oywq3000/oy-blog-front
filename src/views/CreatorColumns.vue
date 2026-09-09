@@ -46,6 +46,11 @@ function openEdit(c: SeriesOwn) {
   router.push(`/creator/columns/${c.id}/edit`);
 }
 
+// 整张卡片可点 → 公共专栏详情页（name + params，路由 /column/:id 已存在）
+function goDetail(c: SeriesOwn) {
+  router.push({ name: 'column-detail', params: { id: c.id } });
+}
+
 function closeForm() {
   if (isSaving.value) return;
   showForm.value = false;
@@ -112,19 +117,19 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
       <p v-if="isLoading" class="columns-empty">{{ t('common.loading') }}</p>
       <p v-else-if="columns.length === 0" class="columns-empty">{{ t('creator.emptyColumns') }}</p>
       <ul v-else class="columns-list">
-        <li v-for="c in columns" :key="c.id" class="columns-item">
+        <!-- 整卡可点 → 公共专栏页；编辑/删除按钮 @click.stop 阻止冒泡防误触跳转 -->
+        <li v-for="c in columns" :key="c.id" class="columns-item" @click="goDetail(c)">
           <img v-if="c.coverUrl" :src="c.coverUrl" alt="" class="columns-item__cover" />
-          <span v-else class="columns-item__cover columns-item__cover--placeholder" />
           <div class="columns-item__info">
             <div class="columns-item__name">{{ c.name }}</div>
             <div v-if="c.description" class="columns-item__desc">{{ c.description }}</div>
           </div>
           <span class="columns-item__count">{{ t('creator.columnArticlesCount', { count: c.articleCount }) }}</span>
           <div class="columns-item__actions">
-            <button type="button" class="action-btn action-btn--edit" @click="openEdit(c)">
+            <button type="button" class="action-btn action-btn--edit" @click.stop="openEdit(c)">
               {{ t('creator.edit') }}
             </button>
-            <button type="button" class="action-btn action-btn--delete" @click="remove(c)">
+            <button type="button" class="action-btn action-btn--delete" @click.stop="remove(c)">
               {{ t('creator.delete') }}
             </button>
           </div>
@@ -250,6 +255,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
   gap: 16px;
   padding: 14px 16px;
   border-bottom: 1px solid $color-border;
+  cursor: pointer; // 整卡可点 → 公共专栏页（同 ArticleCard 的可点提示）
 
   &:last-child {
     border-bottom: none;
@@ -266,12 +272,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
   border-radius: $radius-sm;
   object-fit: cover;
   flex-shrink: 0;
-
-  &--placeholder {
-    background: $color-bg-secondary;
-    border: 1px solid $color-border;
-    display: inline-block;
-  }
 }
 
 .columns-item__info {

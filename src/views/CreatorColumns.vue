@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { getMySeries, createSeries, updateSeries, deleteSeries } from '../api/article';
+import { useRouter } from 'vue-router';
+import { getMySeries, createSeries, deleteSeries } from '../api/article';
 import type { SeriesOwn, SeriesSaveDto } from '../api/article';
 import { useToast } from '../composables/useToast';
 
 // 创作中心「专栏」管理页：我的专栏列表（名称/描述/封面缩略图/已发布计数）
-// + 新建/编辑共用表单弹窗 + 删除二次确认（window.confirm，与 CreatorDrafts/CreatorPublished 一致；
-// 项目未引入 element-plus，弹窗为手写 Teleport 面板，形态同 ReviewReasonModal）
+// + 新建弹窗 + 删除二次确认（window.confirm，与 CreatorDrafts/CreatorPublished 一致；
+// 项目未引入 element-plus，弹窗为手写 Teleport 面板，形态同 ReviewReasonModal）。
+// Task 19：「编辑」从弹窗升级为作者专属编辑页（跳 /creator/columns/{id}/edit），删除与新建留在列表。
 const { t } = useI18n();
 const toast = useToast();
+const router = useRouter();
 
 const columns = ref<SeriesOwn[]>([]);
 const isLoading = ref(false);
@@ -26,26 +29,21 @@ async function load() {
   }
 }
 
-// ---- 新建/编辑共用表单（dialog） ----
+// ---- 新建弹窗（编辑已迁至独立编辑页 CreatorColumnEdit.vue） ----
 const showForm = ref(false);
-const editingId = ref<string | null>(null);
 const isSaving = ref(false);
 const form = reactive({ name: '', description: '', coverUrl: '' });
 
 function openCreate() {
-  editingId.value = null;
   form.name = '';
   form.description = '';
   form.coverUrl = '';
   showForm.value = true;
 }
 
+// 「编辑」→ 跳转专栏作者专属编辑页（基础信息/成员排序/批量添加文章）
 function openEdit(c: SeriesOwn) {
-  editingId.value = c.id;
-  form.name = c.name;
-  form.description = c.description ?? '';
-  form.coverUrl = c.coverUrl ?? '';
-  showForm.value = true;
+  router.push(`/creator/columns/${c.id}/edit`);
 }
 
 function closeForm() {
@@ -61,24 +59,14 @@ async function save() {
     return;
   }
   isSaving.value = true;
-  // name 必填；description/coverUrl 可选。
-  // 后端 updateSeries 语义：无条件 set 两字段，传 '' 即清空、省略=保留旧值（MP 跳过 null），
-  // 因此编辑分支必须始终携带两字段（trim 后可为 ''），否则用户清空描述/封面保存不生效；
-  // 新建分支空字段省略即可（插入等价 NULL）
+  // name 必填；description/coverUrl 可选（新建分支空字段省略即可，插入等价 NULL）
   const payload: SeriesSaveDto = { name };
-  if (editingId.value) {
-    payload.description = form.description.trim();
-    payload.coverUrl = form.coverUrl.trim();
-  } else {
-    if (form.description.trim()) payload.description = form.description.trim();
-    if (form.coverUrl.trim()) payload.coverUrl = form.coverUrl.trim();
-  }
+  if (form.description.trim()) payload.description = form.description.trim();
+  if (form.coverUrl.trim()) payload.coverUrl = form.coverUrl.trim();
   try {
-    const res = editingId.value
-      ? await updateSeries(editingId.value, payload)
-      : await createSeries(payload);
+    const res = await createSeries(payload);
     if (res.isSuccess) {
-      toast.addToast(editingId.value ? t('creator.columnUpdated') : t('creator.columnCreated'), 'success');
+      toast.addToast(t('creator.columnCreated'), 'success');
       showForm.value = false;
       await load();
     }
@@ -144,19 +132,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
       </ul>
     </div>
 
-    <!-- 新建/编辑弹窗 -->
+    <!-- 新建弹窗 -->
     <Teleport to="body">
       <div v-if="showForm" class="column-form-overlay" @click.self="closeForm">
-        <div
-          class="column-form"
-          role="dialog"
-          aria-modal="true"
-          :aria-label="editingId ? t('creator.editColumn') : t('creator.newColumn')"
-        >
+        <div class="column-form" role="dialog" aria-modal="true" :aria-label="t('creator.newColumn')">
           <div class="column-form__header">
-            <h3 class="column-form__title">
-              {{ editingId ? t('creator.editColumn') : t('creator.newColumn') }}
-            </h3>
+            <h3 class="column-form__title">{{ t('creator.newColumn') }}</h3>
             <button type="button" class="column-form__close" :disabled="isSaving" @click="closeForm">✕</button>
           </div>
 

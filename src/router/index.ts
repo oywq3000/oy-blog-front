@@ -67,6 +67,12 @@ const router = createRouter({
           name: 'creator-columns',
           component: () => import('../views/CreatorColumns.vue')
         },
+        {
+          path: 'columns/:id/edit',
+          name: 'creator-column-edit',
+          component: () => import('../views/CreatorColumnEdit.vue'),
+          props: true
+        },
       ]
     },
     // Editor routes — top level (no sidebar, full-screen editor)

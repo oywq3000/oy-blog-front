@@ -246,6 +246,68 @@ export const deleteSeries = (id: string) => {
   return request.delete<any, ResultObject<boolean>>(baseUrl+`/article/creator/series/${id}`);
 };
 
+// ================================================================
+//  creator 编辑页成员管理（spec §十；一律 owner 模式——他人/站长级专栏整单 403）
+// ================================================================
+
+// 我的专栏成员（含草稿，sort_order 升序；status ∈ draft/published/archived）
+export interface SeriesMemberItem {
+  articleId: string;
+  title: string;
+  status: string;
+  coverUrl?: string;
+  sortOrder: number;
+}
+
+// 宽容批量收录中被逐篇跳过的原因码（机器码，文案由前端 i18n 本地化）
+export type SeriesSkipReasonCode = 'limit3' | 'not_published' | 'not_owner' | 'not_found';
+
+export interface SeriesSkipItem {
+  articleId: string;
+  reasonCode: SeriesSkipReasonCode;
+}
+
+// 宽容批量收录结果：已实际新增数 + 逐篇跳过明细（已在目标栏的重复请求静默跳过，两处都不计）
+export interface SeriesAddResult {
+  addedCount: number;
+  skipped: SeriesSkipItem[];
+}
+
+// 跳过原因码 → i18n 消息 key（文案在 locales zh/en 的 creator.skipCode.*；未知码返回 ''）
+const SKIP_REASON_TEXT_KEY: Record<SeriesSkipReasonCode, string> = {
+  limit3: 'creator.skipCode.limit3',
+  not_published: 'creator.skipCode.not_published',
+  not_owner: 'creator.skipCode.not_owner',
+  not_found: 'creator.skipCode.not_found',
+};
+
+/** 批量添加被跳过原因码 → i18n key（调用方以 t() 渲染为本地化文案） */
+export function skipReasonText(code: SeriesSkipReasonCode): string {
+  return SKIP_REASON_TEXT_KEY[code] ?? '';
+}
+
+// Get My Series Members (GET /article/creator/series/{id}/members) —— 仅 owner，含草稿
+export const getMySeriesMembers = (id: string) => {
+  return request.get<any, ResultObject<SeriesMemberItem[]>>(baseUrl+`/article/creator/series/${id}/members`);
+};
+
+// Add my published articles into series (POST /article/creator/series/{id}/articles)
+// 宽容语义：违规文章逐篇跳过（skipped 带 reasonCode），不中断其余添加
+export const addToMySeries = (id: string, articleIds: string[]) => {
+  return request.post<any, ResultObject<SeriesAddResult>>(baseUrl+`/article/creator/series/${id}/articles`, { articleIds });
+};
+
+// Move member up/down (PUT /article/creator/series/{id}/articles/{articleId}/move?direction=up|down)
+// 队首上移/队尾下移为 no-op，返回 false
+export const moveMySeriesArticle = (id: string, articleId: string, direction: 'up' | 'down') => {
+  return request.put<any, ResultObject<boolean>>(baseUrl+`/article/creator/series/${id}/articles/${articleId}/move`, { params: { direction } });
+};
+
+// Remove member from series (DELETE /article/creator/series/{id}/articles/{articleId}) —— 关系行不存在返回 false
+export const removeMySeriesArticle = (id: string, articleId: string) => {
+  return request.delete<any, ResultObject<boolean>>(baseUrl+`/article/creator/series/${id}/articles/${articleId}`);
+};
+
 // Like Article
 export const likeArticle = (articleId: string) => {
   return request.post<any, ResultObject>(baseUrl+`/article/interaction/${articleId}/like`);

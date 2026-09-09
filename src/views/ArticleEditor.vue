@@ -78,21 +78,27 @@ const publishForm = reactive({
 const availableColumns = ref<SeriesOwn[]>([]);
 const selectedColumns = ref<string[]>([]);
 const columnLimitHint = ref(false);
-// 列表拉取是否已有结果（成功/失败都算）：我的专栏为空时据此渲染引导行，避免加载中的瞬时空态误导
+// 拉取是否已有结果（成功/失败都算）：空态引导只在"成功且为 0 个"时渲染，避免加载中瞬时空态误导
 const columnsLoaded = ref(false);
+// 最近一次拉取是否失败：失败时既不能渲染"还没有专栏"引导（网络故障≠没有专栏），
+// 也不能对编辑回显做集合过滤（失败态集合为空，过滤会把文章从全部专栏静默解绑）
+const columnsLoadFailed = ref(false);
 let columnsLoadPromise: Promise<void> | null = null;
 
 async function fetchColumns() {
   try {
     availableColumns.value = (await getMySeries()).data ?? [];
+    columnsLoadFailed.value = false;
   } catch {
     availableColumns.value = [];
+    columnsLoadFailed.value = true;
   } finally {
     columnsLoaded.value = true;
+    columnsLoadPromise = null; // 单例只挡 in-flight 并发，settle 后置空，下次调用即重试
   }
 }
 
-// 并发安全：同一次会话内只发一次请求；onMounted 编辑分支 await 它保证回显过滤前列表已就绪
+// 并发安全：同一时刻只发一个请求；onMounted 编辑分支 await 它保证回显过滤前已有结论
 function loadColumns(): Promise<void> {
   if (!columnsLoadPromise) columnsLoadPromise = fetchColumns();
   return columnsLoadPromise;
@@ -176,6 +182,13 @@ const toggleTag = (name: string) => {
   publishForm.tags = arr.join(', ');
 };
 
+// 弹窗入口统一走这里：打开时廉价调一次 loadColumns()——首次拉取失败后给用户自动重试的机会
+// （单例 in-flight 去重；settle 后已置空，未成功过的场景这里会真正重发）
+const openPublishModal = () => {
+  showPublishModal.value = true;
+  loadColumns();
+};
+
 const handlePublishClick = () => {
   if (!title.value.trim()) {
     addToast(t('editor.requiredTitle'), 'warning');
@@ -185,7 +198,7 @@ const handlePublishClick = () => {
     addToast(t('editor.requiredContent'), 'warning');
     return;
   }
-  showPublishModal.value = true;
+  openPublishModal();
 };
 
 const handleHtmlChanged = (html: string) => {
@@ -274,12 +287,17 @@ const loadArticleForEdit = async (id: string) => {
             publishForm.tags = metaRes.data.tags.join(', ');
         }
         // 编辑回显：详情接口 enrich 的 seriesList（无专栏为 null）→ 勾选对应 chips。
-        // 只保留"我的专栏"集合内的 id：T16 起后端 publish 对非本人专栏整单 403 回滚，
-        // 管理员绑定的他人/站长级专栏不在可选项（不渲染 chip）也不能残留进 payload，此处静默剔除
-        const myColumnIds = new Set(availableColumns.value.map((c) => c.id));
-        selectedColumns.value = (metaRes.data.seriesList ?? [])
-          .map((l) => l.seriesId)
-          .filter((id) => myColumnIds.has(id));
+        // 列表拉取成功时只保留"我的专栏"集合内的 id：T16 起后端 publish 对非本人专栏整单 403
+        // 回滚，管理员绑定的他人/站长级专栏不在可选项（不渲染 chip）也不能残留进 payload，静默剔除。
+        // 列表拉取失败时（集合不可判定）保留原勾选不动——宁可提交被后端 403 拦截提示，
+        // 也不把文章从全部专栏静默解绑
+        const originalSeriesIds = metaRes.data.seriesList?.map((l) => l.seriesId) ?? [];
+        if (columnsLoadFailed.value) {
+          selectedColumns.value = originalSeriesIds;
+        } else {
+          const myColumnIds = new Set(availableColumns.value.map((c) => c.id));
+          selectedColumns.value = originalSeriesIds.filter((id) => myColumnIds.has(id));
+        }
     }
 
   } catch (error) {
@@ -389,7 +407,7 @@ const submitArticle = async () => {
         <span class="status-text" v-if="isSavingDraft">{{ t('editor.saving') }}</span>
         <span class="word-count" v-if="wordCount > 0 && !isSavingDraft">{{ wordCount }} {{ t('editor.words') }}</span>
         
-        <button class="icon-btn" @click="showPublishModal = true" :title="t('editor.settings')">
+        <button class="icon-btn" @click="openPublishModal" :title="t('editor.settings')">
            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
              <circle cx="12" cy="12" r="3"></circle>
@@ -522,7 +540,8 @@ const submitArticle = async () => {
               </div>
 
               <!-- 所属专栏：chips 点选 ≤3（交互同常用标签），草稿/发布 payload 均携带 seriesIds；
-                   我的专栏为空时渲染引导行（去创作中心创建），不再整块消失 -->
+                   我的专栏为空时渲染引导行（去创作中心创建），不再整块消失；
+                   拉取失败时渲染失败提示 + 重试，不误当"没有专栏" -->
               <div class="column-picker">
                 <p class="picker-label">{{ t('editor.columnSelect') }}</p>
                 <template v-if="availableColumns.length">
@@ -535,6 +554,12 @@ const submitArticle = async () => {
                   >{{ c.name }}</span>
                   <p v-if="columnLimitHint" class="column-limit-hint">{{ t('editor.columnLimit') }}</p>
                 </template>
+                <p v-else-if="columnsLoadFailed" class="column-empty column-empty--failed">
+                  {{ t('editor.columnLoadFailed') }}
+                  <button type="button" class="column-empty-link" @click="loadColumns">
+                    {{ t('editor.columnLoadRetry') }}
+                  </button>
+                </p>
                 <p v-else-if="columnsLoaded" class="column-empty">
                   {{ t('editor.columnEmpty') }}
                   <router-link to="/creator/columns" class="column-empty-link">
@@ -972,9 +997,23 @@ const submitArticle = async () => {
     :global(.dark) & {
       color: rgba(255, 255, 255, 0.6);
     }
+
+    &--failed {
+      color: #e6a23c;
+
+      :global(.dark) & {
+        color: #f0a94e;
+      }
+    }
   }
 
+  // 同时服务 <a>（去创作中心）与 <button>（失败重试）
   .column-empty-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: inherit;
     color: $color-accent-primary;
     text-decoration: underline;
     text-underline-offset: 2px;

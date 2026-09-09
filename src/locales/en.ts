@@ -259,6 +259,8 @@ export default {
     columnLimit: 'An article can join up to 3 series',
     columnEmpty: 'No series yet. ',
     columnEmptyCreate: 'Create one in Creator Center',
+    columnLoadFailed: 'Failed to load your series. ',
+    columnLoadRetry: 'Retry',
   },
   creator: {
     title: 'Creator Center',

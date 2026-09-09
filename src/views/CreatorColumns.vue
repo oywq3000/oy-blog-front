@@ -61,10 +61,18 @@ async function save() {
     return;
   }
   isSaving.value = true;
-  // name 必填；description/coverUrl 空值不随 payload（后端可选）
+  // name 必填；description/coverUrl 可选。
+  // 后端 updateSeries 语义：无条件 set 两字段，传 '' 即清空、省略=保留旧值（MP 跳过 null），
+  // 因此编辑分支必须始终携带两字段（trim 后可为 ''），否则用户清空描述/封面保存不生效；
+  // 新建分支空字段省略即可（插入等价 NULL）
   const payload: SeriesSaveDto = { name };
-  if (form.description.trim()) payload.description = form.description.trim();
-  if (form.coverUrl.trim()) payload.coverUrl = form.coverUrl.trim();
+  if (editingId.value) {
+    payload.description = form.description.trim();
+    payload.coverUrl = form.coverUrl.trim();
+  } else {
+    if (form.description.trim()) payload.description = form.description.trim();
+    if (form.coverUrl.trim()) payload.coverUrl = form.coverUrl.trim();
+  }
   try {
     const res = editingId.value
       ? await updateSeries(editingId.value, payload)

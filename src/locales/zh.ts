@@ -89,6 +89,8 @@ export default {
     popularArticles: '最热门文章',
     columns: '专栏精选',
     columnArticles: '{count} 篇',
+    scrollLeft: '向左滚动',
+    scrollRight: '向右滚动',
     readFull: '阅读全文',
     noArticles: '暂无文章',
     loadMore: '加载更多',
@@ -402,6 +404,7 @@ export default {
   },
   columnDetail: {
     noArticles: '暂无文章',
+    articleCount: '{count} 篇',
   },
   cookie: {
     title: '隐私保护声明'

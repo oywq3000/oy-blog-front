@@ -1,22 +1,51 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getRandomSeries, type SeriesReadItem } from '../api/article';
+import SeriesBadge from './SeriesBadge.vue';
 
 const { t } = useI18n();
 // 首页随机专栏：仅含有已发布文章的专栏（后端过滤），每次进入随机一批
 const series = ref<SeriesReadItem[]>([]);
+const trackEl = ref<HTMLElement | null>(null);
+const canScrollPrev = ref(false);
+const canScrollNext = ref(false);
 
-onMounted(async () => {
+// 轨道边界态：两端各留 4px 余量，防 1px 舍入导致按钮在尽头仍可点
+function updateArrowState() {
+  const el = trackEl.value;
+  if (!el) return;
+  canScrollPrev.value = el.scrollLeft > 4;
+  canScrollNext.value = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+}
+
+// 箭头点击：每次滚动可视宽度 ~80%（约一屏少一点，便于看到上下文）
+function scrollStep(dir: number) {
+  const el = trackEl.value;
+  if (!el) return;
+  el.scrollBy({ left: dir * Math.round(el.clientWidth * 0.8), behavior: 'smooth' });
+}
+
+async function load() {
   try {
     const res = await getRandomSeries();
     if (res.isSuccess && res.data) {
       series.value = res.data;
+      await nextTick(); // 卡片渲染完成后轨道才有真实宽度，才能初始化边界态
+      updateArrowState();
     }
   } catch (e) {
     // request 拦截器对失败一律 reject：区块静默隐藏，不影响首页其余内容
     console.error('Failed to load random columns:', e);
   }
+}
+
+onMounted(() => {
+  load();
+  window.addEventListener('resize', updateArrowState);
+});
+onUnmounted(() => {
+  window.removeEventListener('resize', updateArrowState);
 });
 </script>
 
@@ -27,7 +56,31 @@ onMounted(async () => {
     <h2 class="column-rail__title">
       <span class="text-gradient">{{ t('home.columns') }}</span>
     </h2>
-    <div class="column-rail__track">
+    <!-- 横向滑动区：左右箭头（桌面，边界自动禁用）+ 轨道（触控滑动/滚轮横滑保留） -->
+    <div class="column-rail__viewport">
+      <button
+        type="button"
+        class="rail-arrow rail-arrow--prev"
+        :disabled="!canScrollPrev"
+        :aria-label="t('home.scrollLeft')"
+        @click="scrollStep(-1)"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <button
+        type="button"
+        class="rail-arrow rail-arrow--next"
+        :disabled="!canScrollNext"
+        :aria-label="t('home.scrollRight')"
+        @click="scrollStep(1)"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+      <div ref="trackEl" class="column-rail__track" @scroll="updateArrowState">
       <router-link
         v-for="s in series"
         :key="s.id"
@@ -43,15 +96,19 @@ onMounted(async () => {
             <span class="column-card__count">{{ t('home.columnArticles', { count: s.articleCount }) }}</span>
           </div>
         </template>
-        <!-- 无封面：中性深色文字封面卡（大字名称 + 简介 + 篇数），不是紫色占位/默认图 -->
-        <div v-else class="column-card__text">
-          <div class="column-card__text-main">
-            <span class="column-card__text-title">{{ s.name }}</span>
-            <span v-if="s.description" class="column-card__text-desc">{{ s.description }}</span>
+        <!-- 无封面：扁平主题卡——渐变小徽章 + 名称一行，下排简介/篇数；无光晕无投影 -->
+        <div v-else class="column-card__art">
+          <div class="column-card__art-row">
+            <SeriesBadge />
+            <span class="column-card__art-name">{{ s.name }}</span>
           </div>
-          <span class="column-card__text-count">{{ t('home.columnArticles', { count: s.articleCount }) }}</span>
+          <span v-if="s.description" class="column-card__art-desc">{{ s.description }}</span>
+          <div class="column-card__art-foot">
+            <span class="column-card__art-count">{{ t('home.columnArticles', { count: s.articleCount }) }}</span>
+          </div>
         </div>
       </router-link>
+      </div>
     </div>
   </section>
 </template>
@@ -84,7 +141,59 @@ onMounted(async () => {
   border-bottom: 1px dashed var(--color-border);
 }
 
-// 横向滑动轨道：隐藏滚动条但保留触控/滚轮横滑
+// 箭头按钮的定位上下文（轨道不设 overflow hidden，按钮浮在轨道边缘之上）
+.column-rail__viewport {
+  position: relative;
+}
+
+.rail-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  box-shadow: $shadow-sm;
+  transition: $transition-base;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  &:hover:not(:disabled) {
+    color: var(--color-accent-primary);
+    border-color: rgba(var(--color-accent-primary-rgb), 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  &--prev {
+    left: -4px;
+  }
+
+  &--next {
+    right: -4px;
+  }
+
+  // 移动端：触控滑动为主，隐藏箭头
+  @media (max-width: $breakpoint-mobile) {
+    display: none;
+  }
+}
+
+// 横向滑动轨道：隐藏滚动条（桌面靠箭头、移动靠触控滑动）
 .column-rail__track {
   display: flex;
   gap: $spacing-md;
@@ -136,55 +245,66 @@ onMounted(async () => {
   transition: transform 0.4s ease;
 }
 
-// 无封面 = 浅色文字封面卡：浅灰渐变底 + 深色文字（语义变量在暗主题自动翻转深底白字，
-// 不再使用品牌紫大面积渐变，避免被误读为"默认紫图"）
+// 无封面 = 扁平主题卡（站点扁平风格）：无光晕无投影，主题色只落在渐变小徽章上，
+// 文字层级用语义变量（暗主题自动翻转）
 .column-card--no-cover {
-  background: linear-gradient(135deg, var(--color-bg-secondary), var(--color-border));
+  background: var(--color-bg-secondary);
 }
 
-.column-card__text {
+.column-card__art {
   position: absolute;
   inset: 0;
-  padding: 14px;
+  padding: 18px 14px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  gap: 14px;
 }
 
-.column-card__text-main {
+// 徽章 + 名称同行
+.column-card__art-row {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-height: 0;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
-.column-card__text-title {
+.column-card__art-name {
+  min-width: 0;
   color: var(--color-text-primary);
-  font-size: 1.15rem;
-  font-weight: 800;
-  line-height: 1.35;
-  letter-spacing: -0.3px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.2px;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.column-card__text-desc {
+// 简介：最多 3 行（移动端 2 行）
+.column-card__art-desc {
   color: var(--color-text-secondary);
-  font-size: 0.75rem;
-  line-height: 1.5;
+  font-size: 0.78rem;
+  line-height: 1.6;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+
+  @media (max-width: $breakpoint-mobile) {
+    -webkit-line-clamp: 2;
+  }
 }
 
-.column-card__text-count {
+.column-card__art-foot {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.column-card__art-count {
   flex-shrink: 0;
   color: var(--color-text-tertiary);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-family: $font-family-code;
 }
 

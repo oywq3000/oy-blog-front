@@ -89,6 +89,8 @@ export default {
     popularArticles: 'Most Popular',
     columns: 'Featured Columns',
     columnArticles: '{count} articles',
+    scrollLeft: 'Scroll left',
+    scrollRight: 'Scroll right',
     readFull: 'Read Full Article',
     noArticles: 'No articles yet',
     loadMore: 'Load More',
@@ -402,6 +404,7 @@ export default {
   },
   columnDetail: {
     noArticles: 'No articles yet',
+    articleCount: '{count} articles',
   },
   cookie: {
     title: 'Privacy & Data Protection'

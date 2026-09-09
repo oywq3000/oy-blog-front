@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import ArticleCard from '../components/ArticleCard.vue';
 import IconUser from '../components/icons/IconUser.vue';
+import SeriesBadge from '../components/SeriesBadge.vue';
 import CreatorPagination from '../components/CreatorPagination.vue';
 import { getSeriesDetail, type SeriesDetail } from '../api/article';
 
@@ -74,26 +75,37 @@ onMounted(load);
 <template>
   <div v-if="detail" class="column-detail">
     <header class="column-header">
-      <!-- 无封面完全不渲染图片区（不留占位空间）；有作者时在名称/描述下方展示作者行 -->
+      <!-- 有封面：封面图占左侧大图位；无封面不占大图空间，徽章只跟随标题行 -->
       <img v-if="detail.coverUrl" :src="detail.coverUrl" class="column-cover" alt="" />
       <div class="column-meta">
-        <h1 class="column-name">{{ detail.name }}</h1>
+        <!-- 标题行：徽章与标题同排（无封面时）；desc/作者行不随徽章缩进 -->
+        <div class="column-title-row">
+          <SeriesBadge v-if="!detail.coverUrl" :size="52" class="column-header__badge" />
+          <h1 class="column-name">{{ detail.name }}</h1>
+        </div>
         <p v-if="detail.description" class="column-desc">{{ detail.description }}</p>
-        <div v-if="detail.authorName" class="column-author">
-          <router-link
-            v-if="detail.authorId"
-            class="column-author-link"
-            :to="{ name: 'user-profile', params: { id: detail.authorId } }"
-          >
-            <IconUser v-if="!detail.authorAvatar" :size="18" />
-            <img v-else :src="detail.authorAvatar" :alt="detail.authorName" class="column-author-avatar" />
-            <span class="column-author-name">{{ detail.authorName }}</span>
-          </router-link>
-          <template v-else>
-            <IconUser v-if="!detail.authorAvatar" :size="18" />
-            <img v-else :src="detail.authorAvatar" :alt="detail.authorName" class="column-author-avatar" />
-            <span class="column-author-name">{{ detail.authorName }}</span>
+        <!-- 作者 + 专栏已发布文章总数（作者为 NULL 的旧专栏仅显示篇数；total=0 时也如实显示） -->
+        <div v-if="detail.authorName || detail.total != null" class="column-author">
+          <template v-if="detail.authorName">
+            <router-link
+              v-if="detail.authorId"
+              class="column-author-link"
+              :to="{ name: 'user-profile', params: { id: detail.authorId } }"
+            >
+              <IconUser v-if="!detail.authorAvatar" :size="18" />
+              <img v-else :src="detail.authorAvatar" :alt="detail.authorName" class="column-author-avatar" />
+              <span class="column-author-name">{{ detail.authorName }}</span>
+            </router-link>
+            <template v-else>
+              <IconUser v-if="!detail.authorAvatar" :size="18" />
+              <img v-else :src="detail.authorAvatar" :alt="detail.authorName" class="column-author-avatar" />
+              <span class="column-author-name">{{ detail.authorName }}</span>
+            </template>
+            <span v-if="detail.total != null" class="column-author__dot">·</span>
           </template>
+          <span v-if="detail.total != null" class="column-author__count">
+            {{ t('columnDetail.articleCount', { count: detail.total }) }}
+          </span>
         </div>
       </div>
     </header>
@@ -159,8 +171,21 @@ onMounted(load);
   min-width: 0;
 }
 
+.column-title-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-sm;
+  min-width: 0;
+}
+
+.column-header__badge {
+  flex-shrink: 0;
+}
+
 .column-name {
-  margin: 0 0 $spacing-sm;
+  margin: 0;
+  min-width: 0;
   font-size: 1.75rem;
   line-height: 1.3;
   color: $color-text-primary;
@@ -204,6 +229,16 @@ onMounted(load);
     font-weight: 500;
     color: var(--color-text-secondary);
     transition: color 0.2s ease;
+  }
+
+  .column-author__dot {
+    color: var(--color-text-tertiary);
+    margin: 0 2px;
+  }
+
+  .column-author__count {
+    color: var(--color-text-tertiary);
+    font-size: 0.85rem;
   }
 }
 

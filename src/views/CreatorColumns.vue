@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router';
 import { getMySeries, createSeries, deleteSeries } from '../api/article';
 import type { SeriesOwn, SeriesSaveDto } from '../api/article';
 import { useToast } from '../composables/useToast';
+import CoverUploader from '../components/CoverUploader.vue';
 
 // 创作中心「专栏」管理页：我的专栏列表（名称/描述/封面缩略图/已发布计数）
 // + 新建弹窗 + 删除二次确认（window.confirm，与 CreatorDrafts/CreatorPublished 一致；
@@ -170,14 +171,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
               ></textarea>
             </div>
             <div class="column-form__field">
-              <label class="column-form__label" for="column-cover">{{ t('creator.columnCover') }}</label>
-              <input
-                id="column-cover"
-                v-model="form.coverUrl"
-                type="text"
-                class="column-form__input"
-                :placeholder="t('creator.columnCoverPlaceholder')"
-              />
+              <label class="column-form__label">{{ t('creator.columnCover') }}</label>
+              <CoverUploader v-model="form.coverUrl" />
             </div>
           </div>
 

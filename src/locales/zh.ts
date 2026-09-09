@@ -318,8 +318,7 @@ export default {
     columnNamePlaceholder: '给专栏起个名字，例如：Java 后端实战',
     columnDescription: '描述（可选）',
     columnDescriptionPlaceholder: '一句话介绍这个专栏收录的内容',
-    columnCover: '封面图链接（可选）',
-    columnCoverPlaceholder: 'https://example.com/cover.png',
+    columnCover: '封面图片（可选）',
     columnNameRequired: '请输入专栏名称',
     columnArticlesCount: '已发布 {count} 篇',
     emptyColumns: '还没有创建任何专栏',
@@ -407,6 +406,13 @@ export default {
     text: '我们极其重视您的数据安全。本网站仅使用必要的 Cookie 来保存您的偏好设置（如语言、主题）并优化浏览体验。我们承诺严格遵守隐私协议，不会收集任何个人敏感信息用于第三方追踪。',
     accept: '我已了解并同意',
     policy: '隐私政策'
+  },
+  coverUpload: {
+    dragDrop: '点击或拖拽上传封面',
+    change: '点击更换封面',
+    remove: '移除封面',
+    uploading: '上传中...',
+    invalidType: '只能上传图片文件',
   },
   search: {
     filter: '筛选',

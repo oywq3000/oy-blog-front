@@ -21,6 +21,7 @@ import type {
 } from '../api/article';
 import { useToast } from '../composables/useToast';
 import CreatorPagination from '../components/CreatorPagination.vue';
+import CoverUploader from '../components/CoverUploader.vue';
 
 /**
  * 创作中心「我的专栏」作者专属编辑页（spec §十，Task 19）：
@@ -350,15 +351,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
           ></textarea>
         </div>
         <div class="cce-field">
-          <label class="cce-label" for="column-cover">{{ t('creator.columnCover') }}</label>
-          <input
-            id="column-cover"
-            v-model="form.coverUrl"
-            type="text"
-            class="cce-input"
-            :placeholder="t('creator.columnCoverPlaceholder')"
-          />
-          <img v-if="form.coverUrl.trim()" :src="form.coverUrl.trim()" alt="" class="cce-cover-preview" />
+          <label class="cce-label">{{ t('creator.columnCover') }}</label>
+          <CoverUploader v-model="form.coverUrl" />
         </div>
         <div class="cce-actions">
           <button type="button" class="cce-btn cce-btn--primary cce-save-btn" :disabled="isSavingInfo" @click="saveInfo">
@@ -612,15 +606,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     border-color: $color-accent-primary;
     box-shadow: 0 0 0 2px rgba($color-accent-primary-rgb, 0.15);
   }
-}
-
-.cce-cover-preview {
-  margin-top: 6px;
-  max-height: 80px;
-  max-width: 220px;
-  border-radius: $radius-sm;
-  border: 1px solid $color-border;
-  object-fit: cover;
 }
 
 .cce-actions {

@@ -318,8 +318,7 @@ export default {
     columnNamePlaceholder: 'Give the column a name, e.g. Java Backend in Practice',
     columnDescription: 'Description (optional)',
     columnDescriptionPlaceholder: 'A sentence about what this column covers',
-    columnCover: 'Cover image URL (optional)',
-    columnCoverPlaceholder: 'https://example.com/cover.png',
+    columnCover: 'Cover image (optional)',
     columnNameRequired: 'Column name is required',
     columnArticlesCount: '{count} published',
     emptyColumns: 'No columns created yet.',
@@ -407,6 +406,13 @@ export default {
     text: 'We take your data security seriously. This site uses only essential cookies to store preferences (like language, theme) and optimize experience. We strictly adhere to privacy protocols and do not collect sensitive personal data for third-party tracking.',
     accept: 'I Understand & Agree',
     policy: 'Privacy Policy'
+  },
+  coverUpload: {
+    dragDrop: 'Click or drag to upload a cover',
+    change: 'Click to change cover',
+    remove: 'Remove cover',
+    uploading: 'Uploading...',
+    invalidType: 'Only image files are allowed',
   },
   search: {
     filter: 'Filters',

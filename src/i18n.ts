@@ -31,7 +31,7 @@ const datetimeFormats = {
   }
 } as const
 
-const savedLocale = localStorage.getItem('locale') || 'en'
+const savedLocale = localStorage.getItem('locale') || 'zh'
 
 const i18n = createI18n({
   legacy: false, // use Composition API

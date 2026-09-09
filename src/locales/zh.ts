@@ -402,10 +402,7 @@ export default {
     noArticles: '暂无文章',
   },
   cookie: {
-    title: '隐私保护声明',
-    text: '我们极其重视您的数据安全。本网站仅使用必要的 Cookie 来保存您的偏好设置（如语言、主题）并优化浏览体验。我们承诺严格遵守隐私协议，不会收集任何个人敏感信息用于第三方追踪。',
-    accept: '我已了解并同意',
-    policy: '隐私政策'
+    title: '隐私保护声明'
   },
   coverUpload: {
     dragDrop: '点击或拖拽上传封面',

@@ -11,7 +11,7 @@ onMounted(() => {
     <div class="container content-layout">
       <header class="legal-header fade-in-up">
         <h1 class="page-title">Security Policy</h1>
-        <p class="last-updated">Last Updated: December 2025</p>
+        <p class="last-updated">Last Updated: December 2026</p>
       </header>
 
       <section class="legal-content glass-panel fade-in-up stagger-delay-1">

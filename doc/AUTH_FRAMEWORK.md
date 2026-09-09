@@ -33,7 +33,7 @@
 │                      UI 组件层                            │
 │  LoginModal / RegisterModal / ResetPasswordModal         │
 │  AuthModalShell / NavBar / AuthDropdown / UserProfile    │
-│  EmailVerification / CookieNotice                        │
+│  EmailVerification                                       │
 ├──────────────────────────────────────────────────────────┤
 │                      路由层                               │
 │  Vue Router (无鉴权路由守卫，页面公开访问)                   │
@@ -777,7 +777,6 @@ API 错误
 | [src/components/NavBar.vue](../src/components/NavBar.vue)             | 导航栏 (状态感知)   | UI 层   |
 | [src/views/UserProfile.vue](../src/views/UserProfile.vue)             | 个人中心            | UI 层   |
 | [src/views/EmailVerification.vue](../src/views/EmailVerification.vue) | 邮箱验证页面        | UI 层   |
-| [src/components/CookieNotice.vue](../src/components/CookieNotice.vue) | Cookie 隐私声明     | UI 层   |
 | [src/locales/en.ts](../src/locales/en.ts)                             | 英文国际化文案      | i18n    |
 | [src/locales/zh.ts](../src/locales/zh.ts)                             | 中文国际化文案      | i18n    |
 | [src/composables/useToast.ts](../src/composables/useToast.ts)         | Toast 通知系统      | 工具层  |

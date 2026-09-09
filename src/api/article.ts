@@ -298,9 +298,12 @@ export const addToMySeries = (id: string, articleIds: string[]) => {
 };
 
 // Move member up/down (PUT /article/creator/series/{id}/articles/{articleId}/move?direction=up|down)
-// 队首上移/队尾下移为 no-op，返回 false
+// 队首上移/队尾下移为 no-op，返回 false。
+// 注意 axios 实例方法位次：put(url, body, config)——params 必须放第三参（config），
+// 放第二参会把 {params} 当请求体 JSON 发出、后端 @RequestParam direction 取不到（500）；
+// 写法同 comment.ts reactToComment 的 request.post(url, null, { params })
 export const moveMySeriesArticle = (id: string, articleId: string, direction: 'up' | 'down') => {
-  return request.put<any, ResultObject<boolean>>(baseUrl+`/article/creator/series/${id}/articles/${articleId}/move`, { params: { direction } });
+  return request.put<any, ResultObject<boolean>>(baseUrl+`/article/creator/series/${id}/articles/${articleId}/move`, null, { params: { direction } });
 };
 
 // Remove member from series (DELETE /article/creator/series/{id}/articles/{articleId}) —— 关系行不存在返回 false

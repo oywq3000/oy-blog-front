@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { uploadCover } from '../api/upload';
+import { uploadSeriesCover } from '../api/upload';
 import { useToast } from '../composables/useToast';
 
 /**
  * 封面图本地上传控件（专栏封面用；交互与 ArticleEditor 发布弹窗封面一致）：
- * 点击 / 拖拽图片 → uploadCover（article-service /article/cover）→ 回填 url。
+ * 点击 / 拖拽图片 → uploadSeriesCover（article-service /article/creator/series/cover）→ 回填 url。
  * - v-model 为封面 URL 字符串；已上传后展示预览，可再次点击更换
  * - ✕ 移除封面 → v-model 置 ''（配合编辑页 PUT 传 '' 即清空的语义）
  * - 上传中禁点（防重复上传）；失败/超限由请求拦截器统一顶部气泡提示
@@ -29,7 +29,7 @@ async function processFile(file: File) {
   if (isUploading.value) return;
   isUploading.value = true;
   try {
-    const res = await uploadCover(file);
+    const res = await uploadSeriesCover(file);
     if (res.isSuccess) emit('update:modelValue', res.data?.url ?? '');
   } catch {
     // 上传失败（网络/超限）已由拦截器统一顶部气泡提示

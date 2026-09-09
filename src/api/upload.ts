@@ -44,6 +44,21 @@ export const uploadCover = (file: File) => {
   });
 };
 
+// Upload Series (Column) Cover —— 专栏封面专属端点（与文章封面语义分离，文件目录 series/cover）
+export const uploadSeriesCover = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request.post<any, ResultImageInfo>(
+    '/api/article-service/article/creator/series/cover',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  );
+};
+
 // Upload Article Content Image
 export const uploadContentImage = (file: File) => {
   const formData = new FormData();

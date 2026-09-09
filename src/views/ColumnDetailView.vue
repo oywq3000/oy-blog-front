@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import ArticleCard from '../components/ArticleCard.vue';
+import IconUser from '../components/icons/IconUser.vue';
 import CreatorPagination from '../components/CreatorPagination.vue';
 import { getSeriesDetail, type SeriesDetail } from '../api/article';
 
@@ -73,11 +74,27 @@ onMounted(load);
 <template>
   <div v-if="detail" class="column-detail">
     <header class="column-header">
+      <!-- 无封面完全不渲染图片区（不留占位空间）；有作者时在名称/描述下方展示作者行 -->
       <img v-if="detail.coverUrl" :src="detail.coverUrl" class="column-cover" alt="" />
-      <div v-else class="column-cover column-cover--placeholder" />
       <div class="column-meta">
         <h1 class="column-name">{{ detail.name }}</h1>
         <p v-if="detail.description" class="column-desc">{{ detail.description }}</p>
+        <div v-if="detail.authorName" class="column-author">
+          <router-link
+            v-if="detail.authorId"
+            class="column-author-link"
+            :to="{ name: 'user-profile', params: { id: detail.authorId } }"
+          >
+            <IconUser v-if="!detail.authorAvatar" :size="18" />
+            <img v-else :src="detail.authorAvatar" :alt="detail.authorName" class="column-author-avatar" />
+            <span class="column-author-name">{{ detail.authorName }}</span>
+          </router-link>
+          <template v-else>
+            <IconUser v-if="!detail.authorAvatar" :size="18" />
+            <img v-else :src="detail.authorAvatar" :alt="detail.authorName" class="column-author-avatar" />
+            <span class="column-author-name">{{ detail.authorName }}</span>
+          </template>
+        </div>
       </div>
     </header>
     <p v-if="isLoading" class="empty">{{ t('common.loading') }}</p>
@@ -130,21 +147,12 @@ onMounted(load);
   height: 140px;
   border-radius: $radius-md;
   object-fit: cover;
-  background: var(--color-bg-secondary);
 
   @media (max-width: $breakpoint-mobile) {
     flex: none;
     width: 100%;
     height: 160px;
   }
-}
-
-.column-cover--placeholder {
-  background: linear-gradient(
-    135deg,
-    rgba(var(--color-accent-primary-rgb), 0.25),
-    rgba(var(--color-accent-secondary-rgb), 0.25)
-  );
 }
 
 .column-meta {
@@ -163,6 +171,40 @@ onMounted(load);
   font-size: 0.95rem;
   line-height: 1.7;
   color: var(--color-text-secondary);
+}
+
+.column-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: $spacing-md;
+
+  .column-author-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: inherit;
+
+    &:hover .column-author-name {
+      color: var(--color-accent-primary);
+    }
+  }
+
+  .column-author-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--color-border);
+  }
+
+  .column-author-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
+  }
 }
 
 .empty {

@@ -87,6 +87,8 @@ export default {
     loadingSummary: 'Fetching latest articles...',
     latestArticles: 'Latest Articles',
     popularArticles: 'Most Popular',
+    columns: 'Featured Columns',
+    columnArticles: '{count} articles',
     readFull: 'Read Full Article',
     noArticles: 'No articles yet',
     loadMore: 'Load More',

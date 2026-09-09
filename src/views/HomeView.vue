@@ -5,6 +5,7 @@ import ArticleCard from '../components/ArticleCard.vue';
 import PopularArticleCard from '../components/PopularArticleCard.vue';
 import HeroSection from '../components/HeroSection.vue';
 import TagCloud from '../components/TagCloud.vue';
+import ColumnRail from '../components/ColumnRail.vue';
 import { useAppStore } from '../store/app';
 import {
   getPublishedArticles,
@@ -293,6 +294,10 @@ onUnmounted(() => {
           </div>
         </section>
       </div>
+
+      <!-- 页尾：随机专栏横滑区（ColumnRail 自拉数据、无内容不渲染；见 .columns-wrap 样式注释，
+           为何它的 sticky 已移除——否则吸顶作用域延伸到页底会把本区块盖住滚不到） -->
+      <ColumnRail />
     </div>
   </div>
 </template>
@@ -373,10 +378,10 @@ onUnmounted(() => {
   // 关键：让行填满容器高度，否则子项落在 auto 行、高度由内容决定，容器变高时窗格不跟随
   grid-template-rows: minmax(0, 1fr);
   gap: $spacing-lg;
-  // 高度 = 视口 − 顶部 sticky 偏移 72px（导航栏 + 呼吸）
+  // 高度 = 视口 − 顶部偏移 72px（导航栏 + 呼吸），窗格在内部独立滚动
   height: calc(100dvh - 72px);
-  position: sticky;
-  top: 72px;
+  // 注意：原 position: sticky / top: 72px 已移除——吸顶约束随父容器延伸，页尾新增
+  // 区块（ColumnRail）后吸顶作用域会一路盖到页底，使该区块永远滚不到
   scroll-margin-top: 72px;
 
   @media (max-width: $breakpoint-desktop) {

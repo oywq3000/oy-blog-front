@@ -184,6 +184,10 @@ export interface SeriesDetail {
   name: string;
   description?: string;
   coverUrl?: string;
+  /** 专栏归属作者（author_id 为 NULL 的旧专栏三项缺失，页面判空隐藏作者行） */
+  authorId?: string;
+  authorName?: string;
+  authorAvatar?: string;
   pageNum: number;
   pageSize: number;
   total: number;
@@ -203,6 +207,11 @@ export interface ArticleSeriesLink {
 // Query All Series (GET /article/read/series)
 export const getSeriesList = () => {
   return request.get<any, ResultObject<SeriesReadItem[]>>(baseUrl+'/article/read/series');
+};
+
+// 首页随机专栏推荐 (GET /article/read/series/random)：只含有文章的专栏随机 ≤8 个
+export const getRandomSeries = () => {
+  return request.get<any, ResultObject<SeriesReadItem[]>>(baseUrl+'/article/read/series/random');
 };
 
 // Query Series Detail with paged articles (GET /article/read/series/{id}?pageNum=&pageSize=)

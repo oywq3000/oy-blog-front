@@ -87,6 +87,8 @@ export default {
     loadingSummary: '正在获取最新文章...',
     latestArticles: '最新文章',
     popularArticles: '最热门文章',
+    columns: '专栏精选',
+    columnArticles: '{count} 篇',
     readFull: '阅读全文',
     noArticles: '暂无文章',
     loadMore: '加载更多',

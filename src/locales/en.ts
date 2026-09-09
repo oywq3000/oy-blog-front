@@ -341,6 +341,7 @@ export default {
     archived: 'Archived',
     addModalTitle: 'Add my published articles',
     addModalEmpty: 'No published articles to add.',
+    addModalLoadFailed: 'Failed to load candidate articles',
     addModalPageEmpty: 'Nothing addable on this page — try another page',
     addModalSelected: '{count} selected',
     addModalSubmit: 'Add',

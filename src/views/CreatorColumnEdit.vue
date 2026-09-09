@@ -178,19 +178,24 @@ const candidateTotal = ref(0);
 const candidateTotalPages = ref(0);
 const candidatePage = ref(1);
 const candidatesLoading = ref(false);
+// 候选加载失败（网络/业务错误）：单独失败态 + 重试，避免残留分页总数误显示"可翻页"空态
+const candidatesLoadFailed = ref(false);
 const picked = ref<ArticleInfo[]>([]);
 const isSubmittingAdd = ref(false);
 const addResult = ref<SeriesAddResult | null>(null);
 
 const memberIdSet = computed(() => new Set(members.value.map((m) => m.articleId)));
-// 本页候选全部已在专栏内但其它页还有候选时，提示与"完全没候选"区分开
-const pageEmpty = computed(() => candidates.value.length === 0 && candidateTotal.value > 0);
+// 本页候选全部已在专栏内、但后续页仍有候选时，提示"翻页看看"（总页码为 1 时归入"暂无可添加"）
+const pageEmpty = computed(
+  () => candidates.value.length === 0 && candidateTotal.value > 0 && candidateTotalPages.value > 1,
+);
 
 function openAdd() {
   candidatePage.value = 1;
   candidateTotal.value = 0;
   candidateTotalPages.value = 0;
   candidates.value = [];
+  candidatesLoadFailed.value = false;
   picked.value = [];
   addPhase.value = 'pick';
   addResult.value = null;
@@ -200,6 +205,7 @@ function openAdd() {
 
 async function loadCandidates(page: number) {
   candidatesLoading.value = true;
+  candidatesLoadFailed.value = false;
   try {
     const res = await getMyArticles({ status: 'published', pageNum: page, pageSize: 10 });
     if (res.isSuccess && res.data) {
@@ -208,11 +214,19 @@ async function loadCandidates(page: number) {
       candidateTotalPages.value = res.data.totalPages;
       candidatePage.value = res.data.currentPage;
     } else {
+      // 业务失败：拦截器已气泡提示，按加载失败处理（清零分页残留）
       candidates.value = [];
+      candidateTotal.value = 0;
+      candidateTotalPages.value = 0;
+      candidatesLoadFailed.value = true;
     }
   } catch {
-    // 请求错误已由拦截器统一顶部气泡提示；候选留空展示空态
+    // 网络失败：拦截器已气泡提示；清零 total/totalPages 残留，
+    // 否则 pageEmpty 会误报"本页没有可添加的文章"且旧分页按钮可反复触发失败
     candidates.value = [];
+    candidateTotal.value = 0;
+    candidateTotalPages.value = 0;
+    candidatesLoadFailed.value = true;
   } finally {
     candidatesLoading.value = false;
   }
@@ -419,6 +433,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
 
           <template v-if="addPhase === 'pick'">
             <p v-if="candidatesLoading" class="cce-modal__hint">{{ t('common.loading') }}</p>
+            <div v-else-if="candidatesLoadFailed" class="cce-failed">
+              <p class="cce-failed__text">{{ t('creator.addModalLoadFailed') }}</p>
+              <button
+                type="button"
+                class="cce-btn cce-btn--outline cce-retry"
+                @click="loadCandidates(candidatePage)"
+              >
+                {{ t('creator.columnRetry') }}
+              </button>
+            </div>
             <p v-else-if="candidates.length === 0" class="cce-modal__hint">
               {{ pageEmpty ? t('creator.addModalPageEmpty') : t('creator.addModalEmpty') }}
             </p>

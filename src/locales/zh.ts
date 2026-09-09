@@ -341,6 +341,7 @@ export default {
     archived: '已归档',
     addModalTitle: '添加我的已发布文章',
     addModalEmpty: '暂无可添加的已发布文章',
+    addModalLoadFailed: '候选文章加载失败',
     addModalPageEmpty: '本页没有可添加的文章，可以翻页看看',
     addModalSelected: '已选 {count} 篇',
     addModalSubmit: '添加',

@@ -2,14 +2,14 @@
 /**
  * 头像裁剪对话框 —— 选图后的圆形取景步骤：
  * 拖动图片平移、滚轮 / 双指捏合缩放，确定后只把截出的正方形
- * 结果（大图压到 AVATAR_MAX_SIDE）交给父组件上传，原图不直接上传。
+ * 结果（大图压到 AVATAR_MAX_SIDE，有损编码）交给父组件上传，原图不直接上传。
  */
 import { onBeforeUnmount, onMounted, ref, shallowRef, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Cropper from 'cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { useToast } from '../composables/useToast';
-import { pickAvatarOutputSize } from '../utils/avatarFile';
+import { pickAvatarOutputSize, pickAvatarExportFormat, canEncodeAvatarWebp } from '../utils/avatarFile';
 
 const props = defineProps<{
   /** 待裁剪的本地图片；null 时不渲染 */
@@ -170,9 +170,13 @@ const doConfirm = async () => {
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(source, 0, 0, side, side);
     }
-    const blob = await new Promise<Blob | null>((resolve) => output.toBlob(resolve, 'image/png'));
+    // 有损编码：PNG 实测 465KB，上传会撞 10s 超时（见 avatarFile.ts 说明）
+    const { mimeType, extension, quality } = pickAvatarExportFormat(canEncodeAvatarWebp());
+    const blob = await new Promise<Blob | null>((resolve) =>
+      output.toBlob(resolve, mimeType, quality)
+    );
     if (!blob) throw new Error('no-blob');
-    emit('confirm', new File([blob], 'avatar.png', { type: 'image/png' }));
+    emit('confirm', new File([blob], `avatar.${extension}`, { type: mimeType }));
   } catch {
     addToast(t('profile.avatarDecodeFailed'), 'error');
   }

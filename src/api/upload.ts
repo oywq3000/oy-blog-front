@@ -20,6 +20,14 @@ export interface ImageInfo{
   size: number
 }
 
+/**
+ * 头像上传单独放宽超时：全局 10s 对上传过紧 —— 线上链路实测上行约 40~100KB/s，
+ * 而 512×512 PNG 裁剪图实测 465KB（见 avatarFile.ts），够跑 5~12s。浏览器常在
+ * 10s 放弃等待，服务端却仍写完头像，表现为「提示超时但头像已改」。
+ * 裁剪图改有损编码后约 30KB，正常 1~2s，60s 只是给弱网留的余量。
+ */
+export const AVATAR_UPLOAD_TIMEOUT_MS = 60000;
+
 // Upload User Avatar
 // 契约与 uploadCover 一致：data 为文件信息对象 {key,url,contentType,size}
 // （后端曾把 URL 错放进 errMsg，已在 user-service 修复对齐，勿再按 errMsg 取值）
@@ -30,6 +38,7 @@ export const uploadAvatar = (file: File) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: AVATAR_UPLOAD_TIMEOUT_MS,
   });
 };
 

@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
+  AVATAR_EXPORT_QUALITY,
   AVATAR_MAX_FILE_BYTES,
   AVATAR_MAX_SIDE,
   AVATAR_MIN_SIDE,
   validateAvatarFile,
   pickAvatarOutputSize,
+  pickAvatarExportFormat,
 } from './avatarFile';
 
 describe('validateAvatarFile', () => {
@@ -58,6 +60,29 @@ describe('pickAvatarOutputSize', () => {
     expect(pickAvatarOutputSize(-5)).toBe(0);
     expect(pickAvatarOutputSize(Number.NaN)).toBe(0);
     expect(pickAvatarOutputSize(Number.POSITIVE_INFINITY)).toBe(0);
+  });
+});
+
+describe('pickAvatarExportFormat', () => {
+  it('exports WebP when the browser can encode it', () => {
+    expect(pickAvatarExportFormat(true)).toEqual({
+      mimeType: 'image/webp',
+      extension: 'webp',
+      quality: AVATAR_EXPORT_QUALITY,
+    });
+  });
+
+  it('falls back to JPEG when WebP encoding is unavailable', () => {
+    expect(pickAvatarExportFormat(false)).toEqual({
+      mimeType: 'image/jpeg',
+      extension: 'jpg',
+      quality: AVATAR_EXPORT_QUALITY,
+    });
+  });
+
+  it('uses a lossy quality in (0, 1) so photographic crops stay small', () => {
+    expect(AVATAR_EXPORT_QUALITY).toBeGreaterThan(0);
+    expect(AVATAR_EXPORT_QUALITY).toBeLessThan(1);
   });
 });
 

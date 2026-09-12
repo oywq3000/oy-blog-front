@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, nextTick, computed } from 'vue'
+import { AGENT_MODELS, getModelLabel } from '../../utils/agentModels'
 
 const props = defineProps<{
   streaming: boolean
@@ -18,14 +19,7 @@ const inputText = ref('')
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 const showModelMenu = ref(false)
 
-const models = [
-  { value: 'deepseek-v4-flash', label: 'deepseek-v4-flash'},
-  { value: 'deepseek-v4-pro', label: 'deepseek-v4-pro' },
-]
-
-const selectedModelLabel = computed(
-  () => models.find(m => m.value === props.selectedModel)?.label ?? 'deepseek-v4-pro'
-)
+const selectedModelLabel = computed(() => getModelLabel(props.selectedModel))
 
 function autoResize() {
   nextTick(() => {
@@ -121,7 +115,7 @@ defineExpose({ focus: () => textareaRef.value?.focus() })
           </button>
           <div v-if="showModelMenu" class="chat-input__model-menu">
             <button
-              v-for="m in models"
+              v-for="m in AGENT_MODELS"
               :key="m.value"
               class="chat-input__model-option"
               :class="{ 'chat-input__model-option--active': m.value === selectedModel }"

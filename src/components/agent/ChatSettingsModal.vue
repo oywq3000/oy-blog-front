@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import type { ChatSettings } from '../../types/agent'
+import { AGENT_MODELS } from '../../utils/agentModels'
 
 const props = defineProps<{
   settings: ChatSettings
@@ -14,10 +15,14 @@ const emit = defineEmits<{
 
 const localSettings = ref<ChatSettings>({ ...props.settings })
 
-const models = [
-  { value: 'rookie-ai', label: 'Rookie-AI (默认)' },
-  { value: 'fast-mode', label: '快速模式' },
-]
+// 组件常驻挂载，localSettings 只在 setup 时快照一次；输入框换过模型后再打开弹窗
+// 会沿用旧快照，出现"弹窗选项与实际生效模型不一致"。每次打开都重新取父组件当前值。
+watch(
+  () => props.isOpen,
+  isOpen => {
+    if (isOpen) localSettings.value = { ...props.settings }
+  }
+)
 
 function handleSave() {
   emit('save', { ...localSettings.value })
@@ -44,7 +49,7 @@ function handleClose() {
           <div class="settings-field">
             <label class="settings-field__label">模型选择</label>
             <select v-model="localSettings.model" class="settings-field__select">
-              <option v-for="m in models" :key="m.value" :value="m.value">
+              <option v-for="m in AGENT_MODELS" :key="m.value" :value="m.value">
                 {{ m.label }}
               </option>
             </select>

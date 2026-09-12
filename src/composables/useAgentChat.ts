@@ -7,6 +7,7 @@ import type {
   SuggestedQuestion
 } from '../types/agent'
 import * as agentApi from '../api/agent'
+import { DEFAULT_AGENT_MODEL } from '../utils/agentModels'
 
 // ============================================================
 // Helpers
@@ -72,7 +73,7 @@ const loading = ref(false)
 const sidebarSearch = ref('')
 
 const defaultSettings: ChatSettings = {
-  model: 'deepseek-v4-flash',
+  model: DEFAULT_AGENT_MODEL,
   temperature: 0.7,
   deepThinking: false,
 }

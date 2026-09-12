@@ -21,12 +21,13 @@ export interface ImageInfo{
 }
 
 /**
- * 头像上传单独放宽超时：全局 10s 对上传过紧 —— 线上链路实测上行约 40~100KB/s，
- * 而 512×512 PNG 裁剪图实测 465KB（见 avatarFile.ts），够跑 5~12s。浏览器常在
- * 10s 放弃等待，服务端却仍写完头像，表现为「提示超时但头像已改」。
- * 裁剪图改有损编码后约 30KB，正常 1~2s，60s 只是给弱网留的余量。
+ * 上传类请求统一放宽超时：全局 10s 对上传过紧 —— 线上链路实测上行约 40~100KB/s。
+ * 改动前头像踩过一次（512×512 PNG 裁剪图实测 465KB，够跑 5~12s，浏览器常在 10s 放弃
+ * 等待而服务端仍写完，表现为「提示超时但头像已改」，见 avatarFile.ts）；封面/正文图
+ * 是同一个坑，只是原图直传时先撞上服务端 1MB 上限、没走到超时那一步。
+ * 降采样后封面约 100~250KB（见 imageUpload.ts），正常 1~6s，60s 是给弱网的余量。
  */
-export const AVATAR_UPLOAD_TIMEOUT_MS = 60000;
+export const UPLOAD_TIMEOUT_MS = 60000;
 
 // Upload User Avatar
 // 契约与 uploadCover 一致：data 为文件信息对象 {key,url,contentType,size}
@@ -38,7 +39,7 @@ export const uploadAvatar = (file: File) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
-    timeout: AVATAR_UPLOAD_TIMEOUT_MS,
+    timeout: UPLOAD_TIMEOUT_MS,
   });
 };
 
@@ -50,6 +51,7 @@ export const uploadCover = (file: File) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: UPLOAD_TIMEOUT_MS,
   });
 };
 
@@ -64,6 +66,7 @@ export const uploadSeriesCover = (file: File) => {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: UPLOAD_TIMEOUT_MS,
     },
   );
 };
@@ -76,5 +79,6 @@ export const uploadContentImage = (file: File) => {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
+    timeout: UPLOAD_TIMEOUT_MS,
   });
 };

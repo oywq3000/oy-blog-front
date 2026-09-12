@@ -2,14 +2,16 @@
 import { ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { uploadSeriesCover } from '../api/upload';
+import { COVER_IMAGE_POLICY, imageIssueMessageKey, prepareImageFile } from '../utils/imageUpload';
 import { useToast } from '../composables/useToast';
 
 /**
  * 封面图本地上传控件（专栏封面用；交互与 ArticleEditor 发布弹窗封面一致）：
- * 点击 / 拖拽图片 → uploadSeriesCover（article-service /article/creator/series/cover）→ 回填 url。
+ * 点击 / 拖拽图片 → prepareImageFile 校验+降采样 → uploadSeriesCover
+ * （article-service /article/creator/series/cover）→ 回填 url。
  * - v-model 为封面 URL 字符串；已上传后展示预览，可再次点击更换
  * - ✕ 移除封面 → v-model 置 ''（配合编辑页 PUT 传 '' 即清空的语义）
- * - 上传中禁点（防重复上传）；失败/超限由请求拦截器统一顶部气泡提示
+ * - 上传中禁点（防重复上传）；前置校验不通过在这里提示，网络/超限由请求拦截器统一提示
  * - uploading-change：忙碌态同步上报父级——父级在 isUploading 期间禁用保存/关闭，
  *   避免"快速保存发出 coverUrl:''/旧值后弹窗卸载，迟到的上传成功写入 detached v-model"
  */
@@ -30,14 +32,17 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 watch(isUploading, (uploading) => emit('uploading-change', uploading), { flush: 'sync' });
 
 async function processFile(file: File) {
-  if (!file.type.startsWith('image/')) {
-    toast.addToast(t('coverUpload.invalidType'), 'warning');
-    return;
-  }
   if (isUploading.value) return;
   isUploading.value = true;
   try {
-    const res = await uploadSeriesCover(file);
+    // 先校验、必要时降采样再传：原图直传会撞上服务端 1MB 上限（线上实测 1.75MB 专栏封面
+    // 被拒成 500），体积不降下来单纯放宽超时也只会变成超时失败。
+    const prepared = await prepareImageFile(file, COVER_IMAGE_POLICY);
+    if (!prepared.ok) {
+      toast.addToast(t(imageIssueMessageKey(prepared.issue)), 'warning');
+      return;
+    }
+    const res = await uploadSeriesCover(prepared.file);
     if (res.isSuccess) emit('update:modelValue', res.data?.url ?? '');
   } catch {
     // 上传失败（网络/超限）已由拦截器统一顶部气泡提示

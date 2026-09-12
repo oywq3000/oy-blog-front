@@ -414,7 +414,12 @@ export default {
     change: '点击更换封面',
     remove: '移除封面',
     uploading: '上传中...',
-    invalidType: '只能上传图片文件',
+  },
+  // 图片上传前置校验的提示（封面、专栏封面、正文图共用一套，见 utils/imageUpload.ts）
+  imageUpload: {
+    notImage: '只能上传图片文件',
+    tooLarge: '图片不能超过 20MB',
+    decodeFailed: '这张图片无法处理，请换一张试试',
   },
   search: {
     filter: '筛选',

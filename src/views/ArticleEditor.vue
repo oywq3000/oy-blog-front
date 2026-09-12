@@ -6,6 +6,13 @@ import { MdEditor } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import { publishArticle, saveDraft, getArticleContent, getArticleById, getPopularTags, getMySeries, type TagStat, type SeriesOwn } from '../api/article';
 import { uploadCover, uploadContentImage } from '../api/upload';
+import {
+  CONTENT_IMAGE_POLICY,
+  COVER_IMAGE_POLICY,
+  imageIssueMessageKey,
+  prepareImageFile,
+  prepareImageFiles,
+} from '../utils/imageUpload';
 import { verdictFeedback } from '../utils/reviewStatus';
 // import { useUserStore } from '../store/user';
 import { useTheme } from '../composables/useTheme';
@@ -32,15 +39,19 @@ const isDragging = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 
 const processFile = async (file: File) => {
-  if (file.type.startsWith('image/')) {
-     try {
-       const res = await uploadCover(file);
-       if (res.isSuccess) {
-         publishForm.coverUrl = res.data?.url;
-       }
-     } catch {
-       // 请求错误已由拦截器统一顶部气泡提示
-     }
+  try {
+    // 与专栏封面同一套前置处理：原图直传会撞上 article-service 的 1MB 上限（见 imageUpload.ts）
+    const prepared = await prepareImageFile(file, COVER_IMAGE_POLICY);
+    if (!prepared.ok) {
+      addToast(t(imageIssueMessageKey(prepared.issue)), 'warning');
+      return;
+    }
+    const res = await uploadCover(prepared.file);
+    if (res.isSuccess) {
+      publishForm.coverUrl = res.data?.url;
+    }
+  } catch {
+    // 请求错误已由拦截器统一顶部气泡提示
   }
 };
 
@@ -332,7 +343,12 @@ onUnmounted(() => {
 
 const handleUploadImage = async (files: File[], callback: (urls: string[]) => void) => {
   try {
-    const uploadPromises = files.map(file => uploadContentImage(file));
+    // 一张不合格不连累同批其它图：不合规的逐条提示，合规的照传（见 imageUpload.ts）
+    const prepared = await prepareImageFiles(files, CONTENT_IMAGE_POLICY);
+    prepared.issues.forEach((issue) => addToast(t(imageIssueMessageKey(issue)), 'warning'));
+    if (prepared.files.length === 0) return;
+
+    const uploadPromises = prepared.files.map(file => uploadContentImage(file));
     const results = await Promise.all(uploadPromises);
     const urls = results.filter(res => res.isSuccess).map(res => res.data);
     if (urls.length > 0) {

@@ -414,7 +414,12 @@ export default {
     change: 'Click to change cover',
     remove: 'Remove cover',
     uploading: 'Uploading...',
-    invalidType: 'Only image files are allowed',
+  },
+  // 图片上传前置校验的提示（封面、专栏封面、正文图共用一套，见 utils/imageUpload.ts）
+  imageUpload: {
+    notImage: 'Only image files are allowed',
+    tooLarge: 'Image must be 20MB or smaller',
+    decodeFailed: 'This image could not be processed. Please try another one.',
   },
   search: {
     filter: 'Filters',

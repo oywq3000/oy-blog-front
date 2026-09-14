@@ -21,3 +21,33 @@ export function pickDisplayTags(tags: string[], matchedTags: string[], max = 3):
   }
   return result
 }
+
+/**
+ * 热门标签拆分（首页 TagCloud 双云展示用）：官方标签(isCommon===1)与
+ * 用户自创标签(0)各自成云，分别取前 officialMax / userMax。
+ *
+ * 兼容旧后端：若整表都未下发 isCommon，说明接口未升级，全部视为官方，
+ * 避免官方云空白、误把官方标签塞进用户云。
+ */
+export interface TagSplit<T> {
+  official: T[];
+  userCreated: T[];
+}
+
+export function splitHotTags<T extends { isCommon?: number }>(
+  tags: T[] | undefined,
+  officialMax = 20,
+  userMax = 12,
+): TagSplit<T> {
+  const list = tags ?? [];
+  if (!list.some((t) => t.isCommon !== undefined)) {
+    return { official: list.slice(0, officialMax), userCreated: [] };
+  }
+  const official: T[] = []
+  const user: T[] = []
+  for (const t of list) {
+    if (t.isCommon === 1) official.push(t)
+    else user.push(t)
+  }
+  return { official: official.slice(0, officialMax), userCreated: user.slice(0, userMax) }
+}

@@ -411,10 +411,12 @@ export const deleteArticle = (id: string) => {
 };
 
 // 常用标签统计（GET /article/read/tags/popular）
+// isCommon: 1=官方预置标签 0=用户自创标签；旧后端未升级时该字段可能缺失
 export interface TagStat {
   id: string;
   name: string;
   articleCount: number;
+  isCommon?: number;
 }
 
 export interface ResultListTagStat {

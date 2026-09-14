@@ -4,17 +4,22 @@ import { useI18n } from 'vue-i18n';
 import { getPopularTags, type TagStat } from '../api/article';
 import TechIcon from './icons/TechIcon.vue';
 import HotTagIcon from './icons/HotTagIcon.vue';
+import { splitHotTags } from '../utils/tagDisplay';
 
 const { t } = useI18n();
 
-const tags = ref<TagStat[]>([]);
+const officialTags = ref<TagStat[]>([]);
+const userTags = ref<TagStat[]>([]);
 const loading = ref(true);
 
 onMounted(async () => {
   try {
     const res = await getPopularTags();
     if (res.isSuccess && res.data) {
-      tags.value = res.data.slice(0, 15);
+      // 官方云 20（覆盖全部预置标签）+ 用户自创云 12
+      const { official, userCreated } = splitHotTags(res.data, 20, 12);
+      officialTags.value = official;
+      userTags.value = userCreated;
     }
   } catch (error) {
     console.error('Failed to fetch tags:', error);
@@ -34,22 +39,42 @@ const tierClass = (i: number) => (i < 3 ? 'tier-1' : i < 7 ? 'tier-2' : 'tier-3'
       <span class="text-gradient">{{ t('sidebar.hotTags') }}</span>
     </h2>
 
-    <div v-if="loading" class="tag-cloud__chips" aria-hidden="true">
-      <span v-for="i in 10" :key="i" class="tag-chip tag-chip--skeleton"></span>
+    <!-- 官方云（预置标签） -->
+    <div class="tag-cloud__official">
+      <div v-if="loading" class="tag-cloud__chips" aria-hidden="true">
+        <span v-for="i in 10" :key="i" class="tag-chip tag-chip--skeleton"></span>
+      </div>
+
+      <div v-else-if="officialTags.length" class="tag-cloud__chips">
+        <router-link
+          v-for="(tag, i) in officialTags"
+          :key="tag.id"
+          class="tag-chip"
+          :class="tierClass(i)"
+          :to="{ name: 'search', query: { q: tag.name, filter: 'tag' } }"
+        >
+          <TechIcon :name="tag.name" :size="14" class="tag-chip__icon" />
+          <span class="tag-chip__name">{{ tag.name }}</span>
+          <span class="tag-chip__count">{{ tag.articleCount }}</span>
+        </router-link>
+      </div>
     </div>
 
-    <div v-else-if="tags.length" class="tag-cloud__chips">
-      <router-link
-        v-for="(tag, i) in tags"
-        :key="tag.id"
-        class="tag-chip"
-        :class="tierClass(i)"
-        :to="{ name: 'search', query: { q: tag.name, filter: 'tag' } }"
-      >
-        <TechIcon :name="tag.name" :size="14" class="tag-chip__icon" />
-        <span class="tag-chip__name">{{ tag.name }}</span>
-        <span class="tag-chip__count">{{ tag.articleCount }}</span>
-      </router-link>
+    <!-- 用户自创云（紧随官方云，不再单独加标题） -->
+    <div v-if="userTags.length" class="tag-cloud__user">
+      <div class="tag-cloud__chips">
+        <router-link
+          v-for="(tag, i) in userTags"
+          :key="tag.id"
+          class="tag-chip"
+          :class="tierClass(i)"
+          :to="{ name: 'search', query: { q: tag.name, filter: 'tag' } }"
+        >
+          <TechIcon :name="tag.name" :size="14" class="tag-chip__icon" />
+          <span class="tag-chip__name">{{ tag.name }}</span>
+          <span class="tag-chip__count">{{ tag.articleCount }}</span>
+        </router-link>
+      </div>
     </div>
   </section>
 </template>
@@ -58,7 +83,7 @@ const tierClass = (i: number) => (i < 3 ? 'tier-1' : i < 7 ? 'tier-2' : 'tier-3'
 @use '../styles/variables' as *;
 
 .tag-cloud {
-  margin-bottom: $spacing-xxl;
+  margin-bottom: $spacing-xl;
 }
 
 .tag-cloud__title {
@@ -87,6 +112,11 @@ const tierClass = (i: number) => (i < 3 ? 'tier-1' : i < 7 ? 'tier-2' : 'tier-3'
   flex-wrap: wrap;
   justify-content: center;
   gap: $spacing-sm;
+}
+
+// 用户自创云：紧随官方云，仅保留一个紧凑间距让两组 chip 可辨
+.tag-cloud__user {
+  margin-top: $spacing-md;
 }
 
 .tag-chip {

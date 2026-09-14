@@ -6,6 +6,7 @@ import PopularArticleCard from '../components/PopularArticleCard.vue';
 import HeroSection from '../components/HeroSection.vue';
 import TagCloud from '../components/TagCloud.vue';
 import ColumnRail from '../components/ColumnRail.vue';
+import TrendRail from '../components/TrendRail.vue';
 import { useAppStore } from '../store/app';
 import {
   getPublishedArticles,
@@ -130,15 +131,35 @@ watch(sentinelEl, (el) => {
   else disconnectSentinel();
 }, { flush: 'post' });
 
-// ---- 最热门：后端热度权重排序，仅取第 1 页前 8 条，不做本地排序 ----
-const HOT_LIMIT = 8;
+// ---- 排行榜：周/月/季切换，后端热度权重排序，每榜仅取第 1 页前 10 条，不做本地排序 ----
+const HOT_LIMIT = 10;
+const rankPeriods = [
+  { key: '7d', label: t('home.rankWeek') },
+  { key: '30d', label: t('home.rankMonth') },
+  { key: '90d', label: t('home.rankQuarter') },
+];
+const activePeriod = ref('7d');
 const hotArticles = ref<ArticleItem[]>([]);
+const hotLoading = ref(false);
 
-const fetchHot = async () => {
-  const res = await getHotArticles(1, HOT_LIMIT);
-  if (res.isSuccess && res.data) {
-    hotArticles.value = res.data.data.map(mapArticle);
+const fetchHot = async (period: string) => {
+  hotLoading.value = true;
+  try {
+    const res = await getHotArticles(1, HOT_LIMIT, period);
+    if (period !== activePeriod.value) return; // 已切到别的榜，丢弃过期响应
+    if (res.isSuccess && res.data) {
+      hotArticles.value = res.data.data.map(mapArticle);
+    }
+  } finally {
+    if (period === activePeriod.value) hotLoading.value = false;
   }
+};
+
+const switchPeriod = (period: string) => {
+  if (period === activePeriod.value) return;
+  activePeriod.value = period;
+  hotArticles.value = []; // 切榜即清空，避免新榜加载期间显示旧榜数据
+  fetchHot(period);
 };
 
 // ---- 统计条：全局统计接口直出，不做客户端聚合 ----
@@ -177,7 +198,7 @@ onMounted(async () => {
   // 三接口并行拉取，任一失败不影响其他（失败方显示空态/0 统计）
   const [, , statsRes] = await Promise.allSettled([
     fetchLatest(1),
-    fetchHot(),
+    fetchHot(activePeriod.value),
     getGlobalStats(),
   ]);
 
@@ -225,7 +246,10 @@ onUnmounted(() => {
       <!-- 热门标签云（自取数） -->
       <TagCloud />
 
-      <!-- 双窗格：最新文章 + 最热门文章，两列独立滚动（桌面） -->
+      <!-- 正在暴涨：近 7 天窗口差分榜横滑条（TrendRail 自拉数据、无内容不渲染） -->
+      <TrendRail />
+
+      <!-- 双窗格：最新文章 + 排行榜，两列独立滚动（桌面） -->
       <div class="columns-wrap" id="articles-section">
         <!-- 左窗格：最新文章 -->
         <section class="article-pane" aria-label="最新文章">
@@ -265,14 +289,35 @@ onUnmounted(() => {
             <div v-else class="load-more__end">{{ t('home.loadedAll') }}</div>
           </div>
         </section>
-        <!-- 右窗格：最热门 -->
-        <section class="article-pane" aria-label="最热门文章">
+        <!-- 右窗格：排行榜（周/月/季切换） -->
+        <section class="article-pane" aria-label="排行榜">
           <header class="pane-header">
             <h2 class="pane-title">
               <span class="text-gradient">{{ t('home.popularArticles') }}</span>
             </h2>
+            <div class="rank-tabs" role="tablist" aria-label="榜单周期">
+              <button
+                v-for="p in rankPeriods"
+                :key="p.key"
+                type="button"
+                role="tab"
+                class="rank-tab"
+                :class="{ 'rank-tab--active': activePeriod === p.key }"
+                :aria-selected="activePeriod === p.key"
+                @click="switchPeriod(p.key)"
+              >
+                {{ p.label }}
+              </button>
+            </div>
           </header>
-          <div v-if="showContent && hotArticles.length" class="popular-list">
+          <!-- 首屏或切榜加载中 -->
+          <div v-if="showContent && hotLoading" class="articles-list" aria-hidden="true">
+            <div v-for="i in 5" :key="i" class="skeleton-row skeleton-row--compact">
+              <div class="skeleton-line skeleton-line--long"></div>
+              <div class="skeleton-line skeleton-line--medium"></div>
+            </div>
+          </div>
+          <div v-else-if="showContent && hotArticles.length" class="popular-list">
             <PopularArticleCard
               v-for="(article, i) in hotArticles"
               :key="article.id"
@@ -446,6 +491,38 @@ onUnmounted(() => {
   font-weight: 800;
   letter-spacing: -0.5px;
   margin: 0;
+}
+
+// ---- 排行榜周期 Tab（周/月/季）：分段式按钮，等宽铺满窗格 ----
+.rank-tabs {
+  display: flex;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
+}
+
+.rank-tab {
+  flex: 1;
+  padding: 6px 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: $radius-md;
+  cursor: pointer;
+  transition: $transition-base;
+
+  &:hover {
+    color: var(--color-accent-primary);
+    border-color: rgba(var(--color-accent-primary-rgb), 0.4);
+  }
+
+  &--active {
+    color: var(--color-accent-primary);
+    border-color: rgba(var(--color-accent-primary-rgb), 0.5);
+    background: rgba(var(--color-accent-primary-rgb), 0.08);
+    font-weight: 700;
+  }
 }
 
 .articles-list {

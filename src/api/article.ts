@@ -130,9 +130,14 @@ export const getPublishedArticles = (pageNum: number = 1, pageSize: number = 10)
   return request.get<any, ResultPageArticle>(baseUrl+'/article/read/published', { params: { pageNum, pageSize } });
 };
 
-// Query Hot Published Articles List (paged, 后端热度权重排序)
-export const getHotArticles = (pageNum: number = 1, pageSize: number = 10) => {
-  return request.get<any, ResultPageArticle>(baseUrl+'/article/read/published/hot', { params: { pageNum, pageSize } });
+// Query Hot Published Articles List (paged, 后端热度权重排序; period: 7d/30d/90d)
+export const getHotArticles = (pageNum: number = 1, pageSize: number = 10, period: string = '7d') => {
+  return request.get<any, ResultPageArticle>(baseUrl+'/article/read/published/hot', { params: { pageNum, pageSize, period } });
+};
+
+// Query Trending Published Articles List (正在暴涨的, 近7天窗口差分)
+export const getTrendArticles = (pageNum: number = 1, pageSize: number = 5) => {
+  return request.get<any, ResultPageArticle>(baseUrl+'/article/read/published/hot/trend', { params: { pageNum, pageSize } });
 };
 
 export interface GlobalArticleStats {

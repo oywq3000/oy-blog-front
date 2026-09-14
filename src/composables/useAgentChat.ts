@@ -68,14 +68,14 @@ const conversations = ref<Conversation[]>([])
 const activeConversationId = ref<string | null>(null)
 const messagesMap = ref<Map<string, Message[]>>(new Map())
 const streaming = ref(false)
-const deepThinking = ref(false)
+const deepThinking = ref(true)
 const loading = ref(false)
 const sidebarSearch = ref('')
 
 const defaultSettings: ChatSettings = {
   model: DEFAULT_AGENT_MODEL,
   temperature: 0.7,
-  deepThinking: false,
+  deepThinking: true,
 }
 const settings = ref<ChatSettings>({ ...defaultSettings })
 
@@ -368,7 +368,7 @@ function resetState(): void {
   messagesMap.value.clear()
   activeConversationId.value = null
   streaming.value = false
-  deepThinking.value = false
+  deepThinking.value = true  // 与 defaultSettings 一致：深度思考默认开启
   loading.value = false
   sidebarSearch.value = ''
   currentStreamContent.value = ''

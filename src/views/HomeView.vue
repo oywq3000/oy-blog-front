@@ -149,6 +149,10 @@ const fetchHot = async (period: string) => {
     if (period !== activePeriod.value) return; // 已切到别的榜，丢弃过期响应
     if (res.isSuccess && res.data) {
       hotArticles.value = res.data.data.map(mapArticle);
+      // 切榜后的新卡片是 opacity:0 的 .fade-in-up，必须重新观察加 .visible 才会显示
+      // （同 loadNextPage 追加最新文章后的处理；否则数据已下发但页面空白）
+      await nextTick();
+      observeElements();
     }
   } finally {
     if (period === activePeriod.value) hotLoading.value = false;

@@ -87,7 +87,7 @@ export default {
     loadingSummary: '正在获取最新文章...',
     latestArticles: '最新文章',
     popularArticles: '排行榜',
-    trending: '正在暴涨',
+    trending: '趋势',
     rankWeek: '周榜',
     rankMonth: '月榜',
     rankQuarter: '季榜',

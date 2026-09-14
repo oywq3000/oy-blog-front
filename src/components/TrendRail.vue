@@ -2,6 +2,7 @@
 import { nextTick, onMounted, onUnmounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { getTrendArticles, type ArticleInfo } from '../api/article';
+import IconMdiTrendingUp from '~icons/mdi/trending-up';
 
 const { t } = useI18n();
 // 正在暴涨：近 7 天窗口差分榜（后端 /published/hot/trend），仅取第 1 页前 5 条
@@ -63,7 +64,7 @@ onUnmounted(() => {
   <section v-if="trending.length" class="trend-rail">
     <!-- 标题与下方双窗格 pane-title 同款：text-gradient 主题渐变字 -->
     <h2 class="trend-rail__title">
-      <span class="trend-rail__title-icon" aria-hidden="true">📈</span>
+      <IconMdiTrendingUp class="trend-rail__title-icon" aria-hidden="true" />
       <span class="text-gradient">{{ t('home.trending') }}</span>
     </h2>
     <!-- 横向滑动区：左右箭头（桌面，边界自动禁用）+ 轨道（触控滑动/滚轮横滑保留） -->
@@ -112,9 +113,9 @@ onUnmounted(() => {
               </span>
             </div>
           </template>
-          <!-- 无封面：扁平主题卡（站点扁平风格）——📈 徽标 + 标题两行 + 浏览量，不留白 -->
+          <!-- 无封面：扁平主题卡（站点扁平风格）——trending-up 徽标 + 标题两行 + 浏览量，不留白 -->
           <div v-else class="trend-card__art">
-            <span class="trend-card__art-badge" aria-hidden="true">📈</span>
+            <IconMdiTrendingUp class="trend-card__art-badge" aria-hidden="true" />
             <span class="trend-card__art-title">{{ a.title }}</span>
             <span class="trend-card__art-views">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -159,6 +160,10 @@ onUnmounted(() => {
 
 .trend-rail__title-icon {
   margin-right: 6px;
+  // SVG 以 1em 为基准：随 font-size 定尺寸；accent 色与右侧 text-gradient 主题呼应
+  font-size: 1.2rem;
+  color: var(--color-accent-primary);
+  vertical-align: -0.15em;
 }
 
 // 箭头按钮的定位上下文（轨道不设 overflow hidden，按钮浮在轨道边缘之上）
@@ -309,7 +314,7 @@ onUnmounted(() => {
   }
 }
 
-// 无封面扁平卡内容：📈 徽标 + 标题 + 浏览量
+// 无封面扁平卡内容：trending-up 徽标 + 标题 + 浏览量
 .trend-card__art {
   position: absolute;
   inset: 0;
@@ -322,8 +327,8 @@ onUnmounted(() => {
 }
 
 .trend-card__art-badge {
-  font-size: 1.3rem;
-  line-height: 1;
+  font-size: 1.5rem;
+  color: var(--color-accent-primary);
 }
 
 .trend-card__art-title {

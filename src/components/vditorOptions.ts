@@ -36,6 +36,16 @@ export function buildVditorOptions(config: BuildVditorConfig): VditorOptions {
     // vditor 的 IOptions.cache 声明为对象类型(带 enable/id),但运行期支持布尔关闭;
     // 沿用下方 as never 手法,让编译通过的同时运行时值仍为 false(草稿走后端)。
     cache: false as never,
+    // 默认 'auto' 会在 init 时写成 vditor.element.style.height = "auto"(index.js:7084),
+    // 内联样式优先级高于任何 CSS,把 scoped 的 height:100% 顶掉 → 编辑区随行数变长而非
+    // 撑满.改 '100%' 让 inline 也成百分比,相对 .editor-wrapper(flex:1 高度确定)闭合;
+    // 高度确定后 .vditor-content/.vditor-ir 内部 flex 自适应滚动。
+    height: '100%',
+    // 全屏层级:vditor 默认 .vditor--fullscreen z-index 90,站点头部 NavBar 是 100,
+    // 全屏时工具条被 topbar 遮住;提到超过 NavBar 的层级(站点 NavBar z-index 100)。
+    fullscreen: {
+      index: 101,
+    },
     // IOptions.i18n 是具名对象类型 ITips(全必填键),Config 侧保留更宽的 Record 约定;
     // 运行时透传原对象(组件传静态 zhCN),as never 仅用于让编译通过。
     i18n: config.i18n as never,

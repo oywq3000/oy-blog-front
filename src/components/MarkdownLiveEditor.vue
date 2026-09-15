@@ -3,7 +3,10 @@ import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Vditor from 'vditor';
 import 'vditor/dist/index.css';
+import 'vditor/dist/js/icons/ant.js';
+import lutePath from 'vditor/dist/js/lute/lute.min.js?url';
 import { buildVditorOptions } from './vditorOptions';
+import { zhCN } from '../utils/vditorI18n';
 import { buildImageInsertMarkdown } from '../utils/imageInsert';
 import {
   CONTENT_IMAGE_POLICY,
@@ -30,6 +33,9 @@ const { t } = useI18n();
 const { addToast } = useToast();
 const editorEl = ref<HTMLElement | null>(null);
 let vditor: Vditor | null = null;
+// 初始化是否成功:vditor init 内部的 CDN 依赖(i18n/lute/图标,现均已本地化)若仍失败
+// 会抛错,此时 vditor 保持 null、ready 为 false,onBeforeUnmount 对 destroy 做保护。
+let ready = false;
 
 /** 正文图上传:复用既有 imageUpload 前处理管线(1MB 上限降采样等),成功后插入图片 markdown */
 const handleUpload = async (files: File[]) => {
@@ -45,17 +51,30 @@ const handleUpload = async (files: File[]) => {
 
 onMounted(() => {
   if (!editorEl.value) return;
-  vditor = new Vditor(editorEl.value, buildVditorOptions({
-    mode: 'ir',
-    theme: props.theme === 'dark' ? 'dark' : 'classic',
-    placeholder: props.placeholder,
-    initialValue: props.modelValue,
-    onInput: (value: string) => {
-      emit('update:modelValue', value);
-      if (vditor) emit('html-changed', vditor.getHTML());
-    },
-    onUpload: handleUpload,
-  }));
+  // 本地化 vditor 三条 CDN 启动链路:i18n 静态对象(i18n)、Lute 引擎(?url 资源。
+  // _lutePath)、图标静态注入并关掉其同步 XHR(icon: '')。init 此刻同步执行,
+  // 失败则保持 vditor=null 让后续 getValue/destroy 全部安全空操作。
+  try {
+    vditor = new Vditor(editorEl.value, buildVditorOptions({
+      mode: 'ir',
+      theme: props.theme === 'dark' ? 'dark' : 'classic',
+      placeholder: props.placeholder,
+      initialValue: props.modelValue,
+      i18n: zhCN,
+      _lutePath: lutePath,
+      icon: '',
+      onInput: (value: string) => {
+        emit('update:modelValue', value);
+        if (vditor) emit('html-changed', vditor.getHTML());
+      },
+      onUpload: handleUpload,
+    }));
+    ready = true;
+  } catch (err) {
+    ready = false;
+    vditor = null;
+    console.error('[MarkdownLiveEditor] Vditor 初始化失败', err);
+  }
 });
 
 // 外部回填(如编辑回显、AI 写稿):值不同才 setValue,避免与内部 input 回环
@@ -70,8 +89,13 @@ watch(() => props.theme, (next) => {
 });
 
 onBeforeUnmount(() => {
-  vditor?.destroy();
+  // ready 为 false(init 抛错或从未初始化)时 vditor 为 null,destroy 直接跳过,
+  // 避免触碰 vditor 内部尚未挂载的 this.vditor.element。
+  if (ready && vditor) {
+    vditor.destroy();
+  }
   vditor = null;
+  ready = false;
 });
 
 /**
@@ -89,7 +113,21 @@ function setMode(mode: 'ir' | 'sv') {
   const button = editModeEl?.querySelector<HTMLButtonElement>(`button[data-mode="${mode}"]`);
   button?.click();
 }
-defineExpose({ setMode });
+
+/**
+ * 即时读取编辑器 markdown/HTML:vditor 的 input 回调经 undoDelay(默认 800ms)
+ * 抖动后才触发,父组件的 content/contentHtml 会滞后最后一次敲击;保存/发布时
+ * 从实例同步取值作真源,以实例为 null(初始化失败)的兜底为空串。
+ */
+function getValue(): string {
+  return vditor?.getValue() ?? '';
+}
+
+function getHTML(): string {
+  return vditor?.getHTML() ?? '';
+}
+
+defineExpose({ setMode, getValue, getHTML });
 </script>
 
 <template>

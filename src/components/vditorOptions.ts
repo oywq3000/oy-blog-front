@@ -14,6 +14,13 @@ export interface BuildVditorConfig {
   theme: 'classic' | 'dark' | 'current';
   placeholder: string;
   initialValue: string;
+  /** 静态本地化文案对象:vditor 初始化时若有 i18n 会直接走 `window.VditorI18n = i18n; init()`,
+   *  不再从 CDN 拉 i18n 脚本(离线初始化修复的关键)。 */
+  i18n?: Record<string, string>;
+  /** Lute 引擎本地资源地址(vite `?url` 打包产物),避免 init 时从 CDN 加载 lute.min.js。 */
+  _lutePath?: string;
+  /** 图标:传空串 '' 关闭 vditor 内部的 CDN 图标同步 XHR(图标已在组件内静态注入)。 */
+  icon?: string;
   onInput: (value: string) => void;
   onUpload: (files: File[]) => void | Promise<void>;
 }
@@ -27,8 +34,16 @@ export function buildVditorOptions(config: BuildVditorConfig): VditorOptions {
     placeholder: config.placeholder,
     value: config.initialValue,
     // vditor 的 IOptions.cache 声明为对象类型(带 enable/id),但运行期支持布尔关闭;
-    // 沿用上方 handler 的 as never 手法,让编译通过的同时运行时值仍为 false(草稿走后端)。
+    // 沿用下方 as never 手法,让编译通过的同时运行时值仍为 false(草稿走后端)。
     cache: false as never,
+    // IOptions.i18n 是具名对象类型 ITips(全必填键),Config 侧保留更宽的 Record 约定;
+    // 运行时透传原对象(组件传静态 zhCN),as never 仅用于让编译通过。
+    i18n: config.i18n as never,
+    // IOptions._lutePath 就是该字段名(dist/types/index.d.ts:695),string 直通无需收窄。
+    _lutePath: config._lutePath,
+    // IOptions.icon 只收 'ant' | 'material' 字面量;组件传 '' 关闭 CDN 图标加载,
+    // 仍保持 Config 侧 string 约定,运行时值原样透传。
+    icon: config.icon as never,
     input: config.onInput,
     upload: {
       handler: config.onUpload as never,

@@ -232,11 +232,15 @@ const handleSaveDraft = async () => {
   isSavingDraft.value = true;
   try {
     const summary = publishForm.summary || defaultSummary.value;
+    // vditor 的 input 回调带 undoDelay(800ms) 延迟,content/contentHtml 会滞后最后一
+    // 次敲击;保存时以编辑器实例实时值为真源(Ctrl+S / 快速单击竞态),实例不可用回退 ref。
+    const md = markdownEditor.value?.getValue() ?? content.value;
+    const html = markdownEditor.value?.getHTML() ?? contentHtml.value;
     const res = await saveDraft({
       id: draftId.value,
       title: title.value,
-      contentMd: content.value,
-      contentHtml: contentHtml.value,
+      contentMd: md,
+      contentHtml: html,
       summary,
       coverUrl: publishForm.coverUrl,
       tags: getTagsArray(),
@@ -352,11 +356,14 @@ const submitArticle = async () => {
   isSubmitting.value = true;
   try {
     const summary = publishForm.summary || defaultSummary.value;
+    // 发布同样取编辑器实时值:避免 undoDelay 窗口内丢最后一次输入
+    const md = markdownEditor.value?.getValue() ?? content.value;
+    const html = markdownEditor.value?.getHTML() ?? contentHtml.value;
     const res = await publishArticle({
       id: draftId.value, // Use captured draft ID for update (undefined for new)
       title: title.value,
-      contentMd: content.value,
-      contentHtml: contentHtml.value,
+      contentMd: md,
+      contentHtml: html,
       summary,
       coverUrl: publishForm.coverUrl,
       tags: getTagsArray(),
@@ -594,7 +601,6 @@ const submitArticle = async () => {
 
 <style lang="scss" scoped>
 @use '../styles/variables' as *;
-@use '../styles/markdown' as *;
 
 .editor-layout {
   display: flex;

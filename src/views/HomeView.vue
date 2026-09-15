@@ -11,6 +11,7 @@ import { useAppStore } from '../store/app';
 import {
   getPublishedArticles,
   getHotArticles,
+  getRecommendations,
   getGlobalStats,
   type ArticleInfo,
   type GlobalArticleStats,
@@ -198,11 +199,32 @@ const observeElements = () => {
   }, 100);
 };
 
+// ---- 猜你喜欢：按当前用户/游客画像推荐相似文章（冷启动回退热榜），游客/登录通吃 ----
+const RECOMMEND_PAGE_SIZE = 10;
+const recommendArticles = ref<ArticleItem[]>([]);
+const recommendLoading = ref(false);
+
+const fetchRecommend = async () => {
+  recommendLoading.value = true;
+  try {
+    const res = await getRecommendations(1, RECOMMEND_PAGE_SIZE);
+    if (res.isSuccess && res.data && res.data.data.length) {
+      recommendArticles.value = res.data.data.map(mapArticle);
+      // 新卡片是 opacity:0 的 .fade-in-up，必须 re-observe 才会显示（同 fetchHot/loadNextPage）
+      await nextTick();
+      observeElements();
+    }
+  } finally {
+    recommendLoading.value = false;
+  }
+};
+
 onMounted(async () => {
-  // 三接口并行拉取，任一失败不影响其他（失败方显示空态/0 统计）
-  const [, , statsRes] = await Promise.allSettled([
+  // 四接口并行拉取，任一失败不影响其他（失败方显示空态/0 统计）
+  const [, , , statsRes] = await Promise.allSettled([
     fetchLatest(1),
     fetchHot(activePeriod.value),
+    fetchRecommend(),
     getGlobalStats(),
   ]);
 
@@ -252,6 +274,23 @@ onUnmounted(() => {
 
       <!-- 正在暴涨：近 7 天窗口差分榜横滑条（TrendRail 自拉数据、无内容不渲染） -->
       <TrendRail />
+
+      <!-- 猜你喜欢：按用户/游客画像推荐相似文章（冷启动回退热榜；无数据则整块不渲染） -->
+      <section
+        v-if="showContent && (recommendLoading || recommendArticles.length)"
+        class="recommend-section fade-in-up"
+        aria-labelledby="recommend-title"
+      >
+        <h2 id="recommend-title" class="section-title">✨ 猜你喜欢</h2>
+        <div v-if="recommendLoading" class="articles-list" aria-hidden="true">
+          <div>加载中…</div>
+        </div>
+        <div v-else-if="recommendArticles.length" class="articles-list">
+          <div v-for="article in recommendArticles" :key="article.id" class="fade-in-up">
+            <ArticleCard v-bind="article" />
+          </div>
+        </div>
+      </section>
 
       <!-- 双窗格：最新文章 + 排行榜，两列独立滚动（桌面） -->
       <div class="columns-wrap" id="articles-section">
@@ -399,6 +438,10 @@ onUnmounted(() => {
 }
 
 .featured-section {
+  margin-bottom: $spacing-xxl;
+}
+
+.recommend-section {
   margin-bottom: $spacing-xxl;
 }
 

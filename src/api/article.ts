@@ -544,5 +544,10 @@ export const searchArticles = (params: SearchParams) => {
   return request.get<any, ResultSearchResult>('/api/search-service/essearch/search', { params });
 };
 
+// 猜你喜欢：按当前用户/游客画像推荐相似文章（冷启动回退热榜），返回结构与热榜同构
+export const getRecommendations = (pageNum: number = 1, pageSize: number = 10) => {
+  return request.get<any, ResultPageArticle>(baseUrl + '/article/read/recommend', { params: { pageNum, pageSize } });
+};
+
 
 

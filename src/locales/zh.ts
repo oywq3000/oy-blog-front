@@ -164,6 +164,10 @@ export default {
     bioText: '个人简介', // Renamed to avoid duplicate 'bio' key
     enterBio: '介绍一下你自己',
     updateSuccess: '个人资料更新成功',
+    skills: '技能',
+    skillPlaceholder: '输入技能名，回车添加',
+    skillHint: '展示在你的主页和公开主页，点击 ↑↓ 调整顺序',
+    skillsUpdateSuccess: '技能已更新',
     unfavorite: '取消收藏',
     unfavoriteSuccess: '已取消收藏',
     passwordUpdated: '密码修改成功',

@@ -12,6 +12,8 @@ import { buildHeatmapData, buildMonthLabels, buildWeekdayLabels, cellBackground,
 import { useTheme } from '../composables/useTheme';
 import { useToast } from '../composables/useToast';
 import AvatarCropDialog from '../components/AvatarCropDialog.vue';
+import SkillEditor from '../components/SkillEditor.vue';
+import TechIcon from '../components/icons/TechIcon.vue';
 import { AVATAR_MIN_SIDE, validateAvatarFile, readAvatarImageSize } from '../utils/avatarFile';
 
 const { t, d } = useI18n();
@@ -38,6 +40,34 @@ watchEffect(() => {
     };
   }
 });
+
+/** 侧边栏技能展示（存库后的实际技能） */
+const mySkills = computed(() => currentUser.value?.skills ?? []);
+/** 技能编辑器草稿，保存时才调接口落库 */
+const skillsForm = ref<string[]>([]);
+const isSkillsUpdating = ref(false);
+
+watchEffect(() => {
+  if (currentUser.value) {
+    skillsForm.value = [...(currentUser.value.skills ?? [])];
+  }
+});
+
+const handleUpdateSkills = async () => {
+  if (!currentUser.value) return;
+  isSkillsUpdating.value = true;
+  try {
+    const res = await updateUserInfo({ skills: skillsForm.value });
+    if (res.isSuccess) {
+      await fetchUserInfo();
+      addToast(t('profile.skillsUpdateSuccess'), 'success');
+    }
+  } catch {
+    // 请求错误已由拦截器统一顶部气泡提示
+  } finally {
+    isSkillsUpdating.value = false;
+  }
+};
 
 const handleUpdateProfile = async () => {
   if (!currentUser.value) return;
@@ -138,7 +168,7 @@ const tabs = computed(() => [
 
 const tabOrder = ['favorites', 'history', 'settings'];
 
-const settingTabOrder = ['profile', 'security', 'appearance', 'notifications'];
+const settingTabOrder = ['profile', 'security', 'appearance', 'notifications', 'skills'];
 const settingsTransitionName = ref('slide-up');
 const activeSettingTab = ref('profile');
 
@@ -152,7 +182,8 @@ const settingTabs = computed(() => [
   { id: 'profile', label: t('profile.profileInfo'), icon: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z' },
   { id: 'security', label: t('profile.accountSecurity'), icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
   { id: 'appearance', label: t('profile.appearance'), icon: 'M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z' },
-  { id: 'notifications', label: t('profile.notifications'), icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' }
+  { id: 'notifications', label: t('profile.notifications'), icon: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0' },
+  { id: 'skills', label: t('profile.skills'), icon: 'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z' }
 ]);
 
 // Tab Indicator Logic
@@ -605,13 +636,13 @@ onUnmounted(() => {
             </div>
           </div>
 
-          <div class="skills-section">
-            <h3>Skills</h3>
+          <div v-if="mySkills.length" class="skills-section">
+            <h3>{{ t('profile.skills') }}</h3>
             <div class="tags">
-              <span class="tag">Vue.js</span>
-              <span class="tag">TypeScript</span>
-              <span class="tag">Spring Boot</span>
-              <span class="tag">Docker</span>
+              <span v-for="skill in mySkills" :key="skill" class="tag">
+                <TechIcon :name="skill" :size="14" class="tag-icon" />
+                <span>{{ skill }}</span>
+              </span>
             </div>
           </div>
 
@@ -829,14 +860,30 @@ onUnmounted(() => {
                         </div>
 
                         <div class="form-actions">
-                          <button 
-                            class="btn-primary" 
-                            @click="handleUpdateProfile" 
+                          <button
+                            class="btn-primary"
+                            @click="handleUpdateProfile"
                             :disabled="isProfileUpdating"
                           >
                             {{ isProfileUpdating ? t('common.saving', 'Saving...') : t('common.saveChanges', 'Save Changes') }}
                           </button>
                         </div>
+                      </div>
+                    </div>
+
+                    <!-- Skills -->
+                    <div v-else-if="activeSettingTab === 'skills'" key="skills" class="setting-view">
+                      <h3>{{ t('profile.skills') }}</h3>
+                      <p class="helper-text">{{ t('profile.skillHint') }}</p>
+                      <SkillEditor v-model="skillsForm" :placeholder="t('profile.skillPlaceholder')" />
+                      <div class="form-actions">
+                        <button
+                          class="btn-primary"
+                          @click="handleUpdateSkills"
+                          :disabled="isSkillsUpdating"
+                        >
+                          {{ isSkillsUpdating ? t('common.saving', 'Saving...') : t('common.saveChanges', 'Save Changes') }}
+                        </button>
                       </div>
                     </div>
 
@@ -1228,12 +1275,19 @@ onUnmounted(() => {
       gap: 8px;
 
       .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         padding: 4px 10px;
         background: $color-bg-secondary;
         border: 1px solid $color-border;
         border-radius: 6px;
         font-size: 0.8rem;
         color: $color-text-primary;
+
+        .tag-icon {
+          flex-shrink: 0;
+        }
       }
     }
   }

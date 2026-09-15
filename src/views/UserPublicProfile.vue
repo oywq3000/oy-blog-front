@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n';
 import ArticleCard from '../components/ArticleCard.vue';
 import CreatorPagination from '../components/CreatorPagination.vue';
 import IconUser from '../components/icons/IconUser.vue';
+import TechIcon from '../components/icons/TechIcon.vue';
 import { getUserHeatmap, getUserPublishedArticles, type ArticleInfo } from '../api/article';
 import { getUserPublicProfile, type UserPublicProfile } from '../api/user';
 import { buildHeatmapData, buildMonthLabels, buildWeekdayLabels, cellBackground, type HeatmapData } from '../utils/heatmap';
@@ -186,6 +187,16 @@ onMounted(() => {
               <div class="info-item">
                 <svg viewBox="0 0 24 24" class="icon"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" fill="currentColor"/></svg>
                 <span>{{ t('profile.joined') }} {{ formatDate(profile.createdAt) }}</span>
+              </div>
+            </div>
+
+            <div v-if="profile.skills && profile.skills.length" class="skills-section">
+              <h3>{{ t('profile.skills') }}</h3>
+              <div class="tags">
+                <span v-for="skill in profile.skills" :key="skill" class="tag">
+                  <TechIcon :name="skill" :size="14" class="tag-icon" />
+                  <span>{{ skill }}</span>
+                </span>
               </div>
             </div>
           </template>
@@ -424,6 +435,43 @@ onMounted(() => {
         width: 18px;
         height: 18px;
         opacity: 0.7;
+      }
+    }
+  }
+
+  .skills-section {
+    width: 100%;
+    text-align: center;
+    margin-top: 1.5rem;
+
+    h3 {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      color: $color-text-secondary;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+
+      .tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        background: $color-bg-secondary;
+        border: 1px solid $color-border;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        color: $color-text-primary;
+
+        .tag-icon {
+          flex-shrink: 0;
+        }
       }
     }
   }

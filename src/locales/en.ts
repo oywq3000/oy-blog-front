@@ -164,6 +164,10 @@ export default {
     bioText: 'Bio', // Renamed to avoid duplicate 'bio' key
     enterBio: 'Tell us about yourself',
     updateSuccess: 'Profile updated successfully',
+    skills: 'Skills',
+    skillPlaceholder: 'Type a skill, press Enter to add',
+    skillHint: 'Shown on your profile and public profile. Use ↑↓ to reorder.',
+    skillsUpdateSuccess: 'Skills updated',
     unfavorite: 'Remove Favorite',
     unfavoriteSuccess: 'Removed from favorites',
     passwordUpdated: 'Password updated successfully',

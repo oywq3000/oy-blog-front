@@ -25,6 +25,8 @@ export interface UpdateProfileDto {
   email?: string;
   avatarUrl?: string;
   bio?: string;
+  /** 技能列表（排序即展示顺序）；不传=不改技能，传空数组=清空 */
+  skills?: string[];
 }
 
 export interface SaTokenInfo {

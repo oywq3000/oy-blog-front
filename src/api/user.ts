@@ -18,6 +18,8 @@ export interface UserPublicProfile {
   articleCount?: number;
   favoriteCount?: number;
   likeCount?: number;
+  /** 技能列表（按摆放顺序），无技能为空数组 */
+  skills?: string[];
 }
 
 export interface ResultUserPublicProfile {

@@ -10,4 +10,6 @@ export interface UserInfo {
   ipAddress: string;
   lastLogin: string;
   createdAt: string;
+  /** 技能列表（按摆放顺序），无技能时为 undefined */
+  skills?: string[];
 }

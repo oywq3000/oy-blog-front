@@ -286,6 +286,8 @@ export default {
     columnEmptyCreate: '去创作中心创建',
     columnLoadFailed: '专栏列表加载失败，',
     columnLoadRetry: '点击重试',
+    sourceView: '源码',
+    livePreview: '实时预览',
   },
   creator: {
     title: '创作者中心',

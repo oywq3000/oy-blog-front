@@ -286,6 +286,8 @@ export default {
     columnEmptyCreate: 'Create one in Creator Center',
     columnLoadFailed: 'Failed to load your series. ',
     columnLoadRetry: 'Retry',
+    sourceView: 'Source',
+    livePreview: 'Live preview',
   },
   creator: {
     title: 'Creator Center',

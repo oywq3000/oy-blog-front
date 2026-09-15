@@ -2,16 +2,13 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { MdEditor } from 'md-editor-v3';
-import 'md-editor-v3/lib/style.css';
+import MarkdownLiveEditor from '../components/MarkdownLiveEditor.vue';
 import { publishArticle, saveDraft, getArticleContent, getArticleById, getPopularTags, getMySeries, type TagStat, type SeriesOwn } from '../api/article';
-import { uploadCover, uploadContentImage } from '../api/upload';
+import { uploadCover } from '../api/upload';
 import {
-  CONTENT_IMAGE_POLICY,
   COVER_IMAGE_POLICY,
   imageIssueMessageKey,
   prepareImageFile,
-  prepareImageFiles,
 } from '../utils/imageUpload';
 import { verdictFeedback } from '../utils/reviewStatus';
 // import { useUserStore } from '../store/user';
@@ -30,6 +27,14 @@ const { refreshDraftCount } = useCreatorStore();
 const title = ref('');
 const content = ref('');
 const contentHtml = ref('');
+// 编辑器模式:即时渲染(ir)为默认,源码分屏(sv)可由头部按钮切换
+const editMode = ref<'ir' | 'sv'>('ir');
+const markdownEditor = ref<InstanceType<typeof MarkdownLiveEditor> | null>(null);
+
+const toggleEditMode = () => {
+  editMode.value = editMode.value === 'ir' ? 'sv' : 'ir';
+  markdownEditor.value?.setMode(editMode.value);
+};
 const draftId = ref<string | undefined>(undefined);
 const isSubmitting = ref(false);
 const isSavingDraft = ref(false);
@@ -341,24 +346,6 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
 });
 
-const handleUploadImage = async (files: File[], callback: (urls: string[]) => void) => {
-  try {
-    // 一张不合格不连累同批其它图：不合规的逐条提示，合规的照传（见 imageUpload.ts）
-    const prepared = await prepareImageFiles(files, CONTENT_IMAGE_POLICY);
-    prepared.issues.forEach((issue) => addToast(t(imageIssueMessageKey(issue)), 'warning'));
-    if (prepared.files.length === 0) return;
-
-    const uploadPromises = prepared.files.map(file => uploadContentImage(file));
-    const results = await Promise.all(uploadPromises);
-    const urls = results.filter(res => res.isSuccess).map(res => res.data);
-    if (urls.length > 0) {
-      callback(urls);
-    }
-  } catch {
-    // 请求错误已由拦截器统一顶部气泡提示
-  }
-};
-
 const submitArticle = async () => {
   if (isSubmitting.value) return;
 
@@ -423,6 +410,22 @@ const submitArticle = async () => {
         <span class="status-text" v-if="isSavingDraft">{{ t('editor.saving') }}</span>
         <span class="word-count" v-if="wordCount > 0 && !isSavingDraft">{{ wordCount }} {{ t('editor.words') }}</span>
         
+        <button
+          class="icon-btn"
+          @click="toggleEditMode"
+          :title="editMode === 'ir' ? t('editor.sourceView') : t('editor.livePreview')"
+        >
+          <svg v-if="editMode === 'ir'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 10 22 12 18 14"></polyline>
+            <polyline points="6 10 2 12 6 14"></polyline>
+            <path d="M13.5 4 10.5 20"></path>
+          </svg>
+          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+
         <button class="icon-btn" @click="openPublishModal" :title="t('editor.settings')">
            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
@@ -443,22 +446,12 @@ const submitArticle = async () => {
     <!-- Editor Area -->
     <main class="editor-main">
       <div class="editor-wrapper">
-        <MdEditor 
-          v-model="content" 
-          :theme="theme" 
-          class="md-editor-custom" 
-          preview-theme="github"
-          :toolbarsExclude="['save', 'github']"
-          :no-katex="true"
-          :no-mermaid="true"
-          :scroll-auto="false"
-          :no-img-zoom-in="true"
-          :code-foldable="false"
+        <MarkdownLiveEditor
+          ref="markdownEditor"
+          v-model="content"
+          :theme="theme"
           :placeholder="t('editor.requiredContent')"
-          :preview-debounce="500"
-          :show-code-row-number="false"
-          @onUploadImg="handleUploadImage"
-          @onHtmlChanged="handleHtmlChanged"
+          @html-changed="handleHtmlChanged"
         />
       </div>
     </main>
@@ -862,40 +855,6 @@ const submitArticle = async () => {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  
-  // Minimalist editor style
-  :deep(.md-editor) {
-    height: 100%;
-    background: transparent;
-    border: none;
-  }
-
-  :deep(.md-editor-toolbar-wrapper) {
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    padding: 0.5rem 0;
-    margin-bottom: 1rem;
-
-    :global(.dark) & {
-      border-bottom: 1px solid rgba(255,255,255,0.15); /* More visible border */
-    }
-  }
-  
-  :deep(.md-editor-content) {
-    background: transparent;
-  }
-
-  :deep(.md-editor-input-wrapper), :deep(.md-editor-preview-wrapper) {
-    background: transparent;
-    scroll-behavior: auto !important; // Optimization: Avoid scroll conflict
-    will-change: transform; // Optimization: Layer promotion
-  }
-  
-  :deep(.cm-scroller) {
-    font-family: $font-family-code;
-  }
-
-  // Use shared markdown styles
-  @include markdown-styles;
 }
 
 /* Modal Styles */

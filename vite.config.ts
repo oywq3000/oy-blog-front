@@ -18,6 +18,7 @@ export default defineConfig({
         // 函数形式（对象形式在 Rollup 4 类型中已移除）
         manualChunks(id: string) {
           if (id.includes('node_modules/md-editor-v3')) return 'md-editor'
+          if (id.includes('node_modules/vditor')) return 'vditor'
           if (id.includes('node_modules/vue-router') || id.includes('node_modules/vue-i18n')) return 'vue-vendor'
           if (/node_modules[/\\](vue|@vue)[/\\]/.test(id)) return 'vue-vendor'
         }

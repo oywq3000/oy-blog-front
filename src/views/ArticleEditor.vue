@@ -609,7 +609,10 @@ const submitArticle = async () => {
   padding-top: 70px; // Space for fixed Navbar
   background: transparent; // Let app background show through
   position: relative;
-  z-index: 10;
+  // 注意:不在 position:relative 上设 z-index —— 设了会创建 stacking context,
+  // 把 vditor 全屏(.vditor--fullscreen, position:fixed, z-index:101)困在本层内,
+  // 永远盖不过站点头部 NavBar(z-index 100)。移除后全屏层在 .app-content context
+  // 内直接与 NavBar 比层级,101 > 100 生效。
 }
 
 .glass-effect {

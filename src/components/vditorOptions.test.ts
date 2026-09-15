@@ -47,13 +47,37 @@ describe('buildVditorOptions', () => {
     expect(opts.height).not.toBe('auto');
   });
 
-  it('全屏模式层级高于站点 NavBar(z-index 100), 不被 topbar 遮住工具条', () => {
+  it('全屏模式层级高于站点 NavBar(z-index 100)', () => {
     const opts = buildVditorOptions({
       mode: 'ir', theme: 'classic', placeholder: '', initialValue: '',
       onInput: () => {}, onUpload: async () => {},
     });
-    // NavBar z-index 100,vditor 全屏默认 90 —— 需提到 100 以上。
+    // NavBar z-index 100,vditor 全屏默认 90 —— 提到 100 以上,需配合父级
+    // .editor-layout 不建 stacking context(z-index 移除,见 ArticleEditor.vue)才生效。
     expect((opts.fullscreen as { index?: number } | undefined)?.index ?? 90)
       .toBeGreaterThan(100);
+  });
+
+  it('默认工具栏不含录音 record 项(产品不要录音功能)', () => {
+    const opts = buildVditorOptions({
+      mode: 'ir', theme: 'classic', placeholder: '', initialValue: '',
+      onInput: () => {}, onUpload: async () => {},
+    });
+    // vditor 默认主工具栏在 upload 与 table 之间有 record;这里应被替换为去 record 的定制数组。
+    const toolbar = opts.toolbar as Array<string | { name?: string; toolbar?: string[] }> | undefined;
+    expect(toolbar).toBeTruthy();
+    const flat: string[] = [];
+    for (const item of toolbar ?? []) {
+      if (typeof item === 'string') flat.push(item);
+      else if (item) {
+        if (item.name) flat.push(String(item.name));
+        if (item.toolbar) flat.push(...item.toolbar.map(String));
+      }
+    }
+    expect(flat).not.toContain('record');
+    // 且关键项都在(替换不是残缺)
+    for (const key of ['upload', 'table', 'fullscreen', 'edit-mode', 'bold', 'emoji']) {
+      expect(flat).toContain(key);
+    }
   });
 });

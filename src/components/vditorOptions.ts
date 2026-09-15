@@ -9,6 +9,34 @@ import type Vditor from 'vditor';
 // NonNullable 收窄后工厂返回类型与测试里的 `opts.*` 都不再可能是 undefined。
 type VditorOptions = NonNullable<ConstructorParameters<typeof Vditor>[1]>;
 
+/**
+ * 产品工具栏:vditor 4.x 默认主工具栏(见 dist/index.js:14862)去掉 record(录音)。
+ * record 项在 "upload" 与 "table" 之间;更多子菜单(both/code-theme/.../help)不含 record,
+ * 故只需在主数组剔除这一项。传给 toolbar 选项会整体替换默认工具栏。
+ */
+export const DEFAULT_NO_RECORD_TOOLBAR: Array<string | Record<string, unknown>> = [
+  'emoji', 'headings', 'bold', 'italic', 'strike', 'link', '|',
+  'list', 'ordered-list', 'check', 'outdent', 'indent', '|',
+  'quote', 'line', 'code', 'inline-code', 'insert-before', 'insert-after', '|',
+  'upload', 'table', '|',
+  'undo', 'redo', '|',
+  'fullscreen', 'edit-mode',
+  {
+    name: 'more',
+    toolbar: [
+      'both',
+      'code-theme',
+      'content-theme',
+      'export',
+      'outline',
+      'preview',
+      'devtools',
+      'info',
+      'help',
+    ],
+  },
+];
+
 export interface BuildVditorConfig {
   mode: 'ir' | 'sv' | 'wysiwyg';
   theme: 'classic' | 'dark' | 'current';
@@ -21,6 +49,9 @@ export interface BuildVditorConfig {
   _lutePath?: string;
   /** 图标:传空串 '' 关闭 vditor 内部的 CDN 图标同步 XHR(图标已在组件内静态注入)。 */
   icon?: string;
+  /** 自定义工具栏项:不传则用 vditor 默认(含 record 录音功能);产品不要录音 → 传去掉 record 的数组。
+   *  vditor 类型是 `Array<string | IMenuItem>`(IMenuItem 未被命名空间导出),这里用宽类型 + as never 透传。 */
+  toolbar?: Array<string | Record<string, unknown>>;
   onInput: (value: string) => void;
   onUpload: (files: File[]) => void | Promise<void>;
 }
@@ -51,6 +82,8 @@ export function buildVditorOptions(config: BuildVditorConfig): VditorOptions {
     i18n: config.i18n as never,
     // IOptions._lutePath 就是该字段名(dist/types/index.d.ts:695),string 直通无需收窄。
     _lutePath: config._lutePath,
+    // 工具栏:未显式传 toolbar 时用产品默认(移除 record 录音);传入则整体替换。
+    toolbar: (config.toolbar ?? DEFAULT_NO_RECORD_TOOLBAR) as never,
     // IOptions.icon 只收 'ant' | 'material' 字面量;组件传 '' 关闭 CDN 图标加载,
     // 仍保持 Config 侧 string 约定,运行时值原样透传。
     icon: config.icon as never,

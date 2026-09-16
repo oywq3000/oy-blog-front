@@ -88,6 +88,7 @@ export default {
     latestArticles: 'Latest Articles',
     popularArticles: 'Ranking',
     trending: 'Trending',
+    guessYouLike: 'Recommended for you',
     rankWeek: 'Weekly',
     rankMonth: 'Monthly',
     rankQuarter: 'Quarterly',

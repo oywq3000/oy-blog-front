@@ -72,10 +72,12 @@ export function buildVditorOptions(config: BuildVditorConfig): VditorOptions {
     // 撑满.改 '100%' 让 inline 也成百分比,相对 .editor-wrapper(flex:1 高度确定)闭合;
     // 高度确定后 .vditor-content/.vditor-ir 内部 flex 自适应滚动。
     height: '100%',
-    // 全屏层级:vditor 默认 .vditor--fullscreen z-index 90,站点头部 NavBar 是 100,
-    // 全屏时工具条被 topbar 遮住;提到超过 NavBar 的层级(站点 NavBar z-index 100)。
+    // 全屏层级:vditor 默认 .vditor--fullscreen z-index 90;站点头部导航栏 .navbar 本体是
+    // position:fixed 且 z-index:1000(其子元素 logo/controls 到 1001)。之前只看 NavBar 一处
+    // z-index:100 就定 101 是错的 —— 全屏仍被遮。提到 2000:盖过 NavBar 层级树(1000~1001),
+    // 又保持在站点弹层之下(登录弹窗 z-index 9999+ 的层,避免全屏期意外弹层被遮)。
     fullscreen: {
-      index: 101,
+      index: 2000,
     },
     // IOptions.i18n 是具名对象类型 ITips(全必填键),Config 侧保留更宽的 Record 约定;
     // 运行时透传原对象(组件传静态 zhCN),as never 仅用于让编译通过。

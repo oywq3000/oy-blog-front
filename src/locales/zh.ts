@@ -88,6 +88,7 @@ export default {
     latestArticles: '最新文章',
     popularArticles: '排行榜',
     trending: '趋势',
+    guessYouLike: '猜你喜欢',
     rankWeek: '周榜',
     rankMonth: '月榜',
     rankQuarter: '季榜',

@@ -384,7 +384,16 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 import MarkdownLiveEditor from '../components/MarkdownLiveEditor.vue';
 ```
 
-同时确认 `import { uploadCover } from '../api/upload';` 保留(封面仍走 uploadCover);正文图 `handleUploadImage` 函数(约 344-360 行)整体删除 —— 上传职责已迁入组件内。
+同时确认 import 清理——删除 `handleUploadImage` 后以下 import 变未用(`noUnusedLocals: true` 会致 `vue-tsc -b` 报错),**必须一并删除**:
+
+```ts
+// 删除这些(原第 7-8 行 upload 导入中的 uploadContentImage,保留 uploadCover):
+// uploadContentImage 只被 handleUploadImage 使用 → 删除
+// 顶层 imageUpload 导入中,删除: CONTENT_IMAGE_POLICY、imageIssueMessageKey、prepareImageFiles
+//                       保留: COVER_IMAGE_POLICY、prepareImageFile(封面 processFile 仍用)
+```
+
+即:顶部 `import { uploadCover, uploadContentImage } from '../api/upload';` 改为 `import { uploadCover } from '../api/upload';`,`utils/imageUpload` 的导入从六项减为两项(`COVER_IMAGE_POLICY`、`prepareImageFile`)。
 
 - [ ] **Step 2: 加编辑模式状态与切换函数**
 

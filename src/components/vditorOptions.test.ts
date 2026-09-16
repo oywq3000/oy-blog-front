@@ -47,15 +47,16 @@ describe('buildVditorOptions', () => {
     expect(opts.height).not.toBe('auto');
   });
 
-  it('全屏模式层级高于站点 NavBar(z-index 100)', () => {
+  it('全屏模式层级高于站点导航栏 .navbar(z-index 1000)', () => {
     const opts = buildVditorOptions({
       mode: 'ir', theme: 'classic', placeholder: '', initialValue: '',
       onInput: () => {}, onUpload: async () => {},
     });
-    // NavBar z-index 100,vditor 全屏默认 90 —— 提到 100 以上,需配合父级
-    // .editor-layout 不建 stacking context(z-index 移除,见 ArticleEditor.vue)才生效。
+    // 站点头部 .navbar 本体 position:fixed z-index:1000(子元素 logo/controls 1001);
+    // vditor 全屏默认 90,需提到其层级树以上 —— 2000;同时配合父级 .editor-layout
+    // 不建 stacking context(见 ArticleEditor.vue)才实际生效。
     expect((opts.fullscreen as { index?: number } | undefined)?.index ?? 90)
-      .toBeGreaterThan(100);
+      .toBeGreaterThan(1000);
   });
 
   it('默认工具栏不含录音 record 项(产品不要录音功能)', () => {

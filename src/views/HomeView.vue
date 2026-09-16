@@ -7,6 +7,9 @@ import HeroSection from '../components/HeroSection.vue';
 import TagCloud from '../components/TagCloud.vue';
 import ColumnRail from '../components/ColumnRail.vue';
 import TrendRail from '../components/TrendRail.vue';
+import ArticleRail from '../components/ArticleRail.vue';
+import ArticleRailCard from '../components/ArticleRailCard.vue';
+import IconMdiHeart from '~icons/mdi/heart';
 import { useAppStore } from '../store/app';
 import {
   getPublishedArticles,
@@ -202,10 +205,9 @@ const observeElements = () => {
 // ---- 猜你喜欢：按当前用户/游客画像推荐相似文章（冷启动回退热榜），游客/登录通吃 ----
 const RECOMMEND_PAGE_SIZE = 10;
 const recommendArticles = ref<ArticleItem[]>([]);
-const recommendLoading = ref(false);
+const recommendRail = ref<InstanceType<typeof ArticleRail> | null>(null);
 
 const fetchRecommend = async () => {
-  recommendLoading.value = true;
   try {
     const res = await getRecommendations(1, RECOMMEND_PAGE_SIZE);
     if (res.isSuccess && res.data && res.data.data.length) {
@@ -213,9 +215,11 @@ const fetchRecommend = async () => {
       // 新卡片是 opacity:0 的 .fade-in-up，必须 re-observe 才会显示（同 fetchHot/loadNextPage）
       await nextTick();
       observeElements();
+      // 卡片渲染后轨道才有真实宽度，初始化箭头边界态（同 TrendRail）
+      recommendRail.value?.refreshArrows();
     }
-  } finally {
-    recommendLoading.value = false;
+  } catch {
+    // 拉取失败整块隐藏，不影响首页其余内容
   }
 };
 
@@ -272,25 +276,46 @@ onUnmounted(() => {
       <!-- 热门标签云（自取数） -->
       <TagCloud />
 
-      <!-- 正在暴涨：近 7 天窗口差分榜横滑条（TrendRail 自拉数据、无内容不渲染） -->
-      <TrendRail />
-
       <!-- 猜你喜欢：按用户/游客画像推荐相似文章（冷启动回退热榜；无数据则整块不渲染） -->
       <section
-        v-if="showContent && (recommendLoading || recommendArticles.length)"
-        class="recommend-section fade-in-up"
+        v-if="showContent && recommendArticles.length"
+        class="recommend-rail-section fade-in-up"
         aria-labelledby="recommend-title"
       >
-        <h2 id="recommend-title" class="section-title">✨ 猜你喜欢</h2>
-        <div v-if="recommendLoading" class="articles-list" aria-hidden="true">
-          <div>加载中…</div>
-        </div>
-        <div v-else-if="recommendArticles.length" class="articles-list">
-          <div v-for="article in recommendArticles" :key="article.id" class="fade-in-up">
-            <ArticleCard v-bind="article" />
-          </div>
-        </div>
+        <ArticleRail
+          ref="recommendRail"
+          :prev-label="t('home.scrollLeft')"
+          :next-label="t('home.scrollRight')"
+          :region-label="t('home.guessYouLike')"
+        >
+          <template #title>
+            <h2 id="recommend-title" class="recommend-rail-title">
+              <IconMdiHeart class="recommend-rail-title-icon" aria-hidden="true" />
+              <span class="text-gradient">{{ t('home.guessYouLike') }}</span>
+            </h2>
+          </template>
+          <ArticleRailCard
+            v-for="article in recommendArticles"
+            :key="article.id"
+            size="lg"
+            :id="article.id"
+            :title="article.title"
+            :summary="article.summary"
+            :image="article.image || undefined"
+            :tags="article.tags"
+            :art-icon="IconMdiHeart"
+            :art-label="t('home.guessYouLike')"
+            :author-name="article.authorName"
+            :author-avatar="article.authorAvatar"
+            :view-count="article.viewCount"
+            :like-count="article.likeCount"
+            :reading-time-minutes="article.readingTimeMinutes"
+          />
+        </ArticleRail>
       </section>
+
+      <!-- 正在暴涨：近 7 天窗口差分榜横滑条（TrendRail 自拉数据、无内容不渲染） -->
+      <TrendRail />
 
       <!-- 双窗格：最新文章 + 排行榜，两列独立滚动（桌面） -->
       <div class="columns-wrap" id="articles-section">
@@ -441,8 +466,26 @@ onUnmounted(() => {
   margin-bottom: $spacing-xxl;
 }
 
-.recommend-section {
-  margin-bottom: $spacing-xxl;
+.recommend-rail-section {
+  margin-bottom: $spacing-lg;
+}
+
+// 与 TrendRail 标题同款：左侧图标 + text-gradient 渐变字 + 虚线分隔
+.recommend-rail-title {
+  margin: 0;
+  padding-bottom: $spacing-sm;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--color-text-primary);
+  border-bottom: 1px dashed var(--color-border);
+}
+
+.recommend-rail-title-icon {
+  margin-right: 6px;
+  font-size: 1.2rem;
+  color: var(--color-accent-primary);
+  vertical-align: -0.15em;
 }
 
 .section-title {

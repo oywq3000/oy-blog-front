@@ -105,4 +105,48 @@ describe('FloatingAssistant 悬浮助手', () => {
     await mountAssistant('/agent')
     expect(ball()).toBeNull()
   })
+
+  // 以下两条用真实 FloatingChatPanel（不 stub），验证 Fix 2 的 .settings-overlay 守卫
+  it('设置弹窗打开时，点弹窗控件不收起面板', async () => {
+    localStorage.setItem(FLOATING_HINT_KEY, '1') // 避免首访气泡干扰
+    const router = makeRouter('/')
+    await router.isReady()
+    const wrapper = mount(FloatingAssistant, {
+      attachTo: document.body,
+      global: { plugins: [router] }, // 不 stub FloatingChatPanel
+    })
+    // 开面板
+    document.body.querySelector('.floating-ball')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    // 打开设置弹窗
+    document.body.querySelector('.floating-panel__settings')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    expect(document.body.querySelector('.settings-overlay')).toBeTruthy()
+    // 点弹窗内部控件（温度滑杆所在 field）
+    document.body.querySelector('.settings-field')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    // 面板保持展开
+    expect(document.body.querySelector('.floating-ball')!.getAttribute('aria-expanded')).toBe('true')
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
+
+  it('设置弹窗打开时，ESC 不收起面板', async () => {
+    localStorage.setItem(FLOATING_HINT_KEY, '1')
+    const router = makeRouter('/')
+    await router.isReady()
+    const wrapper = mount(FloatingAssistant, {
+      attachTo: document.body,
+      global: { plugins: [router] },
+    })
+    document.body.querySelector('.floating-ball')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    document.body.querySelector('.floating-panel__settings')!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await flushPromises()
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await flushPromises()
+    expect(document.body.querySelector('.floating-ball')!.getAttribute('aria-expanded')).toBe('true')
+    wrapper.unmount()
+    document.body.innerHTML = ''
+  })
 })

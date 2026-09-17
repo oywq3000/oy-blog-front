@@ -64,7 +64,7 @@ App.vue ──<FloatingAssistant/>── (Teleport 到 <body>)
 | `src/utils/zIndex.ts` | 改 | 新增 `FLOATING_Z_INDEX = 950` |
 | `src/App.vue` | 改 | 挂 `<FloatingAssistant />`（与 `<Toast />` 同层） |
 | `src/components/agent/ChatWelcome.vue` | 改 | 加 `compact` prop（小窗缩小头像/标题/建议条密度） |
-| `src/locales/zh.ts` / `en.ts` | 改 | 浮窗文案（注意裸 `@` 陷阱） |
+| `src/locales/zh.ts` / `en.ts` | ~~改~~ **暂缓** | 见 §8：浮窗文案随 agent 模块统一硬编码中文，暂不做 i18n |
 
 复用（**零改动**）：`ChatMessageList`（自带滚动/吸底/回到最新 FAB）、`ChatInput`（深度思考/模型/停止/重发）、`ChatSettingsModal`（设置弹窗，2000 > 950 能盖在面板上）。
 
@@ -84,7 +84,7 @@ App.vue ──<FloatingAssistant/>── (Teleport 到 <body>)
 - 结构：header / body / footer
   - header：状态点 + 标题「OY AI 助手」+ 设置齿轮（开 ChatSettingsModal）+ 展开全屏（`router.push` 到 `/agent`）+ 最小化（收球）
   - body：无会话 → `ChatWelcome(compact)`；有会话 → `ChatMessageList`
-  - footer：复用 `ChatInput`；「新对话」按钮在会话中存在时显示（调用 `createConversation`）
+  - footer：复用 `ChatInput`；「新对话」按钮在 **header** 常驻显示（调用 `createConversation`）——实现比初稿「会话中存在时显示」更直接，头部 + 按钮常显对用户更可预期
 - 开合动画：scale + 轻微透明度过渡
 
 ### 6.4 隐藏规则（纯函数，见 `useFloatingAssistant`）
@@ -93,17 +93,20 @@ visible = routeName 不在 {agent, agent-conversation}
           && 编辑器未处于全屏写作模式
 ```
 - `/agent` 与 `/agent/:conversationId`：隐藏（同一功能两入口，避免重复）
-- 编辑器全屏：`MarkdownLiveEditor` 进入/退出全屏时置一个全局信号（模块级 ref），浮球监听
+- 编辑器全屏：vditor 内部切换 `.vditor--fullscreen` 类且无钩子暴露，浮球用 body class 的 `MutationObserver` 识别进入/退出（值变化才写，`onBeforeUnmount` 断开）——比初稿「编辑器置模块级信号」更自包含
 
 ### 6.5 打开 / 关闭
 - 点球：开/关切换
 - 面板内点 X / 最小化：收起
-- 点面板外部（document click 落在 widget 根外）：收起
+- 点面板外部（document click 落在 widget 根外）：收起——**设置弹窗打开时除外**：弹窗 Teleport 到 body 在 widget 外，其遮罩铺满视口，模态内/遮罩上的点击用 `closest('.settings-overlay')` 判定为「弹窗内」，不收起面板；ESC 在弹窗打开时同样让位
 - ESC：收起
 - 切路由：**保持展开**（跨页对话不中断）
 
 ### 6.6 响应式（< 768px）
-- 面板变全屏 bottom-sheet：`position: fixed; inset: 0`，头部 `padding-top: env(safe-area-inset-top)`
+- 面板变真·全屏 bottom-sheet：`position: fixed; inset: 0; height: 100dvh（回退 100vh）`，头部 `padding-top: env(safe-area-inset-top)`
+
+### 6.7 与既有组件的几何关系（review 后补充）
+- 球/面板整体上移至 `.floating-root { bottom: 88px }`——避开既有 BackToTop（bottom:32 ・ 48px，顶边 80px），覆盖前的完全遮挡为最终 review 发现并修复
 
 ## 7. 层级规范
 
@@ -118,7 +121,7 @@ visible = routeName 不在 {agent, agent-conversation}
 
 ## 8. i18n
 
-`zh.ts` / `en.ts` 新增文案：面板标题、展开全屏、最小化、新对话、首访气泡语等。**不使用裸 `@`**（既有回归测试在 `src/locales/compile.test.ts`）。
+**暂缓（实现决定）**：整个 agent 模块（ChatWelcome/ChatInput/消息列表等 7 个组件）均为硬编码中文、未接 i18n，仅 nav 标签在用。若只给浮窗做双语会产生同屏混排并为未来统一改造制造债。浮窗文案跟随模块惯例硬编码中文。如需双语，应随后对整个 agent 模块统一处理（届时注意裸 `@` 陷阱与 `src/locales/compile.test.ts` 回归）。
 
 ## 9. 测试
 

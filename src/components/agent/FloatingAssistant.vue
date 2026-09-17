@@ -25,13 +25,21 @@ const visible = computed(() =>
 )
 
 function handleDocumentClick(e: MouseEvent) {
-  if (open.value && widgetRoot.value && !widgetRoot.value.contains(e.target as Node)) {
-    closePanel()
-  }
+  const target = e.target
+  if (!open.value || !widgetRoot.value) return
+  if (widgetRoot.value.contains(target as Node)) return
+  // 设置弹窗 Teleport 到 body（在 widget 外）：开模态时所有点击都在 .settings-overlay 内
+  // （其遮罩铺满视口），不当作"点击外部"收起面板
+  if ((target as Element)?.closest?.('.settings-overlay')) return
+  closePanel()
 }
 
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && open.value) closePanel()
+  if (e.key === 'Escape' && open.value) {
+    // 设置弹窗打开时 ESC 让位（弹窗由遮罩/关闭按钮 dismiss，不联动面板）
+    if (document.querySelector('.settings-overlay')) return
+    closePanel()
+  }
 }
 
 // 编辑器全屏写作模式由 vditor 内部切换 .vditor--fullscreen 类，无显式钩子；
@@ -115,7 +123,7 @@ onBeforeUnmount(() => {
 .floating-root {
   position: fixed;
   right: 24px;
-  bottom: 24px;
+  bottom: 88px; // 球底部 88px 高于 BackToTop 顶部 80px（8px 间距），互不遮挡
   display: flex;
   flex-direction: column;
   align-items: flex-end;

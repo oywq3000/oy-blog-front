@@ -116,7 +116,8 @@ function handleExpand() {
   flex-direction: column;
   width: min(384px, calc(100vw - 32px));
   height: min(76vh, 640px);
-  min-height: 400px;
+  // 小视口下不超屏：球已上移到底部 88px，min-height 固定 400px 会顶出可滚动溢出
+  min-height: min(400px, calc(100vh - 160px));
   background: var(--color-bg-primary);
   border: 1px solid var(--color-border);
   border-radius: 16px;
@@ -191,8 +192,11 @@ function handleExpand() {
 
 @media (max-width: 767px) {
   .floating-panel {
+    position: fixed;
+    inset: 0;
     width: 100%;
-    height: 100%;
+    height: 100vh;
+    height: 100dvh; // 现代浏览器避开移动端地址栏动态高
     min-height: 0;
     border-radius: 0;
     border: none;

@@ -3,6 +3,7 @@ import type { SuggestedQuestion } from '../../types/agent'
 
 defineProps<{
   suggestedQuestions: SuggestedQuestion[]
+  compact?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -15,7 +16,7 @@ function handleClick(text: string) {
 </script>
 
 <template>
-  <div class="chat-welcome">
+  <div class="chat-welcome" :class="{ 'chat-welcome--compact': compact }">
     <div class="chat-welcome__center">
       <!-- AI Avatar -->
       <div class="chat-welcome__avatar">🤖</div>
@@ -135,6 +136,45 @@ function handleClick(text: string) {
     font-size: 14px;
     color: var(--color-text-primary);
     line-height: 1.4;
+  }
+}
+
+// 悬浮小窗紧凑模式：头像/标题缩小、去副标题、建议胶囊更紧凑
+.chat-welcome--compact {
+  padding: 16px 12px;
+
+  .chat-welcome__avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+    margin-bottom: 10px;
+  }
+
+  .chat-welcome__title {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .chat-welcome__subtitle {
+    display: none;
+  }
+
+  .chat-welcome__suggestions {
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .chat-welcome__chip {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .chat-welcome__chip-icon {
+    font-size: 14px;
+  }
+
+  .chat-welcome__chip-text {
+    font-size: 13px;
   }
 }
 </style>

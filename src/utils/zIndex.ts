@@ -6,3 +6,4 @@
  * z-index:1 层叠上下文 —— 两者缺一不可，否则弹窗会盖住报错气泡。
  */
 export const TOAST_Z_INDEX = 100000;
+export const FLOATING_Z_INDEX = 950;

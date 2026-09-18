@@ -25,12 +25,16 @@ const visible = computed(() =>
 )
 
 function handleDocumentClick(e: MouseEvent) {
-  const target = e.target
   if (!open.value || !widgetRoot.value) return
-  if (widgetRoot.value.contains(target as Node)) return
-  // 设置弹窗 Teleport 到 body（在 widget 外）：开模态时所有点击都在 .settings-overlay 内
-  // （其遮罩铺满视口），不当作"点击外部"收起面板
-  if ((target as Element)?.closest?.('.settings-overlay')) return
+  // 不能用 root.contains(target)：点 chip 等触发换 DOM 的目标时，目标子树已被 Vue
+  // （v-if 欢迎页↔消息列表）在 document 冒泡到本处理器**之前**卸载，游离节点
+  // contains() 必为 false → 误收面板。composedPath() 是派发开始时按当时 DOM 定格的
+  // 传播路径，即使监听器运行时节点已脱离，路径仍含 widgetRoot/弹窗遮罩。
+  const path = e.composedPath()
+  if (path.includes(widgetRoot.value)) return // 点在球/面板内
+  // 设置弹窗 Teleport 到 body（widget 外）：开模态时点击在 .settings-overlay 内
+  // （遮罩铺满视口），不当"点击外部"收起面板
+  if (path.some(n => (n as Element)?.classList?.contains('settings-overlay'))) return
   closePanel()
 }
 

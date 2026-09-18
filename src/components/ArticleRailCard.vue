@@ -106,7 +106,11 @@ function formatCount(n: number | undefined): string {
         />
       </div>
 
-      <div v-if="hasMeta" class="rail-card__meta">
+      <div
+        v-if="hasMeta"
+        class="rail-card__meta"
+        :class="{ 'rail-card__meta--standalone': !(tags && tags.length) }"
+      >
         <span v-if="hasAuthor" class="rail-card__author">
           <router-link
             v-if="authorId"
@@ -171,7 +175,7 @@ function formatCount(n: number | undefined): string {
 .rail-card {
   position: relative;
   flex: 0 0 270px;
-  min-height: 230px;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   border-radius: $radius-lg;
@@ -186,16 +190,16 @@ function formatCount(n: number | undefined): string {
 
   &--lg {
     flex-basis: 300px;
-    min-height: 270px;
+    min-height: 240px;
   }
 
   @media (max-width: $breakpoint-mobile) {
     flex-basis: 230px;
-    min-height: 200px;
+    min-height: 175px;
 
     &--lg {
       flex-basis: 260px;
-      min-height: 240px;
+      min-height: 210px;
     }
   }
 
@@ -280,8 +284,8 @@ function formatCount(n: number | undefined): string {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 14px 14px;
+  gap: 7px;
+  padding: 12px 12px 12px;
 }
 
 // 左上角小胶囊角标：图标 + 短文案，不抢下方信息
@@ -332,23 +336,28 @@ function formatCount(n: number | undefined): string {
   overflow: hidden;
 }
 
+// 标签 + 元信息行构成「底部注脚组」：标签的 auto 边距把整组压到卡片底部；
+// 没标签的卡由元信息行的 --standalone 兜底同样锚底，保证作者位置处处靠下统一
 .rail-card__tags {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  margin-top: auto;
 }
 
-// 元信息行（作者/浏览/点赞/时长）用 margin-top:auto 始终钉在卡片底部：
-// 否则「有标签的卡」底部、「没标签的卡」顶部，作者位置随内容漂移不统一
 .rail-card__meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: $spacing-sm;
-  margin-top: auto;
   padding-top: 10px;
   border-top: 1px dashed var(--color-border);
+
+  // 无标签时兜底：作者/数据行照旧钉在卡片底部
+  &--standalone {
+    margin-top: auto;
+  }
 }
 
 .rail-card__author {

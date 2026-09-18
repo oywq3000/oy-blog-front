@@ -100,6 +100,14 @@ describe('ArticleRailCard 横向信息卡', () => {
     expect(wrapper.find('.rail-card__meta').exists()).toBe(false);
   });
 
+  it('无标签时元信息行带 --standalone 锚底类，有标签时不带（保证作者位置统一靠下）', () => {
+    const withTags = mountCard({ id: 'a', title: 't', tags: ['vue'], viewCount: 1 });
+    expect(withTags.find('.rail-card__meta--standalone').exists()).toBe(false);
+
+    const noTags = mountCard({ id: 'a', title: 't', viewCount: 1 });
+    expect(noTags.find('.rail-card__meta--standalone').exists()).toBe(true);
+  });
+
   it('尺寸 class：sm 默认，lg 可切换', () => {
     const sm = mountCard({ id: 'a', title: 't' });
     expect(sm.classes()).toContain('rail-card--sm');

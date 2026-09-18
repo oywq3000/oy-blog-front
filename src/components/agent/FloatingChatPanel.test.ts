@@ -55,4 +55,10 @@ describe('FloatingChatPanel 悬浮小窗', () => {
     await w.find('.floating-panel__close').trigger('click')
     expect(w.emitted('close')).toHaveLength(1)
   })
+
+  // 回归说明：小窗消息列表的滚动/自动吸底依赖 __body 是受约束的 flex 列
+  // （块盒子下列表 flex:1 失效、按内容撑高，overflow-y:auto 无滚动、滚轮冒泡到页面）。
+  // 该 CSS 布局契约无法在 happy-dom 断言（环境不注入 SFC scoped 样式、getComputedStyle 返回空串），
+  // 由浏览器人工走查覆盖；样式改动时留意 FloatingChatPanel.vue 的 &__body 必须保持
+  // display:flex; flex-direction:column（对照大屏 AgentView .chat-main 的同一模式）。
 })

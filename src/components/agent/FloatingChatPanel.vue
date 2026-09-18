@@ -175,6 +175,11 @@ function handleExpand() {
   }
 
   &__body {
+    // 必须是 flex 列：ChatMessageList 靠 flex:1 + min-height:0 在有限高度内滚动。
+    // 块盒子下列表 flex:1 失效、高度按内容撑开 → overflow-y:auto 无滚动对象，
+    // 自动吸底 scrollTo 失效、滚轮冒泡滚到整个页面（与 AgentView .chat-main 同一模式）。
+    display: flex;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
     // 小窗内消息列表自带滚动，压缩默认留白（大屏 24px 在小窗里太占位）

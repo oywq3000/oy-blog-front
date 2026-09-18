@@ -172,14 +172,14 @@ onBeforeUnmount(() => {
 }
 
 .floating-ball {
-  width: 56px;
-  height: 56px;
+  width: 45px; // 56px 缩小 20%
+  height: 45px;
   border-radius: 50%;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 19px; // 与图标同比例缩小
   cursor: pointer;
   background: linear-gradient(135deg, #2060c0, #6366f1);
   color: #fff;
